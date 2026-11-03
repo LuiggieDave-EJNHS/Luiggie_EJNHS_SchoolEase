@@ -13,6 +13,9 @@ using SchoolEase.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Fix for Npgsql 6.0+ DateTime issue when using DateTime.Today/Now with timestamp with time zone
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
 // Configuration
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("Mail"));
 
