@@ -45,15 +45,23 @@ public class EmailSender : IEmailSender
             client.Timeout = 30000;
             client.CheckCertificateRevocation = false;
 
-            // FORCE IPv4: Many cloud hosts have broken IPv6 routing to Google
-            client.LocalDomain = "localhost"; 
-
+            // Use smtp.googlemail.com if smtp.gmail.com is blocked
+            var host = _settings.SmtpServer.Contains("gmail.com") ? "smtp.googlemail.com" : _settings.SmtpServer;
             var port = _settings.SmtpPort == 0 ? 465 : _settings.SmtpPort;
             var options = port == 465 ? SecureSocketOptions.SslOnConnect : SecureSocketOptions.StartTls;
 
-            _logger.LogInformation("SMTP: Connecting to {Server}:{Port} ({Options})...", _settings.SmtpServer, port, options);
+            _logger.LogInformation("SMTP: Connecting to {Host}:{Port} ({Options})...", host, port, options);
             
-            await client.ConnectAsync(_settings.SmtpServer, port, options);
+            try 
+            {
+                await client.ConnectAsync(host, port, options);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning("Primary SMTP connection failed: {Message}. Trying fallback...", ex.Message);
+                // Fallback to the original setting if the hardcoded googlemail fails
+                await client.ConnectAsync(_settings.SmtpServer, port, options);
+            }
 
             if (!string.IsNullOrEmpty(_settings.SmtpUser))
             {
