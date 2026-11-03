@@ -156,8 +156,13 @@ public class AccountController : Controller
             // Send actual email - wrapped in try/catch to prevent registration crash if SMTP fails
             try
             {
-                await _emailSender.SendEmailAsync(user.Email, "Activate your SchoolEase Account", 
-                    $"Please confirm your account by <a href='{confirmationLink}'>clicking here</a>.");
+                var logoUrl = Url.Content("~/images/logo.jpg");
+                if (logoUrl.StartsWith("~")) logoUrl = logoUrl.Substring(1);
+                var fullLogoUrl = $"{Request.Scheme}://{Request.Host}{logoUrl}";
+
+                var emailBody = EmailTemplates.AccountActivation(user.FullName, confirmationLink!, fullLogoUrl);
+                
+                await _emailSender.SendEmailAsync(user.Email!, "Activate your SchoolEase Account", emailBody);
             }
             catch (Exception ex)
             {

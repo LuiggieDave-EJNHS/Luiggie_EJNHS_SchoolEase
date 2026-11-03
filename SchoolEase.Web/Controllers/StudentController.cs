@@ -11,7 +11,7 @@ using SchoolEase.Web.Services;
 namespace SchoolEase.Web.Controllers;
 
 /// <summary>Self-service portal for learners.</summary>
-[Authorize(Roles = Roles.Student)]
+[Authorize(Roles = $"{Roles.Student},{Roles.FormerStudent}")]
 public class StudentController : Controller
 {
     private const int PageSize = 15;

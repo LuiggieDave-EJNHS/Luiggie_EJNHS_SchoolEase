@@ -54,7 +54,7 @@ public class CurrentUserService : ICurrentUserService
     public bool IsSuperAdministrator => IsInRole(Roles.SuperAdministrator);
     public bool IsIctHeadCoordinator => IsInRole(Roles.IctHeadCoordinator);
     public bool IsTeacher => IsInRole(Roles.Teacher);
-    public bool IsStudent => IsInRole(Roles.Student);
+    public bool IsStudent => IsInRole(Roles.Student) || IsInRole(Roles.FormerStudent);
     public bool IsRegistrar => IsInRole(Roles.Registrar);
 
     public bool HasSchoolWideAccess => IsAdministrator || IsIctHeadCoordinator;
@@ -75,6 +75,7 @@ public class CurrentUserService : ICurrentUserService
     public string HomeAction => PrimaryRole switch
     {
         Roles.Student => "/Student/Dashboard",
+        Roles.FormerStudent => "/Student/Dashboard",
         Roles.Teacher => "/Teacher/Dashboard",
         _ => "/Dashboard/Index"
     };
