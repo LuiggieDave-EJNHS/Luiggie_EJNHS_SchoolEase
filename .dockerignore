@@ -1,0 +1,28 @@
+## Build output
+**/bin/
+**/obj/
+**/publish/
+
+## Local databases - never ship these into an image
+**/*.db
+**/*.db-shm
+**/*.db-wal
+**/*.sqlite
+
+## Secrets / machine-specific settings
+**/appsettings.Development.json
+**/appsettings.Local.json
+**/secrets.json
+
+## Data-protection key ring
+**/keys/
+
+## Tooling / VCS
+.git/
+.gitignore
+.vs/
+.idea/
+.vscode/
+
+## Docs
+README.md

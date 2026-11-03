@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
 using SchoolEase.Web.Models;
 using SchoolEase.Web.Models.Entities;
@@ -12,17 +13,20 @@ public class AccountController : Controller
 {
     private readonly SignInManager<AppUser> _signInManager;
     private readonly UserManager<AppUser> _userManager;
+    private readonly IEmailSender _emailSender;
     private readonly IAuditService _audit;
     private readonly ILogger<AccountController> _logger;
 
     public AccountController(
         SignInManager<AppUser> signInManager,
         UserManager<AppUser> userManager,
+        IEmailSender emailSender,
         IAuditService audit,
         ILogger<AccountController> logger)
     {
         _signInManager = signInManager;
         _userManager = userManager;
+        _emailSender = emailSender;
         _audit = audit;
         _logger = logger;
     }
@@ -131,7 +135,7 @@ public class AccountController : Controller
             FullName = model.FullName.Trim(),
             CreatedAt = DateTime.UtcNow,
             IsActive = true,
-            EmailConfirmed = true // Auto-confirm for this demo/local setup
+            EmailConfirmed = false
         };
 
         var result = await _userManager.CreateAsync(user, model.Password);
@@ -149,8 +153,9 @@ public class AccountController : Controller
             var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
             var confirmationLink = Url.Action("ConfirmEmail", "Account", new { userId = user.Id, token }, Request.Scheme);
 
-            // LOG the confirmation link (in a real app, send via email)
-            _logger.LogWarning("EMAIL CONFIRMATION LINK FOR {Email}: {Link}", user.Email, confirmationLink);
+            // Send actual email
+            await _emailSender.SendEmailAsync(user.Email, "Activate your SchoolEase Account", 
+                $"Please confirm your account by <a href='{confirmationLink}'>clicking here</a>.");
 
             return View("RegisterSuccess", model.Email);
         }

@@ -205,14 +205,20 @@ Remove-Item SchoolEase.Web\schoolease.db*
 
 | Key | Purpose |
 |-----|---------|
-| `Database:Provider` | `Sqlite` \| `MySql` \| `SqlServer` |
+| `Database:Provider` | `Sqlite` \| `MySql` \| `Postgres` \| `SqlServer` |
 | `Database:MySqlVersion` | Server version string used by Pomelo |
 | `Database:EnableSensitiveDataLogging` | EF detailed logging (dev only) |
 | `Seed:Enabled` | Master switch for seeding on startup |
 | `Seed:DemoData` | Opt in to the sample dataset **and** its sample accounts (default `false` — leave off on a live site) |
 | `Seed:SuperAdminEmail` / `Seed:SuperAdminPassword` / `Seed:SuperAdminName` | The one administrator created on startup, in every environment |
 | `DataProtection:KeysPath` | Folder for the data-protection key ring (default `<content-root>/keys`) |
-| `Https:Redirect` | Set `false` while the host serves HTTP only (see deployment) |
+| `Https:Redirect` | Set `false` when a reverse proxy terminates TLS (Render, Azure, MonsterASP before HTTPS) |
+| `Mail:SmtpServer` | SMTP host used to send account-confirmation e-mails |
+| `Mail:SmtpPort` | SMTP port (587 for STARTTLS, 465 for SSL) |
+| `Mail:SmtpUser` | SMTP username |
+| `Mail:SmtpPass` | SMTP password / app password |
+| `Mail:SenderName` | Display name on outgoing e-mails |
+| `Mail:SenderEmail` | From address on outgoing e-mails |
 
 ---
 
@@ -228,74 +234,99 @@ Remove-Item SchoolEase.Web\schoolease.db*
 
 ---
 
-## 11. Free deployment — MonsterASP.NET
+## 11. Free deployment — GitHub → Render → Neon
 
-[MonsterASP.NET](https://www.monsterasp.net/) hosts ASP.NET Core 8 on IIS with a **free plan**:
-1 website, 5 GB storage, 256 MB RAM, one 1 GB SQL Server or MySQL database, a free
-`*.runasp.net` subdomain, no ads and **no credit card**. HTTPS on the free plan is
-activated by opening a support ticket.
+**GitHub Pages / Vercel cannot host this app.** They serve static files and serverless
+functions only; SchoolEase is a long-running ASP.NET Core server process with a database.
+GitHub is used as the *source*, and a free container host runs the app from it.
+
+The stack below costs **$0 and needs no credit card**:
+
+| Piece | Service | Free tier |
+|-------|---------|-----------|
+| Source + auto-deploy trigger | GitHub | free |
+| Application host | [Render](https://render.com) Web Service (Docker) | 750 instance-hours/month, 512 MB RAM |
+| Database | [Neon](https://neon.tech) PostgreSQL | 0.5 GB storage, always on |
+| HTTPS + auto-deploy on push | included | free |
 
 ### Step 1 — Push the project to GitHub
 
 ```powershell
-git init
 git add .
-git commit -m "SchoolEase"
-git branch -M main
-git remote add origin https://github.com/<your-username>/schoolease.git
-git push -u origin main
+git commit -m "Add Render/PostgreSQL deployment"
+git push origin main
 ```
 
-`.gitignore` already excludes `bin/`, `obj/`, local `*.db` files, `appsettings.Development.json` and the `keys/` key ring.
+The repo already contains a [`Dockerfile`](../Dockerfile) and `.dockerignore`, which is all
+Render needs to build the app.
 
-### Step 2 — Create the site and database
+### Step 2 — Create the free Neon database
 
-1. Sign up at MonsterASP.NET and open the Control Panel.
-2. **Create Website** → name it `schoolease`. Note the URL it gives you, e.g.
-   `https://schoolease.runasp.net`.
-3. **Create Database** → SQL Server (or MySQL). Copy the full connection string.
+1. Sign up at [neon.tech](https://neon.tech) (GitHub sign-in works, no card).
+2. **Create project** → pick the region closest to your users (e.g. Singapore).
+3. Copy the **connection string**. It looks like:
+   `postgresql://user:password@ep-xxx.ap-southeast-1.aws.neon.tech/neondb?sslmode=require`
+4. Convert it to the Npgsql key/value form and **keep `SSL Mode=Require`**:
+   ```
+   Host=ep-xxx.ap-southeast-1.aws.neon.tech;Database=neondb;Username=user;Password=password;SSL Mode=Require;Trust Server Certificate=true
+   ```
 
-### Step 3 — Deploy
+### Step 3 — Create the Render web service
 
-In the website's **Deployment / Git** section, connect your GitHub repository and point the
-project to `SchoolEase.Web/SchoolEase.Web.csproj`. (FTP and Web Deploy from Visual Studio
-also work — publish with `dotnet publish -c Release` and upload the contents of `publish/`.)
-
-The site root must contain the published files where `SchoolEase.Web.dll` sits directly next
-to `web.config`. **`web.config` is required** — it registers the ASP.NET Core handler and
-must use `hostingModel="inprocess"`.
-
-### Step 4 — Point the app at the hosted database
-
-Add these **Application Settings / Environment Variables** in the MonsterASP control panel
-(do not commit real credentials to GitHub):
+1. Sign up at [render.com](https://render.com) with your GitHub account.
+2. **New → Web Service** → connect the `Luiggie_EJNHS_SchoolEase` repository.
+3. Settings:
+   - **Runtime**: `Docker` (auto-detected from the `Dockerfile` in the repo root)
+   - **Instance type**: `Free`
+   - **Region**: the one nearest your users
+4. Add the environment variables below, then click **Create Web Service**.
 
 | Name | Value |
 |------|-------|
-| `Database__Provider` | `SqlServer` (or `MySql`) |
-| `ConnectionStrings__DefaultConnection` | the connection string from Step 2 |
+| `Database__Provider` | `Postgres` |
+| `ConnectionStrings__DefaultConnection` | the Neon string from Step 2 |
 | `Seed__SuperAdminEmail` | your real administrator e-mail |
 | `Seed__SuperAdminPassword` | a strong password for that account |
-| `Seed__SuperAdminName` | (optional) display name for the account |
-| `Https__Redirect` | `false` until HTTPS is activated, then remove this row |
+| `Seed__SuperAdminName` | (optional) display name |
+| `Mail__SmtpServer` | e.g. `smtp.gmail.com` |
+| `Mail__SmtpPort` | `587` |
+| `Mail__SmtpUser` | the mailbox that sends confirmations |
+| `Mail__SmtpPass` | an app password (Gmail requires an App Password, not the login password) |
+| `Mail__SenderName` | `SchoolEase - Emilio Jacinto NHS` |
+| `Mail__SenderEmail` | the same address as `Mail__SmtpUser` |
+| `Https__Redirect` | `false` (Render terminates TLS at its proxy) |
 
-On first request the app creates the schema and then creates the administrator above.
-Sign in with that e-mail, change the password, then create everyone else from
-**System Settings → User Accounts**.
+Render builds the image, then serves the site at `https://<service-name>.onrender.com`.
+The first request creates the schema and the administrator account from the variables above.
 
-### Step 5 — HTTPS
+### Step 4 — Stop the free instance from sleeping
 
-Open a support ticket requesting free Let's Encrypt HTTPS for your `*.runasp.net` site.
-Once HTTPS works, delete the `Https__Redirect` setting so traffic is forced to HTTPS.
+A free Render service sleeps after 15 minutes without traffic. A free uptime pinger keeps
+it awake, and 750 free instance-hours comfortably cover a full month (~730 hours):
+
+1. Create a free monitor at [cron-job.org](https://cron-job.org) or [UptimeRobot](https://uptimerobot.com).
+2. Point it at `https://<service-name>.onrender.com/Account/Login`.
+3. Set the interval to every **10 minutes**.
+
+### Step 5 — Deploying updates
+
+Every `git push` to `main` triggers an automatic rebuild and redeploy — no manual uploads.
 
 ### Troubleshooting
 
 | Symptom | Cause / fix |
 |---------|-------------|
-| `HTTP Error 500.30` | `web.config` missing, or wrong DLL name in `arguments` |
-| `HTTP Error 500.31` | IIS hosting model mismatch — must be `inprocess` |
-| Site redirects to a dead `https://` URL | Set `Https__Redirect` to `false` |
-| Login works but data resets | Database connection string not applied — check Step 4 |
+| Build fails on Render | Check the build log; the `Dockerfile` must be in the repo root |
+| `Npgsql` connection error | `Database__Provider` must be `Postgres` and the string must include `SSL Mode=Require` |
 | Nobody can sign in after deploy | `Seed__SuperAdminEmail` / `Seed__SuperAdminPassword` not set — the startup log warns about this |
-| Blank page, no detail | Read `logs/stdout*.log` under the site root |
+| Users logged out after each deploy | The container filesystem is ephemeral, so the data-protection key ring is regenerated; sign in again |
+| Confirmation e-mails never arrive | `Mail__*` variables missing or wrong — check the Render logs for the "not configured" warning |
+| Links in e-mails point to `http://` | The reverse-proxy headers middleware is missing — already handled in `Program.cs` |
+
+### Alternative: MonsterASP.NET (IIS)
+
+MonsterASP.NET also has a free plan (5 GB, one 1 GB SQL Server/MySQL database, no credit
+card), but it requires publishing and uploading files manually and HTTPS is only enabled by
+opening a support ticket. Use `Database__Provider=SqlServer` or `MySql` and follow the same
+environment-variable names as above, with `Https__Redirect=false` until HTTPS is active.
 

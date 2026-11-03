@@ -9,6 +9,7 @@ namespace SchoolEase.Web.Infrastructure;
 /// supplying the connection string through <c>ConnectionStrings:DefaultConnection</c>:
 ///   "Sqlite"    -> zero-install file database (default, great for demos)
 ///   "MySql"     -> point DefaultConnection at your MySQL server
+///   "Postgres"  -> point DefaultConnection at your PostgreSQL server
 ///   "SqlServer" -> point DefaultConnection at your SQL Server instance
 ///
 /// Keep real credentials out of appsettings.json: set them per environment with
@@ -19,11 +20,14 @@ public static class DatabaseSetup
 {
     public const string Sqlite = "sqlite";
     public const string MySql = "mysql";
+    public const string Postgres = "postgres";
     public const string SqlServer = "sqlserver";
 
     public static IServiceCollection AddSchoolEaseDatabase(this IServiceCollection services, IConfiguration configuration)
     {
         var provider = (configuration["Database:Provider"] ?? Sqlite).Trim().ToLowerInvariant();
+        if (provider is "postgresql" or "pgsql") provider = Postgres;
+
         var connectionString = configuration.GetConnectionString("DefaultConnection")
                                ?? "Data Source=schoolease.db";
 
@@ -35,6 +39,11 @@ public static class DatabaseSetup
                     var version = configuration["Database:MySqlVersion"] ?? "8.0.36";
                     options.UseMySql(connectionString, ServerVersion.Parse(version),
                         my => my.EnableRetryOnFailure().MigrationsHistoryTable("__EFMigrationsHistory"));
+                    break;
+
+                case Postgres:
+                    options.UseNpgsql(connectionString,
+                        npgsql => npgsql.EnableRetryOnFailure().MigrationsHistoryTable("__EFMigrationsHistory"));
                     break;
 
                 case SqlServer:
@@ -60,11 +69,17 @@ public static class DatabaseSetup
     }
 
     /// <summary>Human-readable name of the active engine (shown on the Settings page).</summary>
-    public static string ProviderDisplayName(IConfiguration configuration) =>
-        (configuration["Database:Provider"] ?? Sqlite).Trim().ToLowerInvariant() switch
+    public static string ProviderDisplayName(IConfiguration configuration)
+    {
+        var provider = (configuration["Database:Provider"] ?? Sqlite).Trim().ToLowerInvariant();
+        if (provider is "postgresql" or "pgsql") provider = Postgres;
+
+        return provider switch
         {
             MySql => "MySQL (Pomelo.EntityFrameworkCore.MySql)",
+            Postgres => "PostgreSQL (Npgsql.EntityFrameworkCore.PostgreSQL)",
             SqlServer => "Microsoft SQL Server",
             _ => "SQLite (file database)"
         };
+    }
 }

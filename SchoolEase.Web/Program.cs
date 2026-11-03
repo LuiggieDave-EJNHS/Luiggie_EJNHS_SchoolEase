@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SchoolEase.Web.Data;
@@ -10,6 +12,9 @@ using SchoolEase.Web.Models.Entities;
 using SchoolEase.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Configuration
+builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("Mail"));
 
 // ---------------------------------------------------------------------------
 // Database (SQLite by default, MySQL / SQL Server selectable from appsettings)
@@ -92,6 +97,7 @@ builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddTransient<IEmailSender, EmailSender>();
 
 builder.Services.AddControllersWithViews(options =>
 {
@@ -109,6 +115,19 @@ builder.Services.AddSession(options =>
 });
 
 var app = builder.Build();
+
+// ---------------------------------------------------------------------------
+// Reverse-proxy support (Render, Azure, nginx, any container host).
+// Without this the app only sees plain HTTP from the proxy, so redirects and
+// the links inside confirmation e-mails would be generated as http://.
+// ---------------------------------------------------------------------------
+var forwardedHeaders = new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+};
+forwardedHeaders.KnownNetworks.Clear();
+forwardedHeaders.KnownProxies.Clear();
+app.UseForwardedHeaders(forwardedHeaders);
 
 // ---------------------------------------------------------------------------
 // Database migration + seeding
