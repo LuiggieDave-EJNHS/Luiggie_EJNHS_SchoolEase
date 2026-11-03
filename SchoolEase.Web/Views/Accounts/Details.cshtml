@@ -158,6 +158,14 @@
             <div class="se-card border-danger-subtle">
                 <div class="se-card__head"><h3 class="text-danger"><i class="bi bi-exclamation-triangle me-1"></i>Danger zone</h3></div>
                 <div class="se-card__body d-flex flex-wrap gap-2">
+                    @if (!Model.User.EmailConfirmed)
+                    {
+                        <form asp-action="ConfirmEmail" asp-route-id="@Model.User.Id" method="post">
+                            <button type="submit" class="btn btn-outline-success">
+                                <i class="bi bi-envelope-check me-1"></i>Manually confirm email
+                            </button>
+                        </form>
+                    }
                     <form asp-action="ToggleActive" asp-route-id="@Model.User.Id" method="post">
                         <button type="submit" class="btn btn-outline-secondary">
                             <i class="bi bi-toggle-off me-1"></i>@(Model.User.IsActive ? "Deactivate account" : "Activate account")

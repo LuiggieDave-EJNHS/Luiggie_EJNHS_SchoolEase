@@ -304,6 +304,29 @@ public class AccountsController : Controller
     }
 
     // ------------------------------------------------------------------
+    // Manually confirm email
+    // ------------------------------------------------------------------
+    [HttpPost]
+    public async Task<IActionResult> ConfirmEmail(string id)
+    {
+        var user = await _userManager.FindByIdAsync(id);
+        if (user is null) return NotFound();
+
+        if (user.EmailConfirmed)
+        {
+            TempData["Info"] = "This account is already confirmed.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        user.EmailConfirmed = true;
+        await _userManager.UpdateAsync(user);
+
+        await _audit.LogAsync("Manual Email Confirmation", "Account", user.Id, $"Super Admin manually confirmed email for {user.Email}.");
+        TempData["Success"] = $"Email for {user.FullName} has been manually confirmed.";
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    // ------------------------------------------------------------------
     // Delete
     // ------------------------------------------------------------------
     [HttpPost]
