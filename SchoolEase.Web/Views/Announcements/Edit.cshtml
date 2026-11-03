@@ -1,0 +1,79 @@
+@model Announcement
+@{
+    ViewData["Title"] = $"Edit {Model.Title}";
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = "Edit Announcement",
+    Subtitle = $"Editing \"{Model.Title}\"",
+    Icon = "bi-pencil-square",
+    Actions = new List<PageAction>
+    {
+        new() { Text = "Cancel", Url = Url.Action("Details", new { id = Model.Id }), Icon = "bi-arrow-left", Css = "btn btn-light" }
+    }
+})" />
+
+<div class="se-card">
+    <div class="se-card__body">
+        <form asp-action="Edit" asp-route-id="@Model.Id" method="post">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 se-small"></div>
+            <input type="hidden" asp-for="Id" />
+
+            <div class="se-form-grid">
+                <div class="se-form-section"><h3>Content</h3></div>
+
+                <div class="se-span-2">
+                    <label class="se-form-label" asp-for="Title">Title <span class="req">*</span></label>
+                    <input asp-for="Title" class="form-control" />
+                    <span asp-validation-for="Title" class="text-danger se-small"></span>
+                </div>
+
+                <div class="se-span-2">
+                    <label class="se-form-label" asp-for="Content">Content <span class="req">*</span></label>
+                    <textarea asp-for="Content" rows="8" class="form-control" data-se-counter="#contentCount"></textarea>
+                    <span id="contentCount" class="se-tiny se-muted"></span>
+                    <span asp-validation-for="Content" class="text-danger se-small d-block"></span>
+                </div>
+
+                <div class="se-form-section"><h3>Targeting &amp; schedule</h3></div>
+
+                <div>
+                    <label class="se-form-label" asp-for="Priority">Priority <span class="req">*</span></label>
+                    <select asp-for="Priority" asp-items="SelectLists.EnumOptions<AnnouncementPriority>(Model.Priority)" class="form-select"></select>
+                    <span asp-validation-for="Priority" class="text-danger se-small"></span>
+                </div>
+
+                <div>
+                    <label class="se-form-label" asp-for="Audience">Target Audience <span class="req">*</span></label>
+                    <select asp-for="Audience" asp-items="SelectLists.EnumOptions<Audience>(Model.Audience)" class="form-select"></select>
+                    <span asp-validation-for="Audience" class="text-danger se-small"></span>
+                </div>
+
+                <div>
+                    <label class="se-form-label" asp-for="PublishDate">Publish Date <span class="req">*</span></label>
+                    <input asp-for="PublishDate" class="form-control" />
+                    <span asp-validation-for="PublishDate" class="text-danger se-small"></span>
+                </div>
+
+                <div>
+                    <label class="se-form-label" asp-for="ExpireDate">Expiry Date</label>
+                    <input asp-for="ExpireDate" class="form-control" />
+                    <span asp-validation-for="ExpireDate" class="text-danger se-small"></span>
+                </div>
+
+                <div class="se-span-2">
+                    <div class="form-check">
+                        <input asp-for="IsPublished" class="form-check-input" />
+                        <label class="form-check-label se-small" asp-for="IsPublished">Published (visible to the audience)</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-check2 me-1"></i>Save changes</button>
+                <a class="btn btn-light" asp-action="Details" asp-route-id="@Model.Id">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>

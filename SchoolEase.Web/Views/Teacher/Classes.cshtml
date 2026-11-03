@@ -1,0 +1,93 @@
+@model TeacherClassesViewModel
+@{
+    ViewData["Title"] = "My Classes";
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = "My Classes",
+    Subtitle = "Sections you advise or teach, and the subjects you handle in each.",
+    Icon = "bi-people",
+    Actions = new List<PageAction>
+    {
+        new() { Text = "My Schedule", Url = Url.Action("Schedule"), Icon = "bi-calendar-week", Css = "btn btn-light" }
+    }
+})" />
+
+@if (Model.Teacher is null)
+{
+    <div class="se-card">
+        <partial name="_EmptyState" model="@(new EmptyState
+        {
+            Icon = "bi-person-video3",
+            Title = "No teaching record linked",
+            Message = "Your account is not yet linked to a teacher record. Please contact the school administrator."
+        })" />
+    </div>
+}
+else if (Model.Classes.Count == 0)
+{
+    <div class="se-card">
+        <partial name="_EmptyState" model="@(new EmptyState
+        {
+            Icon = "bi-diagram-3",
+            Title = "No classes assigned",
+            Message = "You have not yet been assigned as an adviser or subject teacher for any section."
+        })" />
+    </div>
+}
+else
+{
+    <div class="row g-3">
+        @foreach (var card in Model.Classes)
+        {
+            <div class="col-lg-6">
+                <div class="se-card h-100 mb-0">
+                    <div class="se-card__head">
+                        <h3>
+                            <i class="bi bi-diagram-3 me-1"></i>@card.Section.Name
+                            <span class="se-muted se-small">@card.Section.GradeLevel?.Name</span>
+                        </h3>
+                        @if (card.IsAdviser)
+                        {
+                            <span class="se-badge text-bg-primary"><i class="bi bi-star-fill"></i>Adviser</span>
+                        }
+                        else
+                        {
+                            <span class="se-badge text-bg-secondary"><i class="bi bi-person"></i>Subject Teacher</span>
+                        }
+                    </div>
+                    <div class="se-card__body">
+                        <div class="d-flex flex-wrap gap-3 mb-3">
+                            <span class="se-small"><i class="bi bi-people me-1 text-primary"></i><strong>@card.StudentCount</strong> students</span>
+                            <span class="se-small"><i class="bi bi-geo-alt me-1 text-primary"></i>@(string.IsNullOrWhiteSpace(card.Section.Room) ? "No room" : card.Section.Room)</span>
+                            <span class="se-small"><i class="bi bi-journal-bookmark me-1 text-primary"></i>@card.Subjects.Count subject(s)</span>
+                        </div>
+
+                        @if (card.Subjects.Count > 0)
+                        {
+                            <div class="d-flex flex-wrap gap-1 mb-3">
+                                @foreach (var subject in card.Subjects)
+                                {
+                                    <span class="se-pill"><i class="bi bi-book"></i>@subject.Code</span>
+                                }
+                            </div>
+                        }
+
+                        <div class="d-flex flex-wrap gap-2">
+                            <a class="btn btn-sm btn-primary" asp-controller="Attendance" asp-action="Mark" asp-route-sectionId="@card.Section.Id">
+                                <i class="bi bi-clipboard-check me-1"></i>Attendance
+                            </a>
+                            <a class="btn btn-sm btn-light" asp-controller="Grades" asp-action="Encode" asp-route-sectionId="@card.Section.Id">
+                                <i class="bi bi-mortarboard me-1"></i>Encode Grades
+                            </a>
+                            <a class="btn btn-sm btn-light" asp-controller="Students" asp-action="Index" asp-route-sectionId="@card.Section.Id">
+                                <i class="bi bi-people me-1"></i>Students
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}

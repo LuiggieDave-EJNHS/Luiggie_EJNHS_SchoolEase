@@ -1,0 +1,157 @@
+@model StudentIndexViewModel
+@{
+    ViewData["Title"] = "Students";
+
+    var isFiltered = !string.IsNullOrWhiteSpace(Model.Keyword)
+        || Model.GradeLevelId is > 0
+        || Model.SectionId is > 0
+        || Model.Status is not null;
+}
+
+@functions {
+    string SortIcon(string field) => Model.Sort == field ? "bi-sort-down"
+        : Model.Sort == "-" + field ? "bi-sort-up"
+        : "bi-arrow-down-up";
+
+    string NextSort(string field) => Model.Sort == field ? "-" + field : field;
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = "Students",
+    Subtitle = $"Learner register for S.Y. {SchoolInfo.SchoolYear}",
+    Icon = "bi-people",
+    Actions = new List<PageAction>
+    {
+        new() { Text = "Add Student", Url = Url.Action("Create"), Icon = "bi-person-plus" }
+    }
+})" />
+
+<div class="row g-3 mb-3">
+    @foreach (var card in Model.Stats)
+    {
+        <div class="col-6 col-xl-3">
+            <partial name="_StatCard" model="card" />
+        </div>
+    }
+</div>
+
+<div class="se-card">
+    <form method="get" class="se-filters">
+        <div class="se-filters__grow">
+            <label class="form-label se-small">Search</label>
+            <input type="search" name="keyword" value="@Model.Keyword" class="form-control"
+                   placeholder="Name, student number, LRN or email" />
+        </div>
+        <div>
+            <label class="form-label se-small">Grade Level</label>
+            <select name="gradeLevelId" asp-items="Model.GradeLevels" class="form-select" data-se-autosubmit>
+                <option value="">All grade levels</option>
+            </select>
+        </div>
+        <div>
+            <label class="form-label se-small">Section</label>
+            <select name="sectionId" asp-items="Model.Sections" class="form-select" data-se-autosubmit>
+                <option value="">All sections</option>
+            </select>
+        </div>
+        <div>
+            <label class="form-label se-small">Status</label>
+            <select name="status" asp-items="Model.Statuses" class="form-select" data-se-autosubmit>
+                <option value="">All statuses</option>
+            </select>
+        </div>
+        <div>
+            <button type="submit" class="btn btn-primary"><i class="bi bi-funnel me-1"></i>Apply</button>
+        </div>
+        <div>
+            <button type="button" class="btn btn-light" data-se-reset="@Url.Action("Index")">
+                <i class="bi bi-arrow-counterclockwise me-1"></i>Reset
+            </button>
+        </div>
+    </form>
+
+    @if (Model.Students.Count == 0)
+    {
+        <partial name="_EmptyState" model="@(new EmptyState
+        {
+            Icon = "bi-people",
+            Title = isFiltered ? "No matching students" : "No students yet",
+            Message = isFiltered
+                ? "Try adjusting or clearing the filters to see more learners."
+                : "Add your first learner to start building the school register.",
+            ActionText = "Add student",
+            ActionUrl = Url.Action("Create")
+        })" />
+    }
+    else
+    {
+        <div class="se-table-wrap">
+            <table class="se-table">
+                <thead>
+                    <tr>
+                        <th>
+                            <a asp-action="Index" asp-route-keyword="@Model.Keyword" asp-route-gradeLevelId="@Model.GradeLevelId"
+                               asp-route-sectionId="@Model.SectionId" asp-route-status="@Model.Status" asp-route-sort="@NextSort("number")">
+                                Student No. <i class="bi @SortIcon("number")"></i>
+                            </a>
+                        </th>
+                        <th>
+                            <a asp-action="Index" asp-route-keyword="@Model.Keyword" asp-route-gradeLevelId="@Model.GradeLevelId"
+                               asp-route-sectionId="@Model.SectionId" asp-route-status="@Model.Status" asp-route-sort="@NextSort("name")">
+                                Name <i class="bi @SortIcon("name")"></i>
+                            </a>
+                        </th>
+                        <th>Grade &amp; Section</th>
+                        <th>Sex</th>
+                        <th>Contact</th>
+                        <th>Guardian</th>
+                        <th>Enrollment Status</th>
+                        <th>
+                            <a asp-action="Index" asp-route-keyword="@Model.Keyword" asp-route-gradeLevelId="@Model.GradeLevelId"
+                               asp-route-sectionId="@Model.SectionId" asp-route-status="@Model.Status" asp-route-sort="@NextSort("date")">
+                                Date Enrolled <i class="bi @SortIcon("date")"></i>
+                            </a>
+                        </th>
+                        <th class="se-col-actions">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var s in Model.Students)
+                    {
+                        <tr>
+                            <td><span class="se-id-chip">@s.StudentNumber</span></td>
+                            <td>
+                                <span class="d-flex align-items-center gap-2">
+                                    <span class="se-avatar se-avatar--@s.FullName.AvatarTone()">@s.FullName.Initials()</span>
+                                    <span>
+                                        <span class="se-strong d-block">@s.FullName</span>
+                                        <span class="se-tiny se-muted">@(s.Lrn ?? "No LRN")</span>
+                                    </span>
+                                </span>
+                            </td>
+                            <td>@s.ClassLabel</td>
+                            <td>@s.Gender.DisplayName()</td>
+                            <td>@(string.IsNullOrWhiteSpace(s.ContactNumber) ? "—" : s.ContactNumber)</td>
+                            <td>@(s.Guardian?.FullName ?? "—")</td>
+                            <td><span class="se-badge text-bg-@s.EnrollmentStatus.BootstrapTone()">@s.EnrollmentStatus.DisplayName()</span></td>
+                            <td>@s.DateEnrolled.ToDateLabel()</td>
+                            <td class="se-col-actions">
+                                <div class="se-row-actions">
+                                    <a class="btn btn-sm btn-light" asp-action="Edit" asp-route-id="@s.Id" title="Edit"><i class="bi bi-pencil"></i></a>
+                                    <a class="btn btn-sm btn-light" asp-action="Details" asp-route-id="@s.Id" title="Details"><i class="bi bi-eye"></i></a>
+                                    <form asp-action="Delete" asp-route-id="@s.Id" method="post" class="d-inline"
+                                          data-se-confirm="Delete this student? This cannot be undone.">
+                                        <button type="submit" class="btn btn-sm btn-light text-danger" title="Delete"><i class="bi bi-trash"></i></button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+<partial name="_Pagination" model="@(ViewData["Pagination"] as PaginationInfo ?? new PaginationInfo())" />

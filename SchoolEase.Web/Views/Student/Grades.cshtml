@@ -1,0 +1,134 @@
+@model MyGradesViewModel
+@{
+    ViewData["Title"] = "My Grades";
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = "My Grades",
+    Subtitle = Model.Student is null
+        ? "Your academic record."
+        : $"{Model.Student.FullName} — {Model.Student.ClassLabel} • S.Y. {Model.SchoolYear}.",
+    Icon = "bi-mortarboard",
+    Actions = new List<PageAction>
+    {
+        new() { Text = "Print", Url = "javascript:window.print()", Icon = "bi-printer", Css = "btn btn-light" }
+    }
+})" />
+
+@if (Model.Student is null)
+{
+    <div class="se-card">
+        <partial name="_EmptyState" model="@(new EmptyState
+        {
+            Icon = "bi-person-badge",
+            Title = "No learner record linked",
+            Message = "Your account is not yet linked to a student record. Please contact the registrar."
+        })" />
+    </div>
+}
+else
+{
+    <div class="row g-3 mb-3">
+        <div class="col-6 col-lg-3">
+            <partial name="_StatCard" model="@(new StatCard
+            {
+                Label = "General Average",
+                Value = Model.GeneralAverage?.ToString("0.00") ?? "N/A",
+                Icon = "bi-mortarboard",
+                Tone = "primary",
+                Meta = "Across all graded subjects"
+            })" />
+        </div>
+        <div class="col-6 col-lg-3">
+            <partial name="_StatCard" model="@(new StatCard
+            {
+                Label = "Subjects",
+                Value = Model.Subjects.Count.ToString("N0"),
+                Icon = "bi-journal-bookmark",
+                Tone = "info",
+                Meta = "With encoded grades"
+            })" />
+        </div>
+        <div class="col-6 col-lg-3">
+            <partial name="_StatCard" model="@(new StatCard
+            {
+                Label = "Passed",
+                Value = Model.Subjects.Count(s => s.Average >= 75).ToString("N0"),
+                Icon = "bi-check-circle",
+                Tone = "success",
+                Meta = "Subjects at 75 or above"
+            })" />
+        </div>
+        <div class="col-6 col-lg-3">
+            <partial name="_StatCard" model="@(new StatCard
+            {
+                Label = "Needs Improvement",
+                Value = Model.Subjects.Count(s => s.Average is not null && s.Average < 75).ToString("N0"),
+                Icon = "bi-exclamation-triangle",
+                Tone = "danger",
+                Meta = "Subjects below 75"
+            })" />
+        </div>
+    </div>
+
+    <div class="se-card">
+        <div class="se-card__head">
+            <h3><i class="bi bi-table me-1"></i>Report card</h3>
+            <span class="se-pill"><i class="bi bi-calendar3"></i>S.Y. @Model.SchoolYear</span>
+        </div>
+
+        @if (Model.Subjects.Count == 0)
+        {
+            <partial name="_EmptyState" model="@(new EmptyState
+            {
+                Icon = "bi-mortarboard",
+                Title = "No grades yet",
+                Message = "Your grades will appear here once your teachers encode them for the term."
+            })" />
+        }
+        else
+        {
+            <div class="se-table-wrap">
+                <table class="se-table">
+                    <thead>
+                        <tr>
+                            <th>Subject</th>
+                            <th class="text-center">Term 1</th>
+                            <th class="text-center">Term 2</th>
+                            <th class="text-center">Term 3</th>
+                            <th class="text-end">Average</th>
+                            <th>Remarks</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in Model.Subjects)
+                        {
+                            <tr>
+                                <td><span class="se-strong">@row.Subject.Code</span> <span class="se-muted se-small">@row.Subject.Title</span></td>
+                                @for (var t = 1; t <= 3; t++)
+                                {
+                                    row.Terms.TryGetValue(t, out var grade);
+                                    <td class="text-center">@(grade?.ToString("0.00") ?? "-")</td>
+                                }
+                                <td class="text-end se-strong">@(row.Average?.ToString("0.00") ?? "-")</td>
+                                <td>
+                                    <span class="se-badge text-bg-@(row.Average is null ? "secondary" : row.Average >= 75 ? "success" : "danger")">
+                                        @row.Remark
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <th colspan="5" class="text-end">General Average</th>
+                            <th class="text-end">@(Model.GeneralAverage?.ToString("0.00") ?? "-")</th>
+                            <th>@Model.GeneralAverage.GradeRemarks()</th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        }
+    </div>
+}

@@ -1,0 +1,76 @@
+@model Staff
+@{
+    ViewData["Title"] = Model.FullName;
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = Model.FullName,
+    Subtitle = $"Non-teaching personnel • {Model.StaffNumber}",
+    Icon = "bi-person-badge",
+    Actions = new List<PageAction>
+    {
+        new() { Text = "Edit", Url = Url.Action("Edit", new { id = Model.Id }), Icon = "bi-pencil" },
+        new() { Text = "Back", Url = Url.Action("Index"), Icon = "bi-arrow-left", Css = "btn btn-light" }
+    }
+})" />
+
+<div class="row g-3">
+    <div class="col-lg-8">
+        <div class="se-card h-100">
+            <div class="se-card__head"><h3><i class="bi bi-person-vcard me-1"></i>Personal information</h3></div>
+            <div class="se-card__body">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <span class="se-avatar se-avatar--lg se-avatar--@Model.FullName.AvatarTone()">@Model.FullName.Initials()</span>
+                    <div>
+                        <h2 class="h5 mb-1">@Model.FullName</h2>
+                        <span class="se-id-chip">@Model.StaffNumber</span>
+                        <span class="se-badge text-bg-@Model.EmploymentStatus.BootstrapTone() ms-1">@Model.EmploymentStatus.DisplayName()</span>
+                    </div>
+                </div>
+                <dl class="se-def-list row mb-0">
+                    <div class="col-sm-6">
+                        <dt>Sex</dt>
+                        <dd>@Model.Gender.DisplayName()</dd>
+                    </div>
+                    <div class="col-sm-6">
+                        <dt>Date of Birth</dt>
+                        <dd>@(Model.BirthDate?.ToDateLabel() ?? "—")</dd>
+                    </div>
+                    <div class="col-sm-6">
+                        <dt>Contact Number</dt>
+                        <dd>@(string.IsNullOrWhiteSpace(Model.ContactNumber) ? "—" : Model.ContactNumber)</dd>
+                    </div>
+                    <div class="col-sm-6">
+                        <dt>Email</dt>
+                        <dd>@(string.IsNullOrWhiteSpace(Model.Email) ? "—" : Model.Email)</dd>
+                    </div>
+                    <div class="col-12">
+                        <dt>Address</dt>
+                        <dd>@(string.IsNullOrWhiteSpace(Model.Address) ? "—" : Model.Address)</dd>
+                    </div>
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="se-card h-100">
+            <div class="se-card__head"><h3><i class="bi bi-briefcase me-1"></i>Employment</h3></div>
+            <div class="se-card__body">
+                <dl class="se-def-list mb-0">
+                    <dt>Position</dt>
+                    <dd>@Model.Position</dd>
+                    <dt>Department / Office</dt>
+                    <dd>@(string.IsNullOrWhiteSpace(Model.Department) ? "—" : Model.Department)</dd>
+                    <dt>Employment Status</dt>
+                    <dd><span class="se-badge text-bg-@Model.EmploymentStatus.BootstrapTone()">@Model.EmploymentStatus.DisplayName()</span></dd>
+                    <dt>Date Hired</dt>
+                    <dd>@(Model.DateHired?.ToDateLabel() ?? "—")</dd>
+                    <dt>Active</dt>
+                    <dd>@(Model.IsActive ? "Yes" : "No")</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>

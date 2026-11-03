@@ -1,0 +1,97 @@
+@inject INotificationService Notifications
+@{
+    var uid = CurrentUser.UserId;
+    var unread = uid is null ? 0 : await Notifications.UnreadCountAsync(uid);
+    var recent = uid is null ? new List<Notification>() : await Notifications.RecentAsync(uid, 6);
+    var roleLabel = string.IsNullOrWhiteSpace(CurrentUser.PrimaryRole) ? "Member" : CurrentUser.PrimaryRole;
+}
+
+<header class="se-topbar">
+    <button type="button" class="se-icon-btn d-lg-none" data-se-sidebar-toggle aria-label="Toggle navigation">
+        <i class="bi bi-list fs-5"></i>
+    </button>
+
+    <div class="d-none d-md-block">
+        <div class="se-topbar__crumb">@SchoolInfo.Name &bull; @SchoolInfo.SchoolYear</div>
+        <h1 class="se-topbar__title">@(ViewData["Title"] ?? "Dashboard")</h1>
+    </div>
+
+    <form class="se-search ms-auto" asp-controller="Home" asp-action="Search" method="get" role="search">
+        <i class="bi bi-search"></i>
+        <input type="search" name="q" value="@(Context.Request.Query["q"])" placeholder="Search students, teachers, requests…" aria-label="Search" data-se-no-loading="1" />
+    </form>
+
+    <div class="dropdown">
+        <button type="button" class="se-icon-btn" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-label="Notifications">
+            <i class="bi bi-bell fs-5"></i>
+            @if (unread > 0)
+            {
+                <span class="se-dot" id="seNotifDot">@(unread > 9 ? "9+" : unread.ToString())</span>
+            }
+        </button>
+        <div class="dropdown-menu dropdown-menu-end se-notif">
+            <div class="se-notif__head">
+                <strong>Notifications</strong>
+                @if (unread > 0)
+                {
+                    <button type="button" class="btn btn-sm btn-light" data-se-mark-all-read="/Notifications/MarkAllRead">Mark all read</button>
+                }
+            </div>
+            <div class="se-notif__list">
+                @if (recent.Count == 0)
+                {
+                    <div class="se-empty py-4">
+                        <i class="bi bi-bell-slash fs-3 d-block mb-2"></i>
+                        <p class="mb-0 se-small">You have no notifications yet.</p>
+                    </div>
+                }
+                else
+                {
+                    foreach (var n in recent)
+                    {
+                        var href = string.IsNullOrWhiteSpace(n.Url) ? Url.Action("Index", "Notifications") : n.Url;
+                        <a class="se-notif__item text-decoration-none text-reset @(n.IsRead ? "" : "se-notif__item--unread")" href="@href">
+                            <i class="bi @n.Icon text-@n.ToneCss"></i>
+                            <span>
+                                <span class="se-notif__title d-block">@n.Title</span>
+                                <span class="se-notif__msg d-block">@n.Message</span>
+                                <span class="se-tiny se-muted">@n.CreatedAt.ToRelativeTime()</span>
+                            </span>
+                        </a>
+                    }
+                }
+            </div>
+            <div class="se-notif__foot">
+                <a asp-controller="Notifications" asp-action="Index" class="se-small">View all notifications</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="dropdown">
+        <button type="button" class="se-userchip" data-bs-toggle="dropdown" aria-label="Account menu">
+            <span class="se-avatar se-avatar--@CurrentUser.FullName.AvatarTone()">@CurrentUser.FullName.Initials()</span>
+            <span class="text-start">
+                <span class="se-userchip__name d-block">@CurrentUser.FullName</span>
+                <span class="se-userchip__role d-block">@roleLabel</span>
+            </span>
+            <i class="bi bi-chevron-down se-small se-muted"></i>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+            @if (CurrentUser.IsStudent)
+            {
+                <li><a class="dropdown-item" asp-controller="Student" asp-action="Profile"><i class="bi bi-person-badge me-2"></i>My Profile</a></li>
+            }
+            else if (CurrentUser.IsTeacher)
+            {
+                <li><a class="dropdown-item" asp-controller="Teacher" asp-action="Profile"><i class="bi bi-person-gear me-2"></i>My Profile</a></li>
+            }
+            <li><a class="dropdown-item" asp-controller="Notifications" asp-action="Index"><i class="bi bi-bell me-2"></i>Notifications</a></li>
+            <li><hr class="dropdown-divider" /></li>
+            <li>
+                <form asp-controller="Account" asp-action="Logout" method="post" class="m-0" data-se-no-loading="1">
+                    <button type="submit" class="dropdown-item text-danger"><i class="bi bi-box-arrow-right me-2"></i>Logout</button>
+                </form>
+            </li>
+        </ul>
+    </div>
+</header>

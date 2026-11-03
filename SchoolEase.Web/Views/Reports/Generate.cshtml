@@ -1,0 +1,33 @@
+@model ReportPageViewModel
+@{
+    ViewData["Title"] = Model.Report?.Title ?? "Report";
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = Model.Report?.Title ?? "Report",
+    Subtitle = "Printable report preview.",
+    Icon = "bi-file-earmark-bar-graph",
+    Actions = new List<PageAction>
+    {
+        new() { Text = "Print", Url = Url.Action("Print", Model.RouteValues()), Icon = "bi-printer", Css = "btn btn-primary", Target = "_blank" },
+        new() { Text = "Export CSV", Url = Url.Action("ExportCsv", Model.RouteValues()), Icon = "bi-filetype-csv", Css = "btn btn-light" },
+        new() { Text = "Back to Reports", Url = Url.Action("Index", Model.RouteValues()), Icon = "bi-arrow-left", Css = "btn btn-light" }
+    }
+})" />
+
+@if (Model.Report is null)
+{
+    <div class="se-card">
+        <partial name="_EmptyState" model="@(new EmptyState
+        {
+            Icon = "bi-file-earmark-bar-graph",
+            Title = "Nothing to show",
+            Message = "Choose a report type and filters to generate a report."
+        })" />
+    </div>
+}
+else
+{
+    <partial name="_ReportBody" model="Model.Report" />
+}

@@ -1,0 +1,31 @@
+@model GradeLevelFormViewModel
+@{
+    ViewData["Title"] = "New Grade Level";
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = "New Grade Level",
+    Subtitle = "Define a grade level so sections and subjects can be grouped under it.",
+    Icon = "bi-layers",
+    Actions = new List<PageAction>
+    {
+        new() { Text = "Back to list", Url = Url.Action("Index"), Icon = "bi-arrow-left", Css = "btn btn-light" }
+    }
+})" />
+
+<div class="se-card">
+    <form asp-action="Create" method="post">
+        <div class="se-card__body">
+            <partial name="_Form" model="Model" />
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-check2 me-1"></i>Save grade level</button>
+                <a class="btn btn-light" asp-action="Index">Cancel</a>
+            </div>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

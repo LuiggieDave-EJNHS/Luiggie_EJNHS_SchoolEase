@@ -1,0 +1,260 @@
+@model DashboardViewModel
+@{
+    var isAdmin = CurrentUser.IsAdministrator;
+    var cards = new List<StatCard>
+    {
+        new() { Label = "Total Students", Value = Model.TotalStudents.ToString("N0"), Icon = "bi-people", Tone = "primary", Meta = $"{Model.MaleStudents} male • {Model.FemaleStudents} female", Url = isAdmin ? Url.Action("Index", "Students") : null },
+        new() { Label = "Total Teachers", Value = Model.TotalTeachers.ToString("N0"), Icon = "bi-person-video3", Tone = "info", Meta = "Active teaching staff", Url = isAdmin ? Url.Action("Index", "Teachers") : null },
+        new() { Label = "Total Staff", Value = Model.TotalStaff.ToString("N0"), Icon = "bi-person-workspace", Tone = "purple", Meta = "Non-teaching personnel", Url = isAdmin ? Url.Action("Index", "Staff") : null },
+        new() { Label = "Sections", Value = Model.TotalSections.ToString("N0"), Icon = "bi-diagram-3", Tone = "teal", Meta = $"{Model.TotalSubjects} subjects offered" },
+
+        new() { Label = "Present Today", Value = Model.PresentToday.ToString("N0"), Icon = "bi-check-circle", Tone = "success", Meta = $"{Model.AttendanceMarkedToday} marks recorded today" },
+        new() { Label = "Absent / Late Today", Value = $"{Model.AbsentToday} / {Model.LateToday}", Icon = "bi-clock-history", Tone = "warning", Meta = $"{Model.ExcusedToday} excused" },
+        new() { Label = "Attendance Rate", Value = $"{Model.AttendanceRateToday:0.#}%", Icon = "bi-graph-up", Tone = "teal", Meta = "Present + late over marks" },
+        new() { Label = "Pending Requests", Value = Model.PendingRequests.ToString("N0"), Icon = "bi-file-earmark-text", Tone = "danger", Meta = $"{Model.ReadyForReleaseRequests} ready for release", Url = Url.Action("Index", "DocumentRequests") }
+    };
+
+    var quickActions = new List<QuickAction>();
+    if (isAdmin)
+    {
+        quickActions.AddRange(new[]
+        {
+            new QuickAction { Text = "Add Student", Url = Url.Action("Create", "Students")!, Icon = "bi-person-plus", Tone = "primary" },
+            new QuickAction { Text = "Add Teacher", Url = Url.Action("Create", "Teachers")!, Icon = "bi-person-video3", Tone = "info" },
+            new QuickAction { Text = "New Announcement", Url = Url.Action("Create", "Announcements")!, Icon = "bi-megaphone", Tone = "warning" },
+            new QuickAction { Text = "Process Requests", Url = Url.Action("Index", "DocumentRequests")!, Icon = "bi-inboxes", Tone = "danger" },
+            new QuickAction { Text = "School Report", Url = Url.Action("Index", "Reports")!, Icon = "bi-file-earmark-bar-graph", Tone = "success" },
+            new QuickAction { Text = "User Accounts", Url = Url.Action("Index", "Accounts")!, Icon = "bi-person-lock", Tone = "purple" }
+        });
+    }
+    else
+    {
+        quickActions.AddRange(new[]
+        {
+            new QuickAction { Text = "Document Requests", Url = Url.Action("Index", "DocumentRequests")!, Icon = "bi-inboxes", Tone = "primary" },
+            new QuickAction { Text = "Student Records", Url = Url.Action("Index", "Students")!, Icon = "bi-people", Tone = "info" },
+            new QuickAction { Text = "Announcements", Url = Url.Action("Index", "Announcements")!, Icon = "bi-megaphone", Tone = "warning" },
+            new QuickAction { Text = "Reports", Url = Url.Action("Index", "Reports")!, Icon = "bi-file-earmark-bar-graph", Tone = "success" }
+        });
+    }
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = isAdmin ? "School Dashboard" : "Staff Dashboard",
+    Subtitle = $"Live overview for S.Y. {SchoolInfo.SchoolYear} — generated {DateTime.Now:MMM d, yyyy h:mm tt}",
+    Icon = "bi-speedometer2"
+})" />
+
+<div class="row g-3 mb-3">
+    @foreach (var card in cards)
+    {
+        <div class="col-6 col-xl-3">
+            <partial name="_StatCard" model="card" />
+        </div>
+    }
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-lg-8">
+        <partial name="_ChartCard" model="@(new ChartWidget { Data = Model.StudentsByGradeLevel, Type = "bar", Height = "se-chart--md", DatasetLabel = "Students" })" />
+    </div>
+    <div class="col-lg-4">
+        <partial name="_ChartCard" model="@(new ChartWidget { Data = Model.RequestStatusChart, Type = "doughnut", Height = "se-chart--md" })" />
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-lg-8">
+        <partial name="_ChartCard" model="@(new ChartWidget { Data = Model.AttendanceTrend, Type = "line", Height = "se-chart--md", DatasetLabel = "Present + late" })" />
+    </div>
+    <div class="col-lg-4">
+        <partial name="_ChartCard" model="@(new ChartWidget { Data = Model.EnrollmentByStatus, Type = "doughnut", Height = "se-chart--md" })" />
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-xl-6">
+        <partial name="_ChartCard" model="@(new ChartWidget { Data = Model.StudentsPerSection, Type = "bar", Height = "se-chart--sm", DatasetLabel = "Students" })" />
+    </div>
+    <div class="col-xl-6">
+        <div class="se-card h-100">
+            <div class="se-card__head">
+                <h3><i class="bi bi-lightning-charge me-1 text-warning"></i>Quick actions</h3>
+            </div>
+            <div class="se-card__body">
+                <div class="row g-2">
+                    @foreach (var action in quickActions)
+                    {
+                        <div class="col-sm-6">
+                            <a class="d-flex align-items-center gap-2 p-3 rounded-3 text-decoration-none text-reset h-100"
+                               style="border:1px solid var(--se-line);background:#fbfcfe;" href="@action.Url">
+                                <span class="se-stat__icon bg-soft-@action.Tone" style="width:38px;height:38px;flex-basis:38px;font-size:1rem;">
+                                    <i class="bi @action.Icon"></i>
+                                </span>
+                                <span class="se-strong se-small">@action.Text</span>
+                            </a>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-lg-5">
+        <div class="se-card h-100">
+            <div class="se-card__head">
+                <h3><i class="bi bi-megaphone me-1"></i>Announcements</h3>
+                <a class="se-small" asp-controller="Announcements" asp-action="Index">View all</a>
+            </div>
+            <div class="se-card__body">
+                @if (Model.Announcements.Count == 0)
+                {
+                    <p class="se-muted se-small mb-0">No announcements have been posted yet.</p>
+                }
+                else
+                {
+                    foreach (var item in Model.Announcements)
+                    {
+                        <div class="se-announce se-announce--@item.PriorityCss">
+                            <h4>@item.Title</h4>
+                            <p>@(item.Content.Length > 190 ? item.Content[..190] + "…" : item.Content)</p>
+                            <div class="se-announce__meta">
+                                <span><i class="bi bi-person me-1"></i>@item.AuthorName</span>
+                                <span><i class="bi bi-clock me-1"></i>@item.PublishDate.ToRelativeTime()</span>
+                                <span class="se-badge text-bg-@item.PriorityCss">@item.Priority.DisplayName()</span>
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="se-card h-100">
+            <div class="se-card__head"><h3><i class="bi bi-activity me-1"></i>Recent activity</h3></div>
+            <div class="se-card__body">
+                @if (Model.RecentActivities.Count == 0)
+                {
+                    <p class="se-muted se-small mb-0">No activity has been recorded yet.</p>
+                }
+                else
+                {
+                    <ul class="se-feed">
+                        @foreach (var activity in Model.RecentActivities)
+                        {
+                            <li>
+                                <span class="se-feed__icon bg-soft-@activity.Tone"><i class="bi @activity.Icon"></i></span>
+                                <span>
+                                    <span class="se-feed__title d-block">@activity.Title</span>
+                                    @if (!string.IsNullOrWhiteSpace(activity.Description))
+                                    {
+                                        <span class="se-feed__meta d-block">@activity.Description</span>
+                                    }
+                                    <span class="se-feed__meta d-block">@activity.Timestamp.ToRelativeTime()</span>
+                                </span>
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3">
+        <div class="se-card h-100">
+            <div class="se-card__head">
+                <h3><i class="bi bi-calendar3 me-1"></i>Upcoming</h3>
+                <a class="se-small" asp-controller="Calendar" asp-action="Index">Calendar</a>
+            </div>
+            <div class="se-card__body">
+                @if (Model.UpcomingEvents.Count == 0)
+                {
+                    <p class="se-muted se-small mb-0">Nothing scheduled coming up.</p>
+                }
+                else
+                {
+                    foreach (var evt in Model.UpcomingEvents)
+                    {
+                        <div class="se-event-row">
+                            <span class="se-event-date" style="background:@(evt.ColorHex)1a;color:@evt.ColorHex;">
+                                <strong>@evt.StartDate.Day</strong>
+                                <span>@evt.StartDate.ToString("MMM")</span>
+                            </span>
+                            <span>
+                                <span class="se-strong se-small d-block">@evt.Title</span>
+                                <span class="se-small se-muted">@evt.Category.DisplayName()@(string.IsNullOrWhiteSpace(evt.Location) ? "" : $" • {evt.Location}")</span>
+                            </span>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="se-card">
+    <div class="se-card__head">
+        <h3><i class="bi bi-person-plus me-1"></i>Recently added students</h3>
+        @if (isAdmin)
+        {
+            <a class="se-small" asp-controller="Students" asp-action="Index">Manage students</a>
+        }
+    </div>
+    @if (Model.RecentStudents.Count == 0)
+    {
+        <partial name="_EmptyState" model="@(new EmptyState
+        {
+            Icon = "bi-people",
+            Title = "No students yet",
+            Message = "Add your first learner to start building the school register.",
+            ActionText = isAdmin ? "Add student" : null,
+            ActionUrl = isAdmin ? Url.Action("Create", "Students") : null
+        })" />
+    }
+    else
+    {
+        <div class="se-table-wrap">
+            <table class="se-table">
+                <thead>
+                    <tr>
+                        <th>Student No.</th>
+                        <th>Name</th>
+                        <th>Section</th>
+                        <th>Status</th>
+                        <th>Enrolled</th>
+                        <th class="se-col-actions">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model.RecentStudents)
+                    {
+                        <tr>
+                            <td><span class="se-id-chip">@row.StudentNumber</span></td>
+                            <td>
+                                <span class="d-flex align-items-center gap-2">
+                                    <span class="se-avatar se-avatar--@row.FullName.AvatarTone()">@row.FullName.Initials()</span>
+                                    <span class="se-strong">@row.FullName</span>
+                                </span>
+                            </td>
+                            <td>@(row.GradeSection ?? "Unassigned")</td>
+                            <td><span class="se-badge text-bg-@row.Status.BootstrapTone()">@row.Status.DisplayName()</span></td>
+                            <td>@row.DateEnrolled.ToDateLabel()</td>
+                            <td class="se-col-actions">
+                                @if (isAdmin)
+                                {
+                                    <a class="btn btn-sm btn-light" asp-controller="Students" asp-action="Details" asp-route-id="@row.Id">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

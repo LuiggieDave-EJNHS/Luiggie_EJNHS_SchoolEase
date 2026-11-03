@@ -1,0 +1,149 @@
+@model StudentScheduleViewModel
+@{
+    ViewData["Title"] = "My Schedule";
+    var days = new[]
+    {
+        DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday,
+        DayOfWeek.Thursday, DayOfWeek.Friday
+    };
+    var longNames = new Dictionary<DayOfWeek, string>
+    {
+        [DayOfWeek.Monday] = "Monday",
+        [DayOfWeek.Tuesday] = "Tuesday",
+        [DayOfWeek.Wednesday] = "Wednesday",
+        [DayOfWeek.Thursday] = "Thursday",
+        [DayOfWeek.Friday] = "Friday"
+    };
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = "My Schedule",
+    Subtitle = Model.Student is null ? "Your weekly class timetable." : $"{Model.Student.FullName} — {Model.Student.ClassLabel}.",
+    Icon = "bi-calendar-week"
+})" />
+
+@if (Model.Student is null)
+{
+    <div class="se-card">
+        <partial name="_EmptyState" model="@(new EmptyState
+        {
+            Icon = "bi-person-badge",
+            Title = "No learner record linked",
+            Message = "Your account is not yet linked to a student record. Please contact the registrar."
+        })" />
+    </div>
+}
+else if (!Model.HasSection)
+{
+    <div class="se-card">
+        <partial name="_EmptyState" model="@(new EmptyState
+        {
+            Icon = "bi-diagram-3",
+            Title = "No section assigned",
+            Message = "You have not been assigned to a section yet, so there is no timetable to show."
+        })" />
+    </div>
+}
+else if (Model.Weekly.Count == 0)
+{
+    <div class="se-card">
+        <partial name="_EmptyState" model="@(new EmptyState
+        {
+            Icon = "bi-calendar-x",
+            Title = "No classes scheduled",
+            Message = "Your section has no class meetings on the weekly timetable yet."
+        })" />
+    </div>
+}
+else
+{
+    <div class="se-card mb-3">
+        <div class="se-card__head">
+            <h3><i class="bi bi-clock-history me-1"></i>Today — @DateTime.Today.ToString("dddd, MMM d")</h3>
+            <span class="se-pill"><i class="bi bi-list-check"></i>@Model.Today.Count class(es)</span>
+        </div>
+        <div class="se-card__body">
+            @if (Model.Today.Count == 0)
+            {
+                <p class="se-muted se-small mb-0">No classes are scheduled for today.</p>
+            }
+            else
+            {
+                <ul class="se-timeline">
+                    @foreach (var slot in Model.Today)
+                    {
+                        <li>
+                            <span class="se-strong se-small d-block">@slot.TimeRange</span>
+                            <span class="d-block">
+                                <span class="se-strong">@slot.Subject?.Code</span>
+                                <span class="se-muted">@slot.Subject?.Title</span>
+                            </span>
+                            <span class="se-small se-muted d-block">
+                                <i class="bi bi-person-video3 me-1"></i>@(slot.Teacher?.FullName ?? "Unassigned")
+                                @if (!string.IsNullOrWhiteSpace(slot.Room))
+                                {
+                                    <span> • <i class="bi bi-geo-alt me-1"></i>@slot.Room</span>
+                                }
+                            </span>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+    </div>
+
+    <div class="se-card">
+        <div class="se-card__head">
+            <h3><i class="bi bi-calendar-week me-1"></i>Weekly timetable</h3>
+        </div>
+        <div class="se-card__body">
+            <div class="se-table-wrap">
+                <table class="se-sched">
+                    <thead>
+                        <tr>
+                            @foreach (var day in days)
+                            {
+                                <th>@longNames[day]</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            @foreach (var day in days)
+                            {
+                                var slots = Model.Weekly
+                                    .Where(c => c.DayOfWeek == day)
+                                    .OrderBy(c => c.StartTime)
+                                    .ToList();
+
+                                <td>
+                                    @if (slots.Count == 0)
+                                    {
+                                        <div class="se-sched__empty">—</div>
+                                    }
+                                    else
+                                    {
+                                        foreach (var slot in slots)
+                                        {
+                                            <div class="se-sched__slot mb-1">
+                                                <strong>@slot.Subject?.Code</strong>
+                                                <span class="d-block">@slot.Subject?.Title</span>
+                                                <span class="d-block"><i class="bi bi-person-video3 me-1"></i>@(slot.Teacher?.FullName ?? "Unassigned")</span>
+                                                @if (!string.IsNullOrWhiteSpace(slot.Room))
+                                                {
+                                                    <span class="d-block"><i class="bi bi-geo-alt me-1"></i>@slot.Room</span>
+                                                }
+                                                <span class="d-block"><i class="bi bi-clock me-1"></i>@slot.TimeRange</span>
+                                            </div>
+                                        }
+                                    }
+                                </td>
+                            }
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}

@@ -1,0 +1,89 @@
+@model List<GradeLevelRowViewModel>
+@{
+    ViewData["Title"] = "Grade Levels";
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = "Grade Levels",
+    Subtitle = $"{Model.Count} grade level{(Model.Count == 1 ? "" : "s")} configured",
+    Icon = "bi-layers",
+    Actions = new List<PageAction>
+    {
+        new() { Text = "New Grade Level", Url = Url.Action("Create"), Icon = "bi-plus-lg" }
+    }
+})" />
+
+<div class="se-card">
+    @if (Model.Count == 0)
+    {
+        <partial name="_EmptyState" model="@(new EmptyState
+        {
+            Icon = "bi-layers",
+            Title = "No grade levels yet",
+            Message = "Add a grade level such as Grade 11 or Grade 12 to start organising sections and subjects.",
+            ActionText = "Add grade level",
+            ActionUrl = Url.Action("Create")
+        })" />
+    }
+    else
+    {
+        <div class="se-table-wrap">
+            <table class="se-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Code</th>
+                        <th>Order</th>
+                        <th class="text-center">Sections</th>
+                        <th class="text-center">Subjects</th>
+                        <th class="text-center">Students</th>
+                        <th>Status</th>
+                        <th class="se-col-actions">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model)
+                    {
+                        var level = row.GradeLevel;
+                        <tr>
+                            <td>
+                                <strong>@level.Name</strong>
+                                @if (!string.IsNullOrWhiteSpace(level.Description))
+                                {
+                                    <span class="se-small se-muted d-block">@level.Description</span>
+                                }
+                            </td>
+                            <td><span class="se-id-chip">@level.Code</span></td>
+                            <td>@level.OrderIndex</td>
+                            <td class="text-center">@row.SectionCount</td>
+                            <td class="text-center">@row.SubjectCount</td>
+                            <td class="text-center">@row.StudentCount</td>
+                            <td>
+                                @if (level.IsActive)
+                                {
+                                    <span class="se-badge text-bg-success">Active</span>
+                                }
+                                else
+                                {
+                                    <span class="se-badge text-bg-secondary">Inactive</span>
+                                }
+                            </td>
+                            <td class="se-col-actions">
+                                <a class="btn btn-sm btn-light" asp-action="Edit" asp-route-id="@level.Id" title="Edit">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <form asp-action="Delete" asp-route-id="@level.Id" method="post" class="d-inline"
+                                      data-se-confirm="Delete this grade level?">
+                                    <button type="submit" class="btn btn-sm btn-light text-danger" title="Delete">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

@@ -1,0 +1,93 @@
+@model AssignStudentsViewModel
+@{
+    ViewData["Title"] = "Assign Students";
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = "Assign Students",
+    Subtitle = $"{Model.Section.DisplayName} • {Model.SelectedIds.Count} currently assigned",
+    Icon = "bi-person-plus",
+    Actions = new List<PageAction>
+    {
+        new() { Text = "Back to section", Url = Url.Action("Details", new { id = Model.Section.Id }), Icon = "bi-arrow-left", Css = "btn btn-light" }
+    }
+})" />
+
+<form asp-action="AssignStudents" asp-route-id="@Model.Section.Id" method="post">
+    <div class="se-card">
+        <div class="se-card__head">
+            <h3><i class="bi bi-people me-1"></i>Active students</h3>
+            <span class="se-small se-muted">Tick the learners who belong to this section.</span>
+        </div>
+
+        @if (Model.Students.Count == 0)
+        {
+            <partial name="_EmptyState" model="@(new EmptyState
+            {
+                Icon = "bi-people",
+                Title = "No active students",
+                Message = "There are no active learners to assign right now."
+            })" />
+        }
+        else
+        {
+            <div class="se-table-wrap">
+                <table class="se-table" id="studentList">
+                    <thead>
+                        <tr>
+                            <th style="width:44px;">
+                                <input type="checkbox" class="form-check-input" data-se-check-all="#studentList" aria-label="Select all" />
+                            </th>
+                            <th>Student No.</th>
+                            <th>Name</th>
+                            <th>Grade Level</th>
+                            <th>Current Section</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var student in Model.Students)
+                        {
+                            <tr>
+                                <td>
+                                    <input type="checkbox" class="form-check-input" name="studentIds" value="@student.Id"
+                                           data-se-row checked="@(Model.SelectedIds.Contains(student.Id))" />
+                                </td>
+                                <td><span class="se-id-chip">@student.StudentNumber</span></td>
+                                <td>
+                                    <span class="d-flex align-items-center gap-2">
+                                        <span class="se-avatar se-avatar--@student.FullName.AvatarTone()">@student.FullName.Initials()</span>
+                                        <span class="se-strong">@student.FullName</span>
+                                    </span>
+                                </td>
+                                <td>@(student.GradeLevelId is null ? "—" : student.GradeLevel?.Name ?? "—")</td>
+                                <td>
+                                    @if (student.SectionId == Model.Section.Id)
+                                    {
+                                        <span class="se-badge text-bg-success">This section</span>
+                                    }
+                                    else if (student.SectionId is null)
+                                    {
+                                        <span class="se-muted se-small">Unassigned</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="se-badge text-bg-secondary">Other section (#@student.SectionId)</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="se-card__foot d-flex justify-content-between align-items-center gap-2">
+                <span class="se-small se-muted"><span data-se-bulk-count>0</span> selected</span>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check2 me-1"></i>Save assignment</button>
+                    <a class="btn btn-light" asp-action="Details" asp-route-id="@Model.Section.Id">Cancel</a>
+                </div>
+            </div>
+        }
+    </div>
+</form>

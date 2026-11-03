@@ -1,0 +1,121 @@
+@model GuardianIndexViewModel
+@{
+    ViewData["Title"] = "Guardians";
+    var isFiltered = !string.IsNullOrWhiteSpace(Model.Keyword);
+}
+
+@functions {
+    string SortIcon(string field) => Model.Sort == field ? "bi-sort-down"
+        : Model.Sort == "-" + field ? "bi-sort-up"
+        : "bi-arrow-down-up";
+
+    string NextSort(string field) => Model.Sort == field ? "-" + field : field;
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = "Guardians",
+    Subtitle = "Parents and guardians linked to learners",
+    Icon = "bi-person-hearts",
+    Actions = new List<PageAction>
+    {
+        new() { Text = "Add Guardian", Url = Url.Action("Create"), Icon = "bi-person-plus" }
+    }
+})" />
+
+<div class="row g-3 mb-3">
+    @foreach (var card in Model.Stats)
+    {
+        <div class="col-6 col-xl-4">
+            <partial name="_StatCard" model="card" />
+        </div>
+    }
+</div>
+
+<div class="se-card">
+    <form method="get" class="se-filters">
+        <div class="se-filters__grow">
+            <label class="form-label se-small">Search</label>
+            <input type="search" name="keyword" value="@Model.Keyword" class="form-control"
+                   placeholder="Name, relationship, contact or email" />
+        </div>
+        <div>
+            <button type="submit" class="btn btn-primary"><i class="bi bi-funnel me-1"></i>Apply</button>
+        </div>
+        <div>
+            <button type="button" class="btn btn-light" data-se-reset="@Url.Action("Index")">
+                <i class="bi bi-arrow-counterclockwise me-1"></i>Reset
+            </button>
+        </div>
+    </form>
+
+    @if (Model.Guardians.Count == 0)
+    {
+        <partial name="_EmptyState" model="@(new EmptyState
+        {
+            Icon = "bi-person-hearts",
+            Title = isFiltered ? "No matching guardians" : "No guardians yet",
+            Message = isFiltered
+                ? "Try a different search term to find a guardian."
+                : "Add a guardian to link parents and family members to learners.",
+            ActionText = "Add guardian",
+            ActionUrl = Url.Action("Create")
+        })" />
+    }
+    else
+    {
+        <div class="se-table-wrap">
+            <table class="se-table">
+                <thead>
+                    <tr>
+                        <th>
+                            <a asp-action="Index" asp-route-keyword="@Model.Keyword" asp-route-sort="@NextSort("name")">
+                                Name <i class="bi @SortIcon("name")"></i>
+                            </a>
+                        </th>
+                        <th>
+                            <a asp-action="Index" asp-route-keyword="@Model.Keyword" asp-route-sort="@NextSort("relationship")">
+                                Relationship <i class="bi @SortIcon("relationship")"></i>
+                            </a>
+                        </th>
+                        <th>Contact Number</th>
+                        <th>Email</th>
+                        <th>Occupation</th>
+                        <th>Students</th>
+                        <th class="se-col-actions">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var g in Model.Guardians)
+                    {
+                        <tr>
+                            <td>
+                                <span class="d-flex align-items-center gap-2">
+                                    <span class="se-avatar se-avatar--@g.FullName.AvatarTone()">@g.FullName.Initials()</span>
+                                    <span class="se-strong">@g.FullName</span>
+                                </span>
+                            </td>
+                            <td><span class="se-pill">@g.Relationship</span></td>
+                            <td>@(string.IsNullOrWhiteSpace(g.ContactNumber) ? "—" : g.ContactNumber)</td>
+                            <td>@(string.IsNullOrWhiteSpace(g.Email) ? "—" : g.Email)</td>
+                            <td>@(string.IsNullOrWhiteSpace(g.Occupation) ? "—" : g.Occupation)</td>
+                            <td><span class="se-pill"><i class="bi bi-people"></i>@g.Students.Count</span></td>
+                            <td class="se-col-actions">
+                                <div class="se-row-actions">
+                                    <a class="btn btn-sm btn-light" asp-action="Edit" asp-route-id="@g.Id" title="Edit"><i class="bi bi-pencil"></i></a>
+                                    <a class="btn btn-sm btn-light" asp-action="Details" asp-route-id="@g.Id" title="Details"><i class="bi bi-eye"></i></a>
+                                    <form asp-action="Delete" asp-route-id="@g.Id" method="post" class="d-inline"
+                                          data-se-confirm="Delete this guardian? Linked students keep their records but will have no guardian.">
+                                        <button type="submit" class="btn btn-sm btn-light text-danger" title="Delete"><i class="bi bi-trash"></i></button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+<partial name="_Pagination" model="@(ViewData["Pagination"] as PaginationInfo ?? new PaginationInfo())" />

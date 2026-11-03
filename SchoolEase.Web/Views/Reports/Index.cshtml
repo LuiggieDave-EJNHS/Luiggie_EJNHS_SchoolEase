@@ -1,0 +1,160 @@
+@model ReportPageViewModel
+@{
+    ViewData["Title"] = "Reports";
+
+    var types = new (string Key, string Label, string Icon, string Description)[]
+    {
+        ("student-list", "Master List of Students", "bi-people", "Full register of learners with grade, section and guardian details."),
+        ("attendance", "Attendance Report", "bi-clipboard-check", "Daily attendance marks within a date range."),
+        ("grades", "Academic Performance", "bi-mortarboard", "Term grades and computed remarks per subject."),
+        ("enrollment", "Enrollment Summary", "bi-diagram-3", "Section population, capacity and utilisation."),
+        ("requests", "Document Requests", "bi-file-earmark-text", "Registrar workflow status of requested documents."),
+        ("teacher-schedule", "Teaching Load", "bi-calendar-week", "Class schedules and weekly teaching hours."),
+        ("class-list", "Class List", "bi-list-check", "Learners in a section with guardian contacts.")
+    };
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = "Reports",
+    Subtitle = "Generate, print and export the school's standard reports.",
+    Icon = "bi-file-earmark-bar-graph"
+})" />
+
+<div class="row g-3 mb-3">
+    @foreach (var type in types)
+    {
+        var active = string.Equals(Model.Filter.ReportType, type.Key, StringComparison.OrdinalIgnoreCase);
+        var cardClass = active ? "se-feature d-block text-decoration-none text-reset h-100 border-primary" : "se-feature d-block text-decoration-none text-reset h-100";
+        var cardStyle = active ? "border-color:var(--se-primary);box-shadow:0 0 0 3px var(--se-primary-soft);" : null;
+
+        <div class="col-6 col-md-4 col-xl-3">
+            <a class="@cardClass" style="@cardStyle" asp-action="Index" asp-route-reportType="@type.Key">
+                <i class="bi @type.Icon text-primary"></i>
+                <h3>@type.Label</h3>
+                <p>@type.Description</p>
+            </a>
+        </div>
+    }
+</div>
+
+<div class="se-card mb-3">
+    <div class="se-card__head">
+        <h3><i class="bi bi-funnel me-1"></i>Report filters</h3>
+    </div>
+    <form method="get" asp-action="Index">
+        <input type="hidden" name="ReportType" value="@Model.Filter.ReportType" />
+        <div class="se-card__body">
+            <div class="se-form-grid se-form-grid--3">
+                <div>
+                    <label class="se-form-label" for="DateFrom">Date from</label>
+                    <input id="DateFrom" name="DateFrom" type="date" class="form-control" value="@Model.Filter.DateFrom?.ToString("yyyy-MM-dd")" />
+                </div>
+                <div>
+                    <label class="se-form-label" for="DateTo">Date to</label>
+                    <input id="DateTo" name="DateTo" type="date" class="form-control" value="@Model.Filter.DateTo?.ToString("yyyy-MM-dd")" />
+                </div>
+                <div>
+                    <label class="se-form-label" for="GradeLevelId">Grade level</label>
+                    <select id="GradeLevelId" name="GradeLevelId" class="form-select">
+                        @foreach (var item in Model.Filter.GradeLevels)
+                        {
+                            <option value="@item.Value" selected="@item.Selected">@item.Text</option>
+                        }
+                    </select>
+                </div>
+                <div>
+                    <label class="se-form-label" for="SectionId">Section</label>
+                    <select id="SectionId" name="SectionId" class="form-select" data-se-autosubmit>
+                        @foreach (var item in Model.Filter.Sections)
+                        {
+                            <option value="@item.Value" selected="@item.Selected">@item.Text</option>
+                        }
+                    </select>
+                </div>
+                <div>
+                    <label class="se-form-label" for="SubjectId">Subject</label>
+                    <select id="SubjectId" name="SubjectId" class="form-select">
+                        @foreach (var item in Model.Filter.Subjects)
+                        {
+                            <option value="@item.Value" selected="@item.Selected">@item.Text</option>
+                        }
+                    </select>
+                </div>
+                <div>
+                    <label class="se-form-label" for="TeacherId">Teacher</label>
+                    <select id="TeacherId" name="TeacherId" class="form-select">
+                        @foreach (var item in Model.Filter.Teachers)
+                        {
+                            <option value="@item.Value" selected="@item.Selected">@item.Text</option>
+                        }
+                    </select>
+                </div>
+                <div>
+                    <label class="se-form-label" for="StudentId">Student</label>
+                    <select id="StudentId" name="StudentId" class="form-select">
+                        @foreach (var item in Model.Filter.Students)
+                        {
+                            <option value="@item.Value" selected="@item.Selected">@item.Text</option>
+                        }
+                    </select>
+                </div>
+                <div>
+                    <label class="se-form-label" for="SchoolYear">School year</label>
+                    <input id="SchoolYear" name="SchoolYear" class="form-control" value="@Model.Filter.SchoolYear" placeholder="@SchoolInfo.SchoolYear" />
+                </div>
+                <div>
+                    <label class="se-form-label" for="Term">Term</label>
+                    <select id="Term" name="Term" class="form-select">
+                        <option value="">All terms</option>
+                        @foreach (var item in SelectLists.Terms())
+                        {
+                            <option value="@item.Value" selected="@(Model.Filter.Term?.ToString() == item.Value)">@item.Text</option>
+                        }
+                    </select>
+                </div>
+                <div>
+                    <label class="se-form-label" for="Status">Request status</label>
+                    <select id="Status" name="Status" class="form-select">
+                        <option value="">All statuses</option>
+                        @foreach (var item in SelectLists.EnumOptions<DocumentRequestStatus>())
+                        {
+                            <option value="@item.Value" selected="@(Model.Filter.Status == item.Value)">@item.Text</option>
+                        }
+                    </select>
+                </div>
+                <div class="se-span-3">
+                    <label class="se-form-label" for="Keyword">Keyword</label>
+                    <input id="Keyword" name="Keyword" class="form-control" value="@Model.Filter.Keyword" placeholder="Search by name or student number" />
+                </div>
+            </div>
+        </div>
+        <div class="se-card__foot d-flex flex-wrap gap-2">
+            <button type="submit" class="btn btn-primary"><i class="bi bi-file-earmark-bar-graph me-1"></i>Generate report</button>
+            <button type="button" class="btn btn-light" data-se-reset="@Url.Action("Index")">Reset</button>
+        </div>
+    </form>
+</div>
+
+@if (Model.Report is not null)
+{
+    <div class="se-card">
+        <div class="se-card__head">
+            <h3><i class="bi bi-file-earmark-text me-1"></i>Report preview</h3>
+            <div class="d-flex flex-wrap gap-2">
+                <a class="btn btn-sm btn-primary" asp-action="Generate" asp-all-route-data="@Model.RouteValues()">
+                    <i class="bi bi-box-arrow-up-right me-1"></i>Open full report
+                </a>
+                <a class="btn btn-sm btn-light" asp-action="Print" asp-all-route-data="@Model.RouteValues()" target="_blank">
+                    <i class="bi bi-printer me-1"></i>Print
+                </a>
+                <a class="btn btn-sm btn-light" asp-action="ExportCsv" asp-all-route-data="@Model.RouteValues()">
+                    <i class="bi bi-filetype-csv me-1"></i>Export CSV
+                </a>
+            </div>
+        </div>
+        <div class="se-card__body">
+            <partial name="_ReportBody" model="Model.Report" />
+        </div>
+    </div>
+}

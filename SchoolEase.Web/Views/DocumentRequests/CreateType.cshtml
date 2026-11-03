@@ -1,0 +1,63 @@
+@model DocumentType
+@{
+    ViewData["Title"] = "New Document Type";
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = "New Document Type",
+    Subtitle = "Define a document the registrar can issue.",
+    Icon = "bi-journal-plus",
+    Actions = new List<PageAction>
+    {
+        new() { Text = "Back to Types", Url = Url.Action("Types"), Icon = "bi-arrow-left", Css = "btn btn-light" }
+    }
+})" />
+
+<div class="se-card">
+    <div class="se-card__body">
+        <form asp-action="CreateType" method="post">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 se-small"></div>
+
+            <div class="se-form-grid">
+                <div class="se-form-section"><h3>Document details</h3></div>
+
+                <div>
+                    <label class="se-form-label" asp-for="Name">Document Name <span class="req">*</span></label>
+                    <input asp-for="Name" class="form-control" placeholder="e.g. Certificate of Enrollment" />
+                    <span asp-validation-for="Name" class="text-danger se-small"></span>
+                </div>
+
+                <div>
+                    <label class="se-form-label" asp-for="Code">Code <span class="req">*</span></label>
+                    <input asp-for="Code" class="form-control" placeholder="e.g. COE" />
+                    <span asp-validation-for="Code" class="text-danger se-small"></span>
+                </div>
+
+                <div>
+                    <label class="se-form-label" asp-for="ProcessingDays">Processing Days <span class="req">*</span></label>
+                    <input asp-for="ProcessingDays" type="number" min="1" max="60" class="form-control" />
+                    <span asp-validation-for="ProcessingDays" class="text-danger se-small"></span>
+                </div>
+
+                <div class="se-span-2">
+                    <label class="se-form-label" asp-for="Description">Description</label>
+                    <textarea asp-for="Description" rows="3" class="form-control"></textarea>
+                    <span asp-validation-for="Description" class="text-danger se-small"></span>
+                </div>
+
+                <div class="se-span-2">
+                    <div class="form-check">
+                        <input asp-for="IsActive" class="form-check-input" />
+                        <label class="form-check-label se-small" asp-for="IsActive">Active (available for student requests)</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-check2 me-1"></i>Save document type</button>
+                <a class="btn btn-light" asp-action="Types">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>

@@ -1,0 +1,128 @@
+@model List<SubjectRowViewModel>
+@using Microsoft.AspNetCore.Mvc.Rendering
+@{
+    ViewData["Title"] = "Subjects";
+    var gradeLevelOptions = ViewData["GradeLevelOptions"] as List<SelectListItem> ?? new List<SelectListItem>();
+    var keyword = ViewData["Keyword"] as string;
+    var gradeLevelId = ViewData["GradeLevelId"] as int?;
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = "Subjects",
+    Subtitle = $"{Model.Count} subject{(Model.Count == 1 ? "" : "s")} listed",
+    Icon = "bi-journal-bookmark",
+    Actions = new List<PageAction>
+    {
+        new() { Text = "New Subject", Url = Url.Action("Create"), Icon = "bi-plus-lg" }
+    }
+})" />
+
+<div class="se-card">
+    <form asp-action="Index" method="get" class="se-filters">
+        <div class="se-filters__grow">
+            <label class="form-label">Search</label>
+            <input type="search" name="keyword" value="@keyword" class="form-control" placeholder="Subject code or title" />
+        </div>
+        <div>
+            <label class="form-label">Grade level</label>
+            <select name="gradeLevelId" class="form-select" data-se-autosubmit>
+                <option value="">All grade levels</option>
+                @foreach (var option in gradeLevelOptions)
+                {
+                    <option value="@option.Value" selected="@(gradeLevelId.HasValue && gradeLevelId.Value.ToString() == option.Value)">@option.Text</option>
+                }
+            </select>
+        </div>
+        <div>
+            <button type="submit" class="btn btn-primary"><i class="bi bi-search me-1"></i>Search</button>
+        </div>
+        <div>
+            <button type="button" class="btn btn-light" data-se-reset="@Url.Action("Index")">Reset</button>
+        </div>
+    </form>
+
+    @if (Model.Count == 0)
+    {
+        <partial name="_EmptyState" model="@(new EmptyState
+        {
+            Icon = "bi-journal-bookmark",
+            Title = "No subjects found",
+            Message = "Adjust the filters or add a new subject to the catalogue.",
+            ActionText = "New subject",
+            ActionUrl = Url.Action("Create")
+        })" />
+    }
+    else
+    {
+        <div class="se-table-wrap">
+            <table class="se-table">
+                <thead>
+                    <tr>
+                        <th>Code</th>
+                        <th>Title</th>
+                        <th class="text-center">Units</th>
+                        <th>Grade Level</th>
+                        <th>Track / Strand</th>
+                        <th>Assigned Teachers</th>
+                        <th>Status</th>
+                        <th class="se-col-actions">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model)
+                    {
+                        var subject = row.Subject;
+                        var shown = row.TeacherNames.Take(2).ToList();
+                        <tr>
+                            <td><span class="se-id-chip">@subject.Code</span></td>
+                            <td>
+                                <a class="se-strong text-decoration-none" asp-action="Details" asp-route-id="@subject.Id">@subject.Title</a>
+                            </td>
+                            <td class="text-center">@subject.Units.ToString("0.##")</td>
+                            <td>@(subject.GradeLevel?.Name ?? "All")</td>
+                            <td>@(string.IsNullOrWhiteSpace(subject.TrackStrand) ? "—" : subject.TrackStrand)</td>
+                            <td>
+                                @if (row.TeacherCount == 0)
+                                {
+                                    <span class="se-muted se-small">Unassigned</span>
+                                }
+                                else
+                                {
+                                    <span class="se-badge text-bg-primary">@row.TeacherCount</span>
+                                    <span class="se-small ms-1">@string.Join(", ", shown)@(row.TeacherCount > shown.Count ? $" +{row.TeacherCount - shown.Count} more" : "")</span>
+                                }
+                            </td>
+                            <td>
+                                @if (subject.IsActive)
+                                {
+                                    <span class="se-badge text-bg-success">Active</span>
+                                }
+                                else
+                                {
+                                    <span class="se-badge text-bg-secondary">Inactive</span>
+                                }
+                            </td>
+                            <td class="se-col-actions">
+                                <a class="btn btn-sm btn-light" asp-action="Details" asp-route-id="@subject.Id" title="View">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a class="btn btn-sm btn-light" asp-action="Edit" asp-route-id="@subject.Id" title="Edit">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <form asp-action="Delete" asp-route-id="@subject.Id" method="post" class="d-inline"
+                                      data-se-confirm="Delete this subject?">
+                                    <button type="submit" class="btn btn-sm btn-light text-danger" title="Delete">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <partial name="_Pagination" model="@(ViewData["Pagination"] as PaginationInfo ?? new PaginationInfo())" />
+    }
+</div>

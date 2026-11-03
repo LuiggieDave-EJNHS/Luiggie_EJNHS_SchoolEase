@@ -1,0 +1,131 @@
+@model DocumentRequestCreateViewModel
+@{
+    ViewData["Title"] = "New Document Request";
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = "New Document Request",
+    Subtitle = "Choose a document, state your purpose and we will notify you when it is ready.",
+    Icon = "bi-file-earmark-plus",
+    Actions = new List<PageAction>
+    {
+        new() { Text = "My Requests", Url = Url.Action("MyRequests"), Icon = "bi-arrow-left", Css = "btn btn-light" }
+    }
+})" />
+
+@if (Model.DocumentTypes.Count == 0)
+{
+    <div class="se-card">
+        <partial name="_EmptyState" model="@(new EmptyState
+        {
+            Icon = "bi-journal-x",
+            Title = "No documents available",
+            Message = "The registrar has not configured any document types yet. Please try again later.",
+            ActionText = "Back to my requests",
+            ActionUrl = Url.Action("MyRequests")
+        })" />
+    </div>
+}
+else
+{
+    <div class="row g-3">
+        <div class="col-lg-8">
+            <div class="se-card">
+                <div class="se-card__head"><h3><i class="bi bi-pencil-square me-1"></i>Request form</h3></div>
+                <div class="se-card__body">
+                    <form asp-action="Create" method="post">
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 se-small"></div>
+
+                        <div class="se-form-grid">
+                            <div class="se-span-2">
+                                <label class="se-form-label" for="documentTypeId">Document Type <span class="req">*</span></label>
+                                <select id="documentTypeId" name="documentTypeId" class="form-select">
+                                    <option value="">— Select a document —</option>
+                                    @foreach (var type in Model.DocumentTypes)
+                                    {
+                                        <option value="@type.Id"
+                                                data-days="@type.ProcessingDays"
+                                                selected="@(Model.DocumentTypeId == type.Id)">
+                                            @type.Name (@type.ProcessingDays day(s))
+                                        </option>
+                                    }
+                                </select>
+                                <span asp-validation-for="DocumentTypeId" class="text-danger se-small"></span>
+                            </div>
+
+                            <div>
+                                <label class="se-form-label" for="copies">No. of Copies <span class="req">*</span></label>
+                                <input id="copies" name="copies" type="number" min="1" max="20" value="@Model.Copies" class="form-control" />
+                                <span asp-validation-for="Copies" class="text-danger se-small"></span>
+                            </div>
+
+                            <div>
+                                <label class="se-form-label">Estimated Processing Time</label>
+                                <div class="form-control bg-light d-flex align-items-center">
+                                    <span class="se-tiny se-muted" id="feeDays">—</span>
+                                </div>
+                            </div>
+
+                            <div class="se-span-2">
+                                <label class="se-form-label" for="purpose">Purpose <span class="req">*</span></label>
+                                <textarea id="purpose" name="purpose" rows="4" class="form-control"
+                                          data-se-counter="#purposeCount"
+                                          placeholder="e.g. For scholarship application">@Model.Purpose</textarea>
+                                <span id="purposeCount" class="se-tiny se-muted"></span>
+                                <span asp-validation-for="Purpose" class="text-danger se-small d-block"></span>
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-send me-1"></i>Submit request
+                            </button>
+                            <a class="btn btn-light" asp-action="MyRequests">Cancel</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="se-card">
+                <div class="se-card__head"><h3><i class="bi bi-list-ul me-1"></i>Available documents</h3></div>
+                <div class="se-card__body">
+                    <ul class="se-feed">
+                        @foreach (var type in Model.DocumentTypes)
+                        {
+                            <li>
+                                <span class="se-feed__icon bg-soft-primary"><i class="bi bi-file-earmark-text"></i></span>
+                                <span>
+                                    <span class="se-feed__title d-block">@type.Name</span>
+                                    <span class="se-feed__meta d-block">
+                                        about @type.ProcessingDays day(s)
+                                    </span>
+                                </span>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        (function () {
+            const select = document.getElementById("documentTypeId");
+            const days = document.getElementById("feeDays");
+
+            function update() {
+                if (!select || !days) return;
+                const opt = select.options[select.selectedIndex];
+                days.textContent = opt && opt.dataset.days ? "about " + opt.dataset.days + " day(s)" : "—";
+            }
+
+            select?.addEventListener("change", update);
+            update();
+        })();
+    </script>
+}

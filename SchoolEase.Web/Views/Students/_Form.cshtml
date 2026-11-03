@@ -1,0 +1,158 @@
+@model Student
+@{
+    var gradeLevels = ViewData["GradeLevels"] as List<SelectListItem> ?? new List<SelectListItem>();
+    var sections = ViewData["Sections"] as List<SelectListItem> ?? new List<SelectListItem>();
+    var guardians = ViewData["Guardians"] as List<SelectListItem> ?? new List<SelectListItem>();
+}
+
+<div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 se-small"></div>
+<input type="hidden" asp-for="Id" />
+
+<div class="se-form-grid se-form-grid--3">
+    <div class="se-form-section"><h3>Identity</h3></div>
+
+    <div>
+        <label class="form-label" asp-for="StudentNumber"></label>
+        <input asp-for="StudentNumber" class="form-control" placeholder="Auto-generated when blank" />
+        <span asp-validation-for="StudentNumber" class="text-danger se-small"></span>
+    </div>
+    <div>
+        <label class="form-label" asp-for="Lrn"></label>
+        <input asp-for="Lrn" class="form-control" />
+        <span asp-validation-for="Lrn" class="text-danger se-small"></span>
+    </div>
+    <div>
+        <label class="form-label" asp-for="Gender"></label>
+        <select asp-for="Gender" asp-items="SelectLists.EnumOptions<Gender>(Model.Gender)" class="form-select"></select>
+        <span asp-validation-for="Gender" class="text-danger se-small"></span>
+    </div>
+
+    <div>
+        <label class="form-label" asp-for="FirstName"></label>
+        <input asp-for="FirstName" class="form-control" />
+        <span asp-validation-for="FirstName" class="text-danger se-small"></span>
+    </div>
+    <div>
+        <label class="form-label" asp-for="MiddleName"></label>
+        <input asp-for="MiddleName" class="form-control" />
+        <span asp-validation-for="MiddleName" class="text-danger se-small"></span>
+    </div>
+    <div>
+        <label class="form-label" asp-for="LastName"></label>
+        <input asp-for="LastName" class="form-control" />
+        <span asp-validation-for="LastName" class="text-danger se-small"></span>
+    </div>
+
+    <div>
+        <label class="form-label" asp-for="Suffix"></label>
+        <input asp-for="Suffix" class="form-control" placeholder="Jr., III…" />
+        <span asp-validation-for="Suffix" class="text-danger se-small"></span>
+    </div>
+    <div>
+        <label class="form-label" asp-for="BirthDate"></label>
+        <input asp-for="BirthDate" type="date" class="form-control" />
+        <span asp-validation-for="BirthDate" class="text-danger se-small"></span>
+    </div>
+    <div>
+        <label class="form-label" asp-for="IsActive"></label>
+        <div class="form-check mt-1">
+            <input asp-for="IsActive" class="form-check-input" />
+            <label class="form-check-label se-small" asp-for="IsActive">Active learner record</label>
+        </div>
+    </div>
+
+    <div class="se-form-section"><h3>Contact</h3></div>
+
+    <div>
+        <label class="form-label" asp-for="ContactNumber"></label>
+        <input asp-for="ContactNumber" class="form-control" />
+        <span asp-validation-for="ContactNumber" class="text-danger se-small"></span>
+    </div>
+    <div>
+        <label class="form-label" asp-for="Email"></label>
+        <input asp-for="Email" type="email" class="form-control" />
+        <span asp-validation-for="Email" class="text-danger se-small"></span>
+    </div>
+    <div></div>
+
+    <div class="se-span-3">
+        <label class="form-label" asp-for="Address"></label>
+        <textarea asp-for="Address" class="form-control" rows="2"></textarea>
+        <span asp-validation-for="Address" class="text-danger se-small"></span>
+    </div>
+
+    <div class="se-form-section"><h3>Academic placement</h3></div>
+
+    <div>
+        <label class="form-label" asp-for="GradeLevelId"></label>
+        <select asp-for="GradeLevelId" asp-items="gradeLevels" class="form-select">
+            <option value="">— Unassigned —</option>
+        </select>
+        <span asp-validation-for="GradeLevelId" class="text-danger se-small"></span>
+    </div>
+    <div>
+        <label class="form-label" asp-for="SectionId"></label>
+        <select asp-for="SectionId" asp-items="sections" class="form-select">
+            <option value="">— Unassigned —</option>
+        </select>
+        <span asp-validation-for="SectionId" class="text-danger se-small"></span>
+    </div>
+    <div>
+        <label class="form-label" asp-for="EnrollmentStatus"></label>
+        <select asp-for="EnrollmentStatus" asp-items="SelectLists.EnumOptions<EnrollmentStatus>(Model.EnrollmentStatus)" class="form-select"></select>
+        <span asp-validation-for="EnrollmentStatus" class="text-danger se-small"></span>
+    </div>
+
+    <div>
+        <label class="form-label" asp-for="DateEnrolled"></label>
+        <input asp-for="DateEnrolled" type="date" class="form-control" />
+        <span asp-validation-for="DateEnrolled" class="text-danger se-small"></span>
+    </div>
+
+    <div class="se-form-section"><h3>Guardian</h3></div>
+
+    <div class="se-span-2">
+        <label class="form-label" asp-for="GuardianId"></label>
+        <select asp-for="GuardianId" asp-items="guardians" class="form-select">
+            <option value="">— No existing guardian / create one below —</option>
+        </select>
+        <span asp-validation-for="GuardianId" class="text-danger se-small"></span>
+    </div>
+    <div></div>
+
+    <div class="se-span-3">
+        <p class="se-small se-muted mb-0">
+            <i class="bi bi-info-circle me-1"></i>Optional: fill in a new guardian below only when no existing guardian is selected above.
+        </p>
+    </div>
+
+    <div>
+        <label class="form-label">New Guardian First Name</label>
+        <input name="newGuardianFirstName" class="form-control" value="@(ViewData["newGuardianFirstName"] as string)" />
+    </div>
+    <div>
+        <label class="form-label">New Guardian Middle Name</label>
+        <input name="newGuardianMiddleName" class="form-control" value="@(ViewData["newGuardianMiddleName"] as string)" />
+    </div>
+    <div>
+        <label class="form-label">New Guardian Last Name</label>
+        <input name="newGuardianLastName" class="form-control" value="@(ViewData["newGuardianLastName"] as string)" />
+    </div>
+    <div>
+        <label class="form-label">Relationship</label>
+        <input name="newGuardianRelationship" class="form-control" placeholder="Parent, Guardian…" value="@(ViewData["newGuardianRelationship"] as string)" />
+    </div>
+    <div>
+        <label class="form-label">Guardian Contact Number</label>
+        <input name="newGuardianContactNumber" class="form-control" value="@(ViewData["newGuardianContactNumber"] as string)" />
+    </div>
+    <div>
+        <label class="form-label">Guardian Email</label>
+        <input name="newGuardianEmail" type="email" class="form-control" value="@(ViewData["newGuardianEmail"] as string)" />
+    </div>
+</div>
+
+<div class="form-actions">
+    <button type="submit" class="btn btn-primary"><i class="bi bi-check2 me-1"></i>Save</button>
+    <a class="btn btn-light" asp-action="Index">Cancel</a>
+</div>

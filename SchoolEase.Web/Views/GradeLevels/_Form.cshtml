@@ -1,0 +1,31 @@
+@model GradeLevelFormViewModel
+<div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 se-small"></div>
+
+<div class="se-form-grid">
+    <div>
+        <label asp-for="Name" class="form-label"></label>
+        <input asp-for="Name" class="form-control" placeholder="Grade 12" />
+        <span asp-validation-for="Name" class="text-danger se-small"></span>
+    </div>
+    <div>
+        <label asp-for="Code" class="form-label"></label>
+        <input asp-for="Code" class="form-control" placeholder="G12" />
+        <span asp-validation-for="Code" class="text-danger se-small"></span>
+    </div>
+    <div>
+        <label asp-for="OrderIndex" class="form-label"></label>
+        <input asp-for="OrderIndex" type="number" class="form-control" />
+        <span asp-validation-for="OrderIndex" class="text-danger se-small"></span>
+    </div>
+    <div>
+        <label asp-for="IsActive" class="form-label d-block"></label>
+        <div class="form-check form-switch">
+            <input asp-for="IsActive" class="form-check-input" role="switch" />
+        </div>
+    </div>
+    <div class="se-span-2">
+        <label asp-for="Description" class="form-label"></label>
+        <textarea asp-for="Description" class="form-control" rows="2"></textarea>
+        <span asp-validation-for="Description" class="text-danger se-small"></span>
+    </div>
+</div>

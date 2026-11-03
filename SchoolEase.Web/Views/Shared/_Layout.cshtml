@@ -1,0 +1,46 @@
+@{
+    var pageTitle = ViewData["Title"] as string ?? "Dashboard";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@pageTitle &bull; @SchoolInfo.Name</title>
+    <meta name="description" content="@SchoolInfo.LongName" />
+    <link rel="icon" href="~/favicon.ico" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+    <link rel="stylesheet" href="~/css/schoolease.css" asp-append-version="true" />
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body>
+    <div class="se-app">
+        <partial name="_Sidebar" />
+
+        <div class="se-main">
+            <partial name="_Topbar" />
+
+            <main class="se-content" role="main">
+                @RenderBody()
+            </main>
+
+            <footer class="px-4 py-3 se-small se-muted border-top bg-white d-flex flex-wrap justify-content-between gap-2">
+                <span>&copy; @DateTime.Now.Year @SchoolInfo.SchoolName &mdash; @SchoolInfo.Tagline</span>
+                <span>@SchoolInfo.Division</span>
+            </footer>
+        </div>
+    </div>
+
+    <div class="se-backdrop" id="seBackdrop"></div>
+    <div class="se-toasts" id="seToasts"></div>
+
+    <partial name="_Flash" />
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="~/js/schoolease.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

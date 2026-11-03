@@ -1,0 +1,80 @@
+@model Announcement
+@{
+    ViewData["Title"] = Model.Title;
+    var canManage = ViewData["CanManage"] as bool? ?? false;
+
+    var actions = new List<PageAction>
+    {
+        new() { Text = "All Announcements", Url = Url.Action("Index"), Icon = "bi-arrow-left", Css = "btn btn-light" }
+    };
+    if (canManage)
+    {
+        actions.Add(new PageAction { Text = "Edit", Url = Url.Action("Edit", new { id = Model.Id }), Icon = "bi-pencil" });
+    }
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = Model.Title,
+    Subtitle = $"Posted by {Model.AuthorName} • {Model.PublishDate.ToRelativeTime()}",
+    Icon = "bi-megaphone",
+    Actions = actions
+})" />
+
+<div class="row g-3">
+    <div class="col-lg-8">
+        <div class="se-announce se-announce--@Model.PriorityCss">
+            <h4>@Model.Title</h4>
+            <p>@Model.Content</p>
+            <div class="se-announce__meta">
+                <span><i class="bi bi-person me-1"></i>@Model.AuthorName</span>
+                <span><i class="bi bi-clock me-1"></i>@Model.PublishDate.ToRelativeTime()</span>
+                <span class="se-badge text-bg-@Model.PriorityCss">@Model.Priority.DisplayName()</span>
+                <span class="se-badge text-bg-secondary"><i class="bi bi-people"></i>@Model.Audience.DisplayName()</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="se-card mb-3">
+            <div class="se-card__head"><h3><i class="bi bi-info-circle me-1"></i>Details</h3></div>
+            <div class="se-card__body">
+                <dl class="row se-small mb-0">
+                    <dt class="col-5 se-muted">Priority</dt>
+                    <dd class="col-7"><span class="se-badge text-bg-@Model.PriorityCss">@Model.Priority.DisplayName()</span></dd>
+                    <dt class="col-5 se-muted">Audience</dt>
+                    <dd class="col-7">@Model.Audience.DisplayName()</dd>
+                    <dt class="col-5 se-muted">Published</dt>
+                    <dd class="col-7">@Model.PublishDate.ToString("MMM d, yyyy h:mm tt")</dd>
+                    <dt class="col-5 se-muted">Expires</dt>
+                    <dd class="col-7">@(Model.ExpireDate.HasValue ? Model.ExpireDate.Value.ToString("MMM d, yyyy h:mm tt") : "No expiry")</dd>
+                    <dt class="col-5 se-muted">Status</dt>
+                    <dd class="col-7">
+                        @if (Model.IsLive)
+                        {
+                            <span class="se-badge text-bg-success"><i class="bi bi-broadcast"></i>Live</span>
+                        }
+                        else
+                        {
+                            <span class="se-badge text-bg-secondary"><i class="bi bi-eye-slash"></i>Not live</span>
+                        }
+                    </dd>
+                </dl>
+            </div>
+        </div>
+
+        @if (canManage)
+        {
+            <div class="se-card border-danger-subtle">
+                <div class="se-card__head"><h3 class="text-danger"><i class="bi bi-exclamation-triangle me-1"></i>Danger zone</h3></div>
+                <div class="se-card__body">
+                    <form asp-action="Delete" asp-route-id="@Model.Id" method="post" data-se-confirm="Delete this announcement permanently?">
+                        <button type="submit" class="btn btn-outline-danger w-100">
+                            <i class="bi bi-trash me-1"></i>Delete announcement
+                        </button>
+                    </form>
+                </div>
+            </div>
+        }
+    </div>
+</div>

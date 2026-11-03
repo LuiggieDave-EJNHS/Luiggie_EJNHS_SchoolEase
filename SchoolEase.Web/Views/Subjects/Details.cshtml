@@ -1,0 +1,143 @@
+@model SubjectDetailsViewModel
+@{
+    ViewData["Title"] = Model.Subject.DisplayName;
+    var subject = Model.Subject;
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = subject.Title,
+    Subtitle = $"{subject.Code} • {subject.Units.ToString("0.##")} unit(s)",
+    Icon = "bi-journal-bookmark",
+    Actions = new List<PageAction>
+    {
+        new() { Text = "Edit", Url = Url.Action("Edit", new { id = subject.Id }), Icon = "bi-pencil" },
+        new() { Text = "Back to list", Url = Url.Action("Index"), Icon = "bi-arrow-left", Css = "btn btn-light" }
+    }
+})" />
+
+<div class="row g-3 mb-3">
+    <div class="col-lg-5">
+        <div class="se-card h-100">
+            <div class="se-card__head"><h3><i class="bi bi-info-circle me-1"></i>Subject information</h3></div>
+            <div class="se-card__body">
+                <dl class="row se-small mb-0">
+                    <dt class="col-5 se-muted">Grade level</dt>
+                    <dd class="col-7">@(subject.GradeLevel?.Name ?? "All")</dd>
+                    <dt class="col-5 se-muted">Units</dt>
+                    <dd class="col-7">@subject.Units.ToString("0.##")</dd>
+                    <dt class="col-5 se-muted">Track / Strand</dt>
+                    <dd class="col-7">@(string.IsNullOrWhiteSpace(subject.TrackStrand) ? "—" : subject.TrackStrand)</dd>
+                    <dt class="col-5 se-muted">Status</dt>
+                    <dd class="col-7">
+                        @if (subject.IsActive)
+                        {
+                            <span class="se-badge text-bg-success">Active</span>
+                        }
+                        else
+                        {
+                            <span class="se-badge text-bg-secondary">Inactive</span>
+                        }
+                    </dd>
+                </dl>
+                @if (!string.IsNullOrWhiteSpace(subject.Description))
+                {
+                    <hr />
+                    <p class="se-small se-muted mb-0">@subject.Description</p>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-7">
+        <div class="se-card h-100">
+            <div class="se-card__head">
+                <h3><i class="bi bi-diagram-3 me-1"></i>Sections &amp; teachers</h3>
+                <span class="se-badge text-bg-primary">@Model.Assignments.Count</span>
+            </div>
+            @if (Model.Assignments.Count == 0)
+            {
+                <partial name="_EmptyState" model="@(new EmptyState
+                {
+                    Icon = "bi-diagram-3",
+                    Title = "Not assigned yet",
+                    Message = "This subject is not linked to any section. Assign it from a section's detail page."
+                })" />
+            }
+            else
+            {
+                <div class="se-table-wrap">
+                    <table class="se-table">
+                        <thead>
+                            <tr>
+                                <th>Section</th>
+                                <th>Teacher</th>
+                                <th>School Year</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var assignment in Model.Assignments)
+                            {
+                                <tr>
+                                    <td>
+                                        <a class="text-decoration-none se-strong" asp-controller="Sections" asp-action="Details" asp-route-id="@assignment.SectionId">
+                                            @(assignment.Section?.DisplayName ?? assignment.Section?.Name)
+                                        </a>
+                                    </td>
+                                    <td>@assignment.Teacher?.FullName</td>
+                                    <td>@assignment.SchoolYear</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<div class="se-card">
+    <div class="se-card__head">
+        <h3><i class="bi bi-calendar-week me-1"></i>Class schedule entries</h3>
+        <a class="se-small" asp-controller="Schedules" asp-action="Index">All schedules</a>
+    </div>
+    @if (Model.Schedules.Count == 0)
+    {
+        <partial name="_EmptyState" model="@(new EmptyState
+        {
+            Icon = "bi-calendar-week",
+            Title = "Nothing scheduled",
+            Message = "No class meetings have been scheduled for this subject yet.",
+            ActionText = "Add schedule",
+            ActionUrl = Url.Action("Create", "Schedules", new { subjectId = subject.Id })
+        })" />
+    }
+    else
+    {
+        <div class="se-table-wrap">
+            <table class="se-table">
+                <thead>
+                    <tr>
+                        <th>Day</th>
+                        <th>Time</th>
+                        <th>Section</th>
+                        <th>Teacher</th>
+                        <th>Room</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var entry in Model.Schedules)
+                    {
+                        <tr>
+                            <td>@entry.DayOfWeek.DayShortName()</td>
+                            <td>@entry.TimeRange</td>
+                            <td>@(entry.Section?.DisplayName ?? entry.Section?.Name)</td>
+                            <td>@entry.Teacher?.FullName</td>
+                            <td>@(string.IsNullOrWhiteSpace(entry.Room) ? "—" : entry.Room)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

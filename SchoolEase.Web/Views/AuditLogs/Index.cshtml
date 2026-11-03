@@ -1,0 +1,108 @@
+@model AuditLogIndexViewModel
+@{
+    ViewData["Title"] = "Audit Logs";
+
+    var cards = new List<StatCard>
+    {
+        new() { Label = "Total Entries", Value = Model.Total.ToString("N0"), Icon = "bi-shield-check", Tone = "primary" },
+        new() { Label = "Entries Today", Value = Model.Today.ToString("N0"), Icon = "bi-calendar-day", Tone = "info" },
+        new() { Label = "Logins Today", Value = Model.LoginsToday.ToString("N0"), Icon = "bi-box-arrow-in-right", Tone = "success" },
+        new() { Label = "Deletions Today", Value = Model.DeletionsToday.ToString("N0"), Icon = "bi-trash", Tone = "danger" }
+    };
+
+    string Tone(string action)
+    {
+        if (action.Contains("Delete", StringComparison.OrdinalIgnoreCase)) return "danger";
+        if (action.Contains("Create", StringComparison.OrdinalIgnoreCase) || action.Contains("Add", StringComparison.OrdinalIgnoreCase)) return "success";
+        if (action.Contains("Update", StringComparison.OrdinalIgnoreCase) || action.Contains("Status", StringComparison.OrdinalIgnoreCase)) return "warning";
+        if (action.Contains("Login", StringComparison.OrdinalIgnoreCase)) return "primary";
+        if (action.Contains("Logout", StringComparison.OrdinalIgnoreCase)) return "secondary";
+        return "info";
+    }
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = "Audit Logs",
+    Subtitle = "A tamper-evident trail of security-relevant activity across the system.",
+    Icon = "bi-shield-check"
+})" />
+
+<div class="row g-3 mb-3">
+    @foreach (var card in cards)
+    {
+        <div class="col-6 col-xl-3">
+            <partial name="_StatCard" model="card" />
+        </div>
+    }
+</div>
+
+<div class="se-card">
+    <form method="get" asp-action="Index" class="se-filters">
+        <select name="action" class="form-select" data-se-autosubmit aria-label="Filter by action">
+            <option value="">All actions</option>
+            @foreach (var item in Model.Actions)
+            {
+                <option value="@item" selected="@(Model.Action == item)">@item</option>
+            }
+        </select>
+        <select name="entityName" class="form-select" data-se-autosubmit aria-label="Filter by module">
+            <option value="">All modules</option>
+            @foreach (var item in Model.Modules)
+            {
+                <option value="@item" selected="@(Model.EntityName == item)">@item</option>
+            }
+        </select>
+        <input name="keyword" value="@Model.Keyword" class="form-control se-filters__grow"
+               placeholder="Search user, details, action or IP…" />
+        <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i></button>
+        <button type="button" class="btn btn-light" data-se-reset="@Url.Action("Index")">Reset</button>
+    </form>
+
+    @if (Model.Logs.Count == 0)
+    {
+        <partial name="_EmptyState" model="@(new EmptyState
+        {
+            Icon = "bi-shield-check",
+            Title = "No audit entries",
+            Message = "Activity will be recorded here as users sign in and manage records."
+        })" />
+    }
+    else
+    {
+        <div class="se-table-wrap">
+            <table class="se-table">
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>Performed By</th>
+                        <th>Action</th>
+                        <th>Module</th>
+                        <th>Entity Id</th>
+                        <th>Details</th>
+                        <th>IP Address</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var log in Model.Logs)
+                    {
+                        <tr>
+                            <td>
+                                <span class="se-strong se-small d-block">@log.CreatedAt.ToLocalTime().ToString("MMM d, yyyy")</span>
+                                <span class="se-tiny se-muted">@log.CreatedAt.ToLocalTime().ToString("h:mm tt")</span>
+                            </td>
+                            <td>@(string.IsNullOrWhiteSpace(log.UserName) ? "—" : log.UserName)</td>
+                            <td><span class="se-badge text-bg-@Tone(log.Action)">@log.Action</span></td>
+                            <td>@(string.IsNullOrWhiteSpace(log.EntityName) ? "—" : log.EntityName)</td>
+                            <td>@(string.IsNullOrWhiteSpace(log.EntityId) ? "—" : log.EntityId)</td>
+                            <td class="se-small">@(string.IsNullOrWhiteSpace(log.Details) ? "—" : log.Details)</td>
+                            <td><span class="se-id-chip">@(string.IsNullOrWhiteSpace(log.IpAddress) ? "—" : log.IpAddress)</span></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <partial name="_Pagination" model="@(ViewData["Pagination"] as PaginationInfo ?? new PaginationInfo())" />
+    }
+</div>

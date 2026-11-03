@@ -1,0 +1,62 @@
+@model SearchViewModel
+@{
+    ViewData["Title"] = "Search";
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = "Search results",
+    Subtitle = string.IsNullOrWhiteSpace(Model.Query) ? "Type at least two characters to search." : $"Results for “{Model.Query}”",
+    Icon = "bi-search"
+})" />
+
+<div class="se-card">
+    <div class="se-card__head">
+        <h3>@Model.Hits.Count result@(Model.Hits.Count == 1 ? "" : "s")</h3>
+        <form class="d-flex gap-2" asp-action="Search" method="get">
+            <input class="form-control form-control-sm" type="search" name="q" value="@Model.Query" placeholder="Search again…" />
+            <button class="btn btn-sm btn-primary" type="submit"><i class="bi bi-search"></i></button>
+        </form>
+    </div>
+
+    @if (Model.IsEmpty)
+    {
+        <partial name="_EmptyState" model="@(new EmptyState
+        {
+            Icon = "bi-search",
+            Title = "No matching records",
+            Message = string.IsNullOrWhiteSpace(Model.Query)
+                ? "Enter a name, student number, employee number, subject code or request number."
+                : "We could not find anything matching your search. Try a different keyword."
+        })" />
+    }
+    else
+    {
+        <div class="se-table-wrap">
+            <table class="se-table">
+                <thead>
+                    <tr>
+                        <th style="width:130px;">Category</th>
+                        <th>Record</th>
+                        <th class="se-col-actions">Open</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var hit in Model.Hits)
+                    {
+                        <tr>
+                            <td><span class="se-pill"><i class="bi @hit.Icon"></i>@hit.Category</span></td>
+                            <td>
+                                <span class="se-strong d-block">@hit.Title</span>
+                                <span class="se-small se-muted">@hit.Subtitle</span>
+                            </td>
+                            <td class="se-col-actions">
+                                <a class="btn btn-sm btn-light" href="@hit.Url"><i class="bi bi-box-arrow-up-right"></i></a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

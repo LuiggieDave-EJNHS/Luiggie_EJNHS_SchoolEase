@@ -1,0 +1,173 @@
+@model GradeEncodeViewModel
+@{
+    ViewData["Title"] = "Encode Grades";
+    ViewData["Section"] = "Academics";
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = "Encode Grades",
+    Subtitle = $"{Model.SectionLabel} • {Model.SubjectLabel} • Term {Model.Term}",
+    Icon = "bi-mortarboard",
+    Actions = new()
+    {
+        new PageAction { Text = "Print class record", Url = Url.Action("Print", "Grades", new { sectionId = Model.SectionId, subjectId = Model.SubjectId, term = Model.Term }), Icon = "bi-printer", Css = "btn btn-light", Target = "_blank" },
+        new PageAction { Text = "All grades", Url = Url.Action("Index", "Grades"), Icon = "bi-list-check", Css = "btn btn-light" }
+    }
+})" />
+
+<div class="se-card mb-3">
+    <div class="se-card__body">
+        <form class="row g-2 align-items-end" method="get" asp-action="Encode">
+            <div class="col-sm-6 col-lg-3">
+                <label class="form-label">Section</label>
+                <select class="form-select" name="sectionId" data-se-autosubmit>
+                    @foreach (var s in Model.Sections)
+                    {
+                        <option value="@s.Value" selected="@(s.Selected ? "selected" : null)">@s.Text</option>
+                    }
+                </select>
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <label class="form-label">Subject</label>
+                <select class="form-select" name="subjectId" data-se-autosubmit>
+                    @foreach (var s in Model.Subjects)
+                    {
+                        <option value="@s.Value" selected="@(s.Selected ? "selected" : null)">@s.Text</option>
+                    }
+                </select>
+            </div>
+            <div class="col-sm-6 col-lg-2">
+                <label class="form-label">Term</label>
+                <select class="form-select" name="term" data-se-autosubmit>
+                    @foreach (var q in SelectLists.Terms())
+                    {
+                        <option value="@q.Value" selected="@(Model.Term.ToString() == q.Value ? "selected" : null)">@q.Text</option>
+                    }
+                </select>
+            </div>
+            <div class="col-lg-2">
+                <button class="btn btn-primary" type="submit"><i class="bi bi-arrow-repeat me-1"></i>Load roster</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@if (Model.Rows.Count == 0)
+{
+    <div class="se-card">
+        <partial name="_EmptyState" model="@(new EmptyState
+        {
+            Icon = "bi-people",
+            Title = "No students in this section",
+            Message = "This section has no enrolled learners yet. Choose a different section to encode grades."
+        })" />
+    </div>
+}
+else
+{
+    <form method="post" asp-action="Save">
+        <input type="hidden" name="sectionId" value="@Model.SectionId" />
+        <input type="hidden" name="subjectId" value="@Model.SubjectId" />
+        <input type="hidden" name="term" value="@Model.Term" />
+
+        <div class="se-card">
+            <div class="se-card__head">
+                <h3><i class="bi bi-pencil-square me-1"></i>@Model.SubjectLabel</h3>
+                <span class="se-small se-muted">@Model.SectionLabel • Term @Model.Term • @Model.Rows.Count learner(s)</span>
+            </div>
+
+            <div class="se-table-wrap">
+                <table class="se-table se-table--compact">
+                    <thead>
+                        <tr>
+                            <th style="width:48px;">#</th>
+                            <th>Student</th>
+                            <th style="width:130px;" class="text-end">Written Work<span class="se-tiny d-block se-muted">30%</span></th>
+                            <th style="width:140px;" class="text-end">Performance Task<span class="se-tiny d-block se-muted">50%</span></th>
+                            <th style="width:140px;" class="text-end">Term Assess.<span class="se-tiny d-block se-muted">20%</span></th>
+                            <th style="width:120px;" class="text-end">Final Grade</th>
+                            <th style="width:230px;">Remarks</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (var i = 0; i < Model.Rows.Count; i++)
+                        {
+                            var row = Model.Rows[i];
+                            <tr data-grade-row>
+                                <td class="se-muted se-small">@(i + 1)</td>
+                                <td>
+                                    <input type="hidden" name="rows[@i].StudentId" value="@row.StudentId" />
+                                    <span class="se-strong d-block">@row.StudentName</span>
+                                    <span class="se-small se-muted">@row.StudentNumber</span>
+                                </td>
+                                <td>
+                                    <input type="number" class="form-control form-control-sm text-end js-ww" name="rows[@i].WrittenWork"
+                                           value="@(row.WrittenWork?.ToString("0.##", CultureInfo.InvariantCulture))" min="0" max="100" step="0.01" />
+                                </td>
+                                <td>
+                                    <input type="number" class="form-control form-control-sm text-end js-pt" name="rows[@i].PerformanceTask"
+                                           value="@(row.PerformanceTask?.ToString("0.##", CultureInfo.InvariantCulture))" min="0" max="100" step="0.01" />
+                                </td>
+                                <td>
+                                    <input type="number" class="form-control form-control-sm text-end js-qa" name="rows[@i].TermAssessment"
+                                           value="@(row.TermAssessment?.ToString("0.##", CultureInfo.InvariantCulture))" min="0" max="100" step="0.01" />
+                                </td>
+                                <td>
+                                    <input type="text" class="form-control form-control-sm text-end js-final se-strong"
+                                           value="@(row.FinalGrade?.ToString("0.##", CultureInfo.InvariantCulture))" readonly placeholder="—" />
+                                </td>
+                                <td>
+                                    <input class="form-control form-control-sm" name="rows[@i].Remarks" value="@row.Remarks" placeholder="Optional remark" />
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="se-card__foot d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <span class="se-small se-muted">
+                    <i class="bi bi-calculator me-1"></i>Final grade = Written Work &times; 0.30 + Performance Task &times; 0.50 + Term Assessment &times; 0.20
+                </span>
+                <button type="submit" class="btn btn-primary"><i class="bi bi-save me-1"></i>Save grades</button>
+            </div>
+        </div>
+    </form>
+}
+
+@section Scripts {
+    <script>
+        (function () {
+            "use strict";
+
+            function computeRow(tr) {
+                var ww = tr.querySelector(".js-ww");
+                var pt = tr.querySelector(".js-pt");
+                var qa = tr.querySelector(".js-qa");
+                var out = tr.querySelector(".js-final");
+                if (!ww || !pt || !qa || !out) return;
+
+                var w = parseFloat(ww.value);
+                var p = parseFloat(pt.value);
+                var q = parseFloat(qa.value);
+
+                if (isNaN(w) || isNaN(p) || isNaN(q)) {
+                    out.value = "";
+                    return;
+                }
+
+                var value = (w * 0.30) + (p * 0.50) + (q * 0.20);
+                out.value = (Math.round(value * 100) / 100).toFixed(2);
+            }
+
+            document.querySelectorAll("tr[data-grade-row]").forEach(function (tr) {
+                [".js-ww", ".js-pt", ".js-qa"].forEach(function (sel) {
+                    var input = tr.querySelector(sel);
+                    if (input) input.addEventListener("input", function () { computeRow(tr); });
+                });
+                computeRow(tr);
+            });
+        })();
+    </script>
+}

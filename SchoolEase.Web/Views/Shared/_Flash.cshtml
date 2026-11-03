@@ -1,0 +1,19 @@
+@{
+    var payload = new Dictionary<string, string>();
+    void Add(string key, string tempKey)
+    {
+        if (TempData[tempKey] is string value && !string.IsNullOrWhiteSpace(value))
+        {
+            payload[key] = value;
+        }
+    }
+
+    Add("success", "Success");
+    Add("error", "Error");
+    Add("warning", "Warning");
+    Add("info", "Info");
+}
+@if (payload.Count > 0)
+{
+    <script type="application/json" id="seFlash">@Html.Raw(JsonSerializer.Serialize(payload))</script>
+}

@@ -1,0 +1,45 @@
+@model SubjectFormViewModel
+<div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 se-small"></div>
+
+<div class="se-form-grid">
+    <div class="se-form-section"><h3>Subject details</h3></div>
+
+    <div>
+        <label asp-for="Code" class="form-label"></label>
+        <input asp-for="Code" class="form-control" placeholder="GEN-MATH" />
+        <span asp-validation-for="Code" class="text-danger se-small"></span>
+    </div>
+    <div>
+        <label asp-for="Title" class="form-label"></label>
+        <input asp-for="Title" class="form-control" placeholder="General Mathematics" />
+        <span asp-validation-for="Title" class="text-danger se-small"></span>
+    </div>
+    <div>
+        <label asp-for="Units" class="form-label"></label>
+        <input asp-for="Units" type="number" step="0.5" min="0.5" max="12" class="form-control" />
+        <span asp-validation-for="Units" class="text-danger se-small"></span>
+    </div>
+    <div>
+        <label asp-for="GradeLevelId" class="form-label"></label>
+        <select asp-for="GradeLevelId" asp-items="Model.GradeLevels" class="form-select">
+            <option value="">— All grade levels —</option>
+        </select>
+        <span asp-validation-for="GradeLevelId" class="text-danger se-small"></span>
+    </div>
+    <div>
+        <label asp-for="TrackStrand" class="form-label"></label>
+        <input asp-for="TrackStrand" class="form-control" placeholder="Academic - STEM" />
+        <span asp-validation-for="TrackStrand" class="text-danger se-small"></span>
+    </div>
+    <div>
+        <label asp-for="IsActive" class="form-label d-block"></label>
+        <div class="form-check form-switch">
+            <input asp-for="IsActive" class="form-check-input" role="switch" />
+        </div>
+    </div>
+    <div class="se-span-2">
+        <label asp-for="Description" class="form-label"></label>
+        <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+        <span asp-validation-for="Description" class="text-danger se-small"></span>
+    </div>
+</div>

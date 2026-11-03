@@ -1,0 +1,61 @@
+@model Guardian
+
+<div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 se-small"></div>
+<input type="hidden" asp-for="Id" />
+
+<div class="se-form-grid">
+    <div class="se-form-section"><h3>Identity</h3></div>
+
+    <div>
+        <label class="form-label" asp-for="FirstName"></label>
+        <input asp-for="FirstName" class="form-control" />
+        <span asp-validation-for="FirstName" class="text-danger se-small"></span>
+    </div>
+    <div>
+        <label class="form-label" asp-for="LastName"></label>
+        <input asp-for="LastName" class="form-control" />
+        <span asp-validation-for="LastName" class="text-danger se-small"></span>
+    </div>
+
+    <div>
+        <label class="form-label" asp-for="MiddleName"></label>
+        <input asp-for="MiddleName" class="form-control" />
+        <span asp-validation-for="MiddleName" class="text-danger se-small"></span>
+    </div>
+    <div>
+        <label class="form-label" asp-for="Relationship"></label>
+        <input asp-for="Relationship" class="form-control" placeholder="Parent, Guardian, Sibling…" />
+        <span asp-validation-for="Relationship" class="text-danger se-small"></span>
+    </div>
+
+    <div class="se-form-section"><h3>Contact &amp; details</h3></div>
+
+    <div>
+        <label class="form-label" asp-for="ContactNumber"></label>
+        <input asp-for="ContactNumber" class="form-control" />
+        <span asp-validation-for="ContactNumber" class="text-danger se-small"></span>
+    </div>
+    <div>
+        <label class="form-label" asp-for="Email"></label>
+        <input asp-for="Email" type="email" class="form-control" />
+        <span asp-validation-for="Email" class="text-danger se-small"></span>
+    </div>
+
+    <div>
+        <label class="form-label" asp-for="Occupation"></label>
+        <input asp-for="Occupation" class="form-control" />
+        <span asp-validation-for="Occupation" class="text-danger se-small"></span>
+    </div>
+    <div></div>
+
+    <div class="se-span-2">
+        <label class="form-label" asp-for="Address"></label>
+        <textarea asp-for="Address" class="form-control" rows="2"></textarea>
+        <span asp-validation-for="Address" class="text-danger se-small"></span>
+    </div>
+</div>
+
+<div class="form-actions">
+    <button type="submit" class="btn btn-primary"><i class="bi bi-check2 me-1"></i>Save</button>
+    <a class="btn btn-light" asp-action="Index">Cancel</a>
+</div>

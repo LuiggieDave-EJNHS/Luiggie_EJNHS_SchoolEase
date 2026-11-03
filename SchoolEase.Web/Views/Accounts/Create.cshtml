@@ -1,0 +1,82 @@
+@model AccountCreateViewModel
+@{
+    ViewData["Title"] = "New Account";
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = "New User Account",
+    Subtitle = "Create a login account and assign it a role.",
+    Icon = "bi-person-plus",
+    Actions = new List<PageAction>
+    {
+        new() { Text = "All Accounts", Url = Url.Action("Index"), Icon = "bi-arrow-left", Css = "btn btn-light" }
+    }
+})" />
+
+<div class="se-card">
+    <div class="se-card__body">
+        <form asp-action="Create" method="post">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 se-small"></div>
+
+            <div class="se-form-grid">
+                <div class="se-form-section"><h3>Account details</h3></div>
+
+                <div>
+                    <label class="se-form-label" asp-for="FullName">Full Name <span class="req">*</span></label>
+                    <input asp-for="FullName" class="form-control" />
+                    <span asp-validation-for="FullName" class="text-danger se-small"></span>
+                </div>
+
+                <div>
+                    <label class="se-form-label" asp-for="Email">Email address <span class="req">*</span></label>
+                    <input asp-for="Email" class="form-control" />
+                    <span asp-validation-for="Email" class="text-danger se-small"></span>
+                </div>
+
+                <div>
+                    <label class="se-form-label" asp-for="Password">Password <span class="req">*</span></label>
+                    <input asp-for="Password" class="form-control" />
+                    <span asp-validation-for="Password" class="text-danger se-small"></span>
+                </div>
+
+                <div>
+                    <label class="se-form-label" asp-for="ConfirmPassword">Confirm Password <span class="req">*</span></label>
+                    <input asp-for="ConfirmPassword" class="form-control" />
+                    <span asp-validation-for="ConfirmPassword" class="text-danger se-small"></span>
+                </div>
+
+                <div>
+                    <label class="se-form-label" asp-for="Role">Role <span class="req">*</span></label>
+                    <select asp-for="Role" class="form-select">
+                        @foreach (var roleName in Roles.All)
+                        {
+                            if (roleName == Roles.SuperAdministrator && !CurrentUser.IsSuperAdministrator)
+                            {
+                                <option value="@roleName" disabled>@roleName (Super Administrator only)</option>
+                            }
+                            else
+                            {
+                                <option value="@roleName" selected="@(Model.Role == roleName)">@roleName</option>
+                            }
+                        }
+                    </select>
+                    <span asp-validation-for="Role" class="text-danger se-small"></span>
+                </div>
+
+                <div>
+                    <label class="se-form-label d-block">Status</label>
+                    <div class="form-check mt-1">
+                        <input asp-for="IsActive" class="form-check-input" />
+                        <label class="form-check-label se-small" asp-for="IsActive">Account is active</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-check2 me-1"></i>Create account</button>
+                <a class="btn btn-light" asp-action="Index">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>

@@ -1,0 +1,17 @@
+@model Teacher
+@{
+    ViewData["Title"] = "Add Teacher";
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = "Add Teacher",
+    Subtitle = "Encode a new member of the teaching personnel",
+    Icon = "bi-person-plus"
+})" />
+
+<form asp-action="Create" method="post" class="se-card">
+    <div class="se-card__body">
+        <partial name="_Form" model="Model" />
+    </div>
+</form>

@@ -1,0 +1,165 @@
+@model DocumentRequestDetailsViewModel
+@{
+    ViewData["Title"] = $"Request {Model.Request.RequestNumber}";
+    var req = Model.Request;
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = $"Request {req.RequestNumber}",
+    Subtitle = $"{req.DocumentType.Name} • submitted {req.RequestedAt.ToLocalTime().ToDateLabel()}",
+    Icon = "bi-file-earmark-text",
+    Actions = new List<PageAction>
+    {
+        new() { Text = CurrentUser.IsStudent ? "My Requests" : "All Requests", Url = CurrentUser.IsStudent ? Url.Action("MyRequests") : Url.Action("Index"), Icon = "bi-arrow-left", Css = "btn btn-light" }
+    }
+})" />
+
+<div class="row g-3">
+    <div class="col-lg-8">
+        <div class="se-card mb-3">
+            <div class="se-card__head">
+                <h3><i class="bi bi-file-earmark-text me-1"></i>Request details</h3>
+                <span class="se-badge text-bg-@req.Status.BootstrapTone()">
+                    <i class="bi @req.Status.Icon()"></i>@req.Status.DisplayName()
+                </span>
+            </div>
+            <div class="se-card__body">
+                <div class="se-form-grid">
+                    <div>
+                        <span class="se-form-label d-block">Request No.</span>
+                        <span class="se-id-chip">@req.RequestNumber</span>
+                    </div>
+                    <div>
+                        <span class="se-form-label d-block">Document</span>
+                        <span class="se-strong">@req.DocumentType.Name</span>
+                        <span class="se-tiny se-muted d-block">@req.DocumentType.Code</span>
+                    </div>
+                    <div>
+                        <span class="se-form-label d-block">Copies</span>
+                        <span>@req.Copies</span>
+                    </div>
+                    <div>
+                        <span class="se-form-label d-block">Requested On</span>
+                        <span>@req.RequestedAt.ToLocalTime().ToString("MMM d, yyyy h:mm tt")</span>
+                    </div>
+                    <div>
+                        <span class="se-form-label d-block">Processed By</span>
+                        <span>@(req.ProcessedBy?.FullName ?? "—")</span>
+                    </div>
+                    <div class="se-span-2">
+                        <span class="se-form-label d-block">Purpose</span>
+                        <span>@req.Purpose</span>
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(req.Remarks))
+                    {
+                        <div class="se-span-2">
+                            <span class="se-form-label d-block">Remarks</span>
+                            <span>@req.Remarks</span>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="se-card">
+            <div class="se-card__head"><h3><i class="bi bi-signpost-split me-1"></i>Status timeline</h3></div>
+            <div class="se-card__body">
+                <ul class="se-timeline">
+                    @foreach (var step in Model.Timeline)
+                    {
+                        <li>
+                            <span class="se-strong d-block">
+                                @step.Label
+                                @if (step.IsCurrent)
+                                {
+                                    <span class="se-badge text-bg-primary ms-1">Current</span>
+                                }
+                            </span>
+                            @if (!string.IsNullOrWhiteSpace(step.Detail))
+                            {
+                                <span class="se-small se-muted d-block">@step.Detail</span>
+                            }
+                            <span class="se-tiny se-muted d-block">
+                                @if (step.Timestamp.HasValue)
+                                {
+                                    @step.Timestamp.Value.ToLocalTime().ToString("MMM d, yyyy h:mm tt")
+                                }
+                                else
+                                {
+                                    @(step.IsComplete ? "Completed" : "Pending")
+                                }
+                            </span>
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="se-card mb-3">
+            <div class="se-card__head"><h3><i class="bi bi-person-badge me-1"></i>Student</h3></div>
+            <div class="se-card__body">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <span class="se-avatar se-avatar--lg se-avatar--@req.Student.FullName.AvatarTone()">@req.Student.FullName.Initials()</span>
+                    <span>
+                        <span class="se-strong d-block">@req.Student.FullName</span>
+                        <span class="se-small se-muted d-block">@req.Student.StudentNumber</span>
+                    </span>
+                </div>
+                <dl class="row se-small mb-0">
+                    <dt class="col-5 se-muted">Class</dt>
+                    <dd class="col-7">@req.Student.ClassLabel</dd>
+                    <dt class="col-5 se-muted">Status</dt>
+                    <dd class="col-7">
+                        <span class="se-badge text-bg-@req.Student.EnrollmentStatus.BootstrapTone()">@req.Student.EnrollmentStatus.DisplayName()</span>
+                    </dd>
+                    <dt class="col-5 se-muted">Contact</dt>
+                    <dd class="col-7">@(string.IsNullOrWhiteSpace(req.Student.ContactNumber) ? "—" : req.Student.ContactNumber)</dd>
+                </dl>
+            </div>
+        </div>
+
+        @if (Model.CanManage)
+        {
+            <div class="se-card mb-3">
+                <div class="se-card__head"><h3><i class="bi bi-sliders me-1"></i>Update status</h3></div>
+                <div class="se-card__body">
+                    <form asp-action="UpdateStatus" asp-route-id="@req.Id" method="post">
+                        <div class="mb-3">
+                            <label class="se-form-label" for="status">Status</label>
+                            <select id="status" name="status" class="form-select">
+                                @foreach (var opt in SelectLists.EnumOptions<DocumentRequestStatus>(req.Status))
+                                {
+                                    <option value="@opt.Value" selected="@opt.Selected">@opt.Text</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="se-form-label" for="remarks">Remarks</label>
+                            <textarea id="remarks" name="remarks" rows="3" class="form-control" placeholder="Optional note for the student…">@req.Remarks</textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-check2 me-1"></i>Save
+                        </button>
+                    </form>
+                </div>
+            </div>
+        }
+
+        @if (CurrentUser.IsAdministrator)
+        {
+            <div class="se-card border-danger-subtle">
+                <div class="se-card__head"><h3 class="text-danger"><i class="bi bi-exclamation-triangle me-1"></i>Danger zone</h3></div>
+                <div class="se-card__body">
+                    <form asp-action="Delete" asp-route-id="@req.Id" method="post" data-se-confirm="Delete this document request permanently?">
+                        <button type="submit" class="btn btn-outline-danger w-100">
+                            <i class="bi bi-trash me-1"></i>Delete request
+                        </button>
+                    </form>
+                </div>
+            </div>
+        }
+    </div>
+</div>

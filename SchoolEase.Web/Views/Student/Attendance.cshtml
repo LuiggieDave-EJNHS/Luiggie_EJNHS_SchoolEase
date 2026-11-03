@@ -1,0 +1,142 @@
+@model StudentAttendanceViewModel
+@{
+    ViewData["Title"] = "My Attendance";
+
+    var pager = new PaginationInfo
+    {
+        PageIndex = Model.Records.PageIndex,
+        TotalPages = Model.Records.TotalPages,
+        TotalCount = Model.Records.TotalCount,
+        PageSize = Model.Records.PageSize,
+        Action = "Attendance",
+        Controller = "Student",
+        RouteValues = new Dictionary<string, string?>
+        {
+            ["month"] = Model.Month?.ToString(),
+            ["year"] = Model.Year?.ToString()
+        }
+    };
+
+    var cards = new List<StatCard>
+    {
+        new() { Label = "Present", Value = Model.PresentDays.ToString("N0"), Icon = "bi-check-circle", Tone = "success", Meta = "Days marked present" },
+        new() { Label = "Late", Value = Model.LateDays.ToString("N0"), Icon = "bi-clock-history", Tone = "warning", Meta = "Days marked late" },
+        new() { Label = "Absent", Value = Model.AbsentDays.ToString("N0"), Icon = "bi-x-circle", Tone = "danger", Meta = "Days marked absent" },
+        new() { Label = "Excused", Value = Model.ExcusedDays.ToString("N0"), Icon = "bi-file-earmark-medical", Tone = "info", Meta = "Excused absences" },
+        new() { Label = "Attendance Rate", Value = $"{Model.AttendanceRate:0.#}%", Icon = "bi-graph-up", Tone = "teal", Meta = "Present + late over all marks" }
+    };
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = "My Attendance",
+    Subtitle = Model.Student is null
+        ? "Your attendance history."
+        : $"{Model.Student.FullName} — {Model.Student.ClassLabel}.",
+    Icon = "bi-clipboard-check"
+})" />
+
+@if (Model.Student is null)
+{
+    <div class="se-card">
+        <partial name="_EmptyState" model="@(new EmptyState
+        {
+            Icon = "bi-person-badge",
+            Title = "No learner record linked",
+            Message = "Your account is not yet linked to a student record. Please contact the registrar."
+        })" />
+    </div>
+}
+else
+{
+    <div class="row g-3 mb-3">
+        @foreach (var card in cards)
+        {
+            <div class="col-6 col-md-4 col-xl">
+                <partial name="_StatCard" model="card" />
+            </div>
+        }
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-lg-5">
+            <partial name="_ChartCard" model="@(new ChartWidget { Data = Model.Trend, Type = "line", Height = "se-chart--sm", DatasetLabel = "Present + late" })" />
+        </div>
+    </div>
+
+    <div class="se-card">
+        <div class="se-card__head">
+            <h3><i class="bi bi-list-check me-1"></i>Attendance history</h3>
+        </div>
+
+        <form method="get" asp-action="Attendance">
+            <div class="se-filters">
+                <div>
+                    <label class="se-form-label" for="Month">Month</label>
+                    <select id="Month" name="month" class="form-select" data-se-autosubmit>
+                        <option value="">All months</option>
+                        @foreach (var item in Model.Months)
+                        {
+                            <option value="@item.Value" selected="@item.Selected">@item.Text</option>
+                        }
+                    </select>
+                </div>
+                <div>
+                    <label class="se-form-label" for="Year">Year</label>
+                    <select id="Year" name="year" class="form-select" data-se-autosubmit>
+                        <option value="">All years</option>
+                        @foreach (var item in Model.Years)
+                        {
+                            <option value="@item.Value" selected="@item.Selected">@item.Text</option>
+                        }
+                    </select>
+                </div>
+                <div class="ms-auto">
+                    <button type="button" class="btn btn-light" data-se-reset="@Url.Action("Attendance")">Reset</button>
+                </div>
+            </div>
+        </form>
+
+        @if (Model.Records.Count == 0)
+        {
+            <partial name="_EmptyState" model="@(new EmptyState
+            {
+                Icon = "bi-clipboard-x",
+                Title = "No attendance records",
+                Message = "No attendance marks were found for the selected period."
+            })" />
+        }
+        else
+        {
+            <div class="se-table-wrap">
+                <table class="se-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th>Remarks</th>
+                            <th>Recorded By</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var record in Model.Records)
+                        {
+                            <tr>
+                                <td>@record.Date.ToDateLabel()</td>
+                                <td>
+                                    <span class="se-badge text-bg-@record.Status.BootstrapTone()">
+                                        <i class="bi @record.Status.Icon()"></i>@record.Status.DisplayName()
+                                    </span>
+                                </td>
+                                <td>@(string.IsNullOrWhiteSpace(record.Remarks) ? "-" : record.Remarks)</td>
+                                <td>@(record.RecordedBy?.FullName ?? "-")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <partial name="_Pagination" model="pager" />
+        }
+    </div>
+}

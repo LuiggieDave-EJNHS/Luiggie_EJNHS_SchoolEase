@@ -1,0 +1,73 @@
+@model DocumentRequestListViewModel
+@{
+    ViewData["Title"] = "My Document Requests";
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = "My Document Requests",
+    Subtitle = "Track the documents you have requested from the registrar.",
+    Icon = "bi-file-earmark-text",
+    Actions = new List<PageAction>
+    {
+        new() { Text = "New Request", Url = Url.Action("Create"), Icon = "bi-plus-lg" }
+    }
+})" />
+
+<div class="se-card">
+    <div class="se-card__head">
+        <h3><i class="bi bi-inboxes me-1"></i>My requests</h3>
+    </div>
+
+    @if (Model.Requests.Count == 0)
+    {
+        <partial name="_EmptyState" model="@(new EmptyState
+        {
+            Icon = "bi-file-earmark-plus",
+            Title = "No requests yet",
+            Message = "Request a certificate or school record and track its progress here.",
+            ActionText = "New request",
+            ActionUrl = Url.Action("Create")
+        })" />
+    }
+    else
+    {
+        <div class="se-table-wrap">
+            <table class="se-table">
+                <thead>
+                    <tr>
+                        <th>Request No.</th>
+                        <th>Document</th>
+                        <th class="text-center">Copies</th>
+                        <th>Requested</th>
+                        <th>Status</th>
+                        <th class="se-col-actions">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model.Requests)
+                    {
+                        <tr>
+                            <td><span class="se-id-chip">@row.RequestNumber</span></td>
+                            <td>@row.DocumentType.Name</td>
+                            <td class="text-center">@row.Copies</td>
+                            <td>@row.RequestedAt.ToLocalTime().ToDateLabel()</td>
+                            <td>
+                                <span class="se-badge text-bg-@row.Status.BootstrapTone()">
+                                    <i class="bi @row.Status.Icon()"></i>@row.Status.DisplayName()
+                                </span>
+                            </td>
+                            <td class="se-col-actions">
+                                <a class="btn btn-sm btn-light" asp-action="Details" asp-route-id="@row.Id" title="View">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <partial name="_Pagination" model="@(ViewData["Pagination"] as PaginationInfo ?? new PaginationInfo())" />
+    }
+</div>

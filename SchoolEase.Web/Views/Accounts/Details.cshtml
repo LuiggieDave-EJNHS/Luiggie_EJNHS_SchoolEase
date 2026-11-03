@@ -1,0 +1,175 @@
+@model AccountDetailsViewModel
+@{
+    ViewData["Title"] = Model.User.FullName;
+    var isSelf = Model.User.Id == CurrentUser.UserId;
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = Model.User.FullName,
+    Subtitle = Model.User.Email,
+    Icon = "bi-person-badge",
+    Actions = new List<PageAction>
+    {
+        new() { Text = "All Accounts", Url = Url.Action("Index"), Icon = "bi-arrow-left", Css = "btn btn-light" },
+        new() { Text = "Edit", Url = Url.Action("Edit", new { id = Model.User.Id }), Icon = "bi-pencil" }
+    }
+})" />
+
+<div class="row g-3">
+    <div class="col-lg-4">
+        <div class="se-card mb-3">
+            <div class="se-card__body text-center">
+                <span class="se-avatar se-avatar--xl se-avatar--@Model.User.FullName.AvatarTone() mx-auto mb-2">@Model.User.FullName.Initials()</span>
+                <h3 class="mb-1">@Model.User.FullName</h3>
+                <p class="se-small se-muted mb-2">@Model.User.Email</p>
+                <div class="mb-2">
+                    @foreach (var roleName in Model.Roles)
+                    {
+                        <span class="se-badge text-bg-primary me-1">@roleName</span>
+                    }
+                </div>
+                @if (Model.User.IsActive)
+                {
+                    <span class="se-badge text-bg-success"><i class="bi bi-check-circle"></i>Active</span>
+                }
+                else
+                {
+                    <span class="se-badge text-bg-secondary"><i class="bi bi-slash-circle"></i>Inactive</span>
+                }
+            </div>
+        </div>
+
+        <div class="se-card mb-3">
+            <div class="se-card__head"><h3><i class="bi bi-person-lines-fill me-1"></i>Record</h3></div>
+            <div class="se-card__body">
+                <dl class="row se-small mb-0">
+                    <dt class="col-5 se-muted">Created</dt>
+                    <dd class="col-7">@Model.User.CreatedAt.ToLocalTime().ToDateLabel()</dd>
+                    <dt class="col-5 se-muted">Last Login</dt>
+                    <dd class="col-7">@(Model.User.LastLoginAt.HasValue ? Model.User.LastLoginAt.Value.ToRelativeTime() : "Never")</dd>
+                    <dt class="col-5 se-muted">Phone</dt>
+                    <dd class="col-7">@(string.IsNullOrWhiteSpace(Model.User.PhoneNumber) ? "—" : Model.User.PhoneNumber)</dd>
+                </dl>
+            </div>
+        </div>
+
+        @if (Model.Student is not null)
+        {
+            <div class="se-card mb-3">
+                <div class="se-card__head"><h3><i class="bi bi-mortarboard me-1"></i>Linked student</h3></div>
+                <div class="se-card__body">
+                    <dl class="row se-small mb-0">
+                        <dt class="col-5 se-muted">Student No.</dt>
+                        <dd class="col-7"><span class="se-id-chip">@Model.Student.StudentNumber</span></dd>
+                        <dt class="col-5 se-muted">Class</dt>
+                        <dd class="col-7">@Model.Student.ClassLabel</dd>
+                        <dt class="col-5 se-muted">Status</dt>
+                        <dd class="col-7"><span class="se-badge text-bg-@Model.Student.EnrollmentStatus.BootstrapTone()">@Model.Student.EnrollmentStatus.DisplayName()</span></dd>
+                    </dl>
+                </div>
+            </div>
+        }
+
+        @if (Model.Teacher is not null)
+        {
+            <div class="se-card mb-3">
+                <div class="se-card__head"><h3><i class="bi bi-person-video3 me-1"></i>Linked teacher</h3></div>
+                <div class="se-card__body">
+                    <dl class="row se-small mb-0">
+                        <dt class="col-5 se-muted">Employee No.</dt>
+                        <dd class="col-7"><span class="se-id-chip">@Model.Teacher.EmployeeNumber</span></dd>
+                        <dt class="col-5 se-muted">Department</dt>
+                        <dd class="col-7">@(Model.Teacher.Department ?? "—")</dd>
+                        <dt class="col-5 se-muted">Status</dt>
+                        <dd class="col-7"><span class="se-badge text-bg-@Model.Teacher.EmploymentStatus.BootstrapTone()">@Model.Teacher.EmploymentStatus.DisplayName()</span></dd>
+                    </dl>
+                </div>
+            </div>
+        }
+
+        @if (Model.Staff is not null)
+        {
+            <div class="se-card mb-3">
+                <div class="se-card__head"><h3><i class="bi bi-person-workspace me-1"></i>Linked staff</h3></div>
+                <div class="se-card__body">
+                    <dl class="row se-small mb-0">
+                        <dt class="col-5 se-muted">Staff ID</dt>
+                        <dd class="col-7"><span class="se-id-chip">@Model.Staff.StaffNumber</span></dd>
+                        <dt class="col-5 se-muted">Position</dt>
+                        <dd class="col-7">@Model.Staff.Position</dd>
+                        <dt class="col-5 se-muted">Status</dt>
+                        <dd class="col-7"><span class="se-badge text-bg-@Model.Staff.EmploymentStatus.BootstrapTone()">@Model.Staff.EmploymentStatus.DisplayName()</span></dd>
+                    </dl>
+                </div>
+            </div>
+        }
+    </div>
+
+    <div class="col-lg-8">
+        <div class="se-card mb-3">
+            <div class="se-card__head"><h3><i class="bi bi-key me-1"></i>Reset password</h3></div>
+            <div class="se-card__body">
+                <form asp-action="ResetPassword" asp-route-id="@Model.User.Id" method="post">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-sm-8">
+                            <label class="se-form-label" for="newPassword">New Password</label>
+                            <input id="newPassword" name="newPassword" type="password" class="form-control" placeholder="At least 8 characters" />
+                        </div>
+                        <div class="col-sm-4">
+                            <button type="submit" class="btn btn-primary w-100"><i class="bi bi-arrow-repeat me-1"></i>Reset</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="se-card mb-3">
+            <div class="se-card__head"><h3><i class="bi bi-activity me-1"></i>Recent activity</h3></div>
+            <div class="se-card__body">
+                @if (Model.RecentLogs.Count == 0)
+                {
+                    <p class="se-muted se-small mb-0">No activity has been recorded for this account yet.</p>
+                }
+                else
+                {
+                    <ul class="se-feed">
+                        @foreach (var log in Model.RecentLogs)
+                        {
+                            <li>
+                                <span class="se-feed__icon bg-soft-primary"><i class="bi bi-clock-history"></i></span>
+                                <span>
+                                    <span class="se-feed__title d-block">@log.Action</span>
+                                    @if (!string.IsNullOrWhiteSpace(log.Details))
+                                    {
+                                        <span class="se-feed__meta d-block">@log.Details</span>
+                                    }
+                                    <span class="se-feed__meta d-block">@log.CreatedAt.ToRelativeTime()</span>
+                                </span>
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+        </div>
+
+        @if (!isSelf)
+        {
+            <div class="se-card border-danger-subtle">
+                <div class="se-card__head"><h3 class="text-danger"><i class="bi bi-exclamation-triangle me-1"></i>Danger zone</h3></div>
+                <div class="se-card__body d-flex flex-wrap gap-2">
+                    <form asp-action="ToggleActive" asp-route-id="@Model.User.Id" method="post">
+                        <button type="submit" class="btn btn-outline-secondary">
+                            <i class="bi bi-toggle-off me-1"></i>@(Model.User.IsActive ? "Deactivate account" : "Activate account")
+                        </button>
+                    </form>
+                    <form asp-action="Delete" asp-route-id="@Model.User.Id" method="post" data-se-confirm="Delete this account permanently?">
+                        <button type="submit" class="btn btn-outline-danger">
+                            <i class="bi bi-trash me-1"></i>Delete account
+                        </button>
+                    </form>
+                </div>
+            </div>
+        }
+    </div>
+</div>

@@ -1,0 +1,144 @@
+@model PagedList<ClassSchedule>
+@using Microsoft.AspNetCore.Mvc.Rendering
+@{
+    ViewData["Title"] = "Schedules";
+    var sectionOptions = ViewData["SectionOptions"] as List<SelectListItem> ?? new List<SelectListItem>();
+    var teacherOptions = ViewData["TeacherOptions"] as List<SelectListItem> ?? new List<SelectListItem>();
+    var sectionId = ViewData["SectionId"] as int?;
+    var teacherId = ViewData["TeacherId"] as int?;
+    var day = ViewData["Day"] as DayOfWeek?;
+    var conflicts = ViewData["Conflicts"] as List<string> ?? new List<string>();
+    var conflictedIds = ViewData["ConflictedIds"] as HashSet<int> ?? new HashSet<int>();
+    var days = new[] { DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday, DayOfWeek.Saturday };
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = "Schedules",
+    Subtitle = $"{Model.TotalCount} class meeting{(Model.TotalCount == 1 ? "" : "s")} for S.Y. {SchoolInfo.SchoolYear}",
+    Icon = "bi-calendar-week",
+    Actions = new List<PageAction>
+    {
+        new() { Text = "Weekly Grid", Url = Url.Action("Grid", new { sectionId, teacherId }), Icon = "bi-grid-3x3-gap", Css = "btn btn-light" },
+        new() { Text = "New Schedule", Url = Url.Action("Create"), Icon = "bi-plus-lg" }
+    }
+})" />
+
+@if (conflicts.Count > 0)
+{
+    <div class="alert alert-warning py-2">
+        <strong class="d-block mb-1"><i class="bi bi-exclamation-triangle me-1"></i>@conflicts.Count conflict(s) detected</strong>
+        <ul class="mb-0 se-small ps-3">
+            @foreach (var conflict in conflicts)
+            {
+                <li>@conflict</li>
+            }
+        </ul>
+    </div>
+}
+
+<div class="se-card">
+    <form asp-action="Index" method="get" class="se-filters">
+        <div>
+            <label class="form-label">Section</label>
+            <select name="sectionId" class="form-select" data-se-autosubmit>
+                <option value="">All sections</option>
+                @foreach (var option in sectionOptions)
+                {
+                    <option value="@option.Value" selected="@(sectionId.HasValue && sectionId.Value.ToString() == option.Value)">@option.Text</option>
+                }
+            </select>
+        </div>
+        <div>
+            <label class="form-label">Teacher</label>
+            <select name="teacherId" class="form-select" data-se-autosubmit>
+                <option value="">All teachers</option>
+                @foreach (var option in teacherOptions)
+                {
+                    <option value="@option.Value" selected="@(teacherId.HasValue && teacherId.Value.ToString() == option.Value)">@option.Text</option>
+                }
+            </select>
+        </div>
+        <div>
+            <label class="form-label">Day</label>
+            <select name="day" class="form-select" data-se-autosubmit>
+                <option value="">All days</option>
+                @foreach (var value in days)
+                {
+                    <option value="@((int)value)" selected="@(day.HasValue && day.Value == value)">@value</option>
+                }
+            </select>
+        </div>
+        <div>
+            <button type="submit" class="btn btn-primary"><i class="bi bi-funnel me-1"></i>Filter</button>
+        </div>
+        <div>
+            <button type="button" class="btn btn-light" data-se-reset="@Url.Action("Index")">Reset</button>
+        </div>
+    </form>
+
+    @if (Model.Count == 0)
+    {
+        <partial name="_EmptyState" model="@(new EmptyState
+        {
+            Icon = "bi-calendar-week",
+            Title = "No class meetings",
+            Message = "No schedules match the current filter. Create one to start building the timetable.",
+            ActionText = "New schedule",
+            ActionUrl = Url.Action("Create")
+        })" />
+    }
+    else
+    {
+        <div class="se-table-wrap">
+            <table class="se-table">
+                <thead>
+                    <tr>
+                        <th>Day</th>
+                        <th>Time</th>
+                        <th>Subject</th>
+                        <th>Section</th>
+                        <th>Teacher</th>
+                        <th>Room</th>
+                        <th class="se-col-actions">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var entry in Model)
+                    {
+                        var hasConflict = conflictedIds.Contains(entry.Id);
+                        <tr class="@(hasConflict ? "table-warning" : null)">
+                            <td>
+                                @entry.DayOfWeek
+                                @if (hasConflict)
+                                {
+                                    <i class="bi bi-exclamation-triangle-fill text-warning ms-1" title="Conflict detected"></i>
+                                }
+                            </td>
+                            <td>@entry.TimeRange</td>
+                            <td><span class="se-id-chip">@entry.Subject?.Code</span> <span class="ms-1">@entry.Subject?.Title</span></td>
+                            <td>
+                                <a class="text-decoration-none" asp-controller="Sections" asp-action="Details" asp-route-id="@entry.SectionId">@(entry.Section?.DisplayName ?? entry.Section?.Name)</a>
+                            </td>
+                            <td>@entry.Teacher?.FullName</td>
+                            <td>@(string.IsNullOrWhiteSpace(entry.Room) ? "—" : entry.Room)</td>
+                            <td class="se-col-actions">
+                                <a class="btn btn-sm btn-light" asp-action="Edit" asp-route-id="@entry.Id" title="Edit">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <form asp-action="Delete" asp-route-id="@entry.Id" method="post" class="d-inline"
+                                      data-se-confirm="Delete this schedule entry?">
+                                    <button type="submit" class="btn btn-sm btn-light text-danger" title="Delete">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <partial name="_Pagination" model="@(ViewData["Pagination"] as PaginationInfo ?? new PaginationInfo())" />
+    }
+</div>

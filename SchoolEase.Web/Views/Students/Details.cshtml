@@ -1,0 +1,239 @@
+@model StudentDetailsViewModel
+@{
+    var s = Model.Student;
+    ViewData["Title"] = s.FullName;
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = s.FullName,
+    Subtitle = $"Student profile • {s.StudentNumber}",
+    Icon = "bi-person-badge",
+    Actions = new List<PageAction>
+    {
+        new() { Text = "Edit", Url = Url.Action("Edit", new { id = s.Id }), Icon = "bi-pencil" },
+        new() { Text = "Print", Url = "javascript:window.print()", Icon = "bi-printer", Css = "btn btn-light" },
+        new() { Text = "Back", Url = Url.Action("Index"), Icon = "bi-arrow-left", Css = "btn btn-light" }
+    }
+})" />
+
+<div class="row g-3 mb-3">
+    <div class="col-lg-8">
+        <div class="se-card h-100">
+            <div class="se-card__head"><h3><i class="bi bi-person-vcard me-1"></i>Personal information</h3></div>
+            <div class="se-card__body">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <span class="se-avatar se-avatar--lg se-avatar--@s.FullName.AvatarTone()">@s.FullName.Initials()</span>
+                    <div>
+                        <h2 class="h5 mb-1">@s.FullName</h2>
+                        <span class="se-id-chip">@s.StudentNumber</span>
+                        <span class="se-badge text-bg-@s.EnrollmentStatus.BootstrapTone() ms-1">@s.EnrollmentStatus.DisplayName()</span>
+                    </div>
+                </div>
+                <dl class="se-def-list row mb-0">
+                    <div class="col-sm-6">
+                        <dt>LRN</dt>
+                        <dd>@(string.IsNullOrWhiteSpace(s.Lrn) ? "—" : s.Lrn)</dd>
+                    </div>
+                    <div class="col-sm-6">
+                        <dt>Sex</dt>
+                        <dd>@s.Gender.DisplayName()</dd>
+                    </div>
+                    <div class="col-sm-6">
+                        <dt>Date of Birth</dt>
+                        <dd>@(s.BirthDate?.ToDateLabel() ?? "—")</dd>
+                    </div>
+                    <div class="col-sm-6">
+                        <dt>Date Enrolled</dt>
+                        <dd>@s.DateEnrolled.ToDateLabel()</dd>
+                    </div>
+                    <div class="col-sm-6">
+                        <dt>Contact Number</dt>
+                        <dd>@(string.IsNullOrWhiteSpace(s.ContactNumber) ? "—" : s.ContactNumber)</dd>
+                    </div>
+                    <div class="col-sm-6">
+                        <dt>Email</dt>
+                        <dd>@(string.IsNullOrWhiteSpace(s.Email) ? "—" : s.Email)</dd>
+                    </div>
+                    <div class="col-12">
+                        <dt>Address</dt>
+                        <dd>@(string.IsNullOrWhiteSpace(s.Address) ? "—" : s.Address)</dd>
+                    </div>
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="se-card">
+            <div class="se-card__head"><h3><i class="bi bi-diagram-3 me-1"></i>Placement</h3></div>
+            <div class="se-card__body">
+                <dl class="se-def-list mb-0">
+                    <dt>Grade Level</dt>
+                    <dd>@(s.GradeLevel?.Name ?? "Unassigned")</dd>
+                    <dt>Section</dt>
+                    <dd>@(s.Section?.Name ?? "No section")</dd>
+                    <dt>Enrollment Status</dt>
+                    <dd><span class="se-badge text-bg-@s.EnrollmentStatus.BootstrapTone()">@s.EnrollmentStatus.DisplayName()</span></dd>
+                    <dt>Active</dt>
+                    <dd>@(s.IsActive ? "Yes" : "No")</dd>
+                </dl>
+            </div>
+        </div>
+        <div class="se-card">
+            <div class="se-card__head"><h3><i class="bi bi-person-hearts me-1"></i>Guardian</h3></div>
+            <div class="se-card__body">
+                @if (s.Guardian is null)
+                {
+                    <p class="se-muted se-small mb-0">No guardian is linked to this learner yet.</p>
+                }
+                else
+                {
+                    <dl class="se-def-list mb-0">
+                        <dt>Name</dt>
+                        <dd>@s.Guardian.FullName</dd>
+                        <dt>Relationship</dt>
+                        <dd>@s.Guardian.Relationship</dd>
+                        <dt>Contact Number</dt>
+                        <dd>@(string.IsNullOrWhiteSpace(s.Guardian.ContactNumber) ? "—" : s.Guardian.ContactNumber)</dd>
+                    </dl>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-lg-6">
+        <div class="se-card h-100">
+            <div class="se-card__head"><h3><i class="bi bi-clipboard-check me-1"></i>Attendance summary</h3></div>
+            <div class="se-card__body">
+                <div class="d-flex flex-wrap gap-2 mb-3">
+                    <span class="se-pill"><i class="bi bi-check-circle text-success"></i> Present <strong>@Model.Attendance.Present</strong></span>
+                    <span class="se-pill"><i class="bi bi-clock-history text-warning"></i> Late <strong>@Model.Attendance.Late</strong></span>
+                    <span class="se-pill"><i class="bi bi-x-circle text-danger"></i> Absent <strong>@Model.Attendance.Absent</strong></span>
+                    <span class="se-pill"><i class="bi bi-file-earmark-medical text-info"></i> Excused <strong>@Model.Attendance.Excused</strong></span>
+                </div>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between se-small">
+                        <span class="se-muted">Attendance rate (present + late)</span>
+                        <strong>@Model.Attendance.Rate%</strong>
+                    </div>
+                    <div class="progress mt-1">
+                        <div class="progress-bar bg-success" role="progressbar" style="width:@Model.Attendance.Rate%"></div>
+                    </div>
+                    <span class="se-tiny se-muted">@Model.Attendance.Total mark(s) recorded</span>
+                </div>
+
+                <h4 class="se-small text-uppercase se-muted">Recent attendance</h4>
+                @if (Model.RecentAttendance.Count == 0)
+                {
+                    <p class="se-muted se-small mb-0">No attendance has been recorded for this learner.</p>
+                }
+                else
+                {
+                    <ul class="se-timeline">
+                        @foreach (var a in Model.RecentAttendance)
+                        {
+                            <li>
+                                <div class="d-flex justify-content-between gap-2">
+                                    <span class="se-strong se-small">
+                                        @a.Status.DisplayName()@(a.Subject is null ? "" : $" • {a.Subject.Code}")
+                                    </span>
+                                    <span class="se-tiny se-muted">@a.Date.ToDateLabel()</span>
+                                </div>
+                                @if (!string.IsNullOrWhiteSpace(a.Remarks))
+                                {
+                                    <span class="se-tiny se-muted d-block">@a.Remarks</span>
+                                }
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="se-card h-100">
+            <div class="se-card__head"><h3><i class="bi bi-mortarboard me-1"></i>Academic summary</h3></div>
+            @if (Model.Grades.Count == 0)
+            {
+                <partial name="_EmptyState" model="@(new EmptyState
+                {
+                    Icon = "bi-mortarboard",
+                    Title = "No grades recorded",
+                    Message = "Term grades for this learner will appear here once they are encoded."
+                })" />
+            }
+            else
+            {
+                <div class="se-table-wrap">
+                    <table class="se-table se-table--compact">
+                        <thead>
+                            <tr>
+                                <th>Subject</th>
+                                <th>Term</th>
+                                <th>Final Grade</th>
+                                <th>Remarks</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var g in Model.Grades)
+                            {
+                                <tr>
+                                    <td>
+                                        <span class="se-strong d-block">@g.Subject.Code</span>
+                                        <span class="se-tiny se-muted">@g.Subject.Title</span>
+                                    </td>
+                                    <td>T@g.Term</td>
+                                    <td>@(g.FinalGrade.HasValue ? g.FinalGrade.Value.ToString("0.##") : "—")</td>
+                                    <td>@(string.IsNullOrWhiteSpace(g.Remarks) ? g.Descriptor : g.Remarks)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<div class="se-card">
+    <div class="se-card__head"><h3><i class="bi bi-file-earmark-text me-1"></i>Document requests</h3></div>
+    @if (Model.DocumentRequests.Count == 0)
+    {
+        <partial name="_EmptyState" model="@(new EmptyState
+        {
+            Icon = "bi-file-earmark",
+            Title = "No document requests",
+            Message = "Requests filed by or for this learner will be listed here."
+        })" />
+    }
+    else
+    {
+        <div class="se-table-wrap">
+            <table class="se-table se-table--compact">
+                <thead>
+                    <tr>
+                        <th>Request No.</th>
+                        <th>Document</th>
+                        <th>Status</th>
+                        <th>Requested On</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in Model.DocumentRequests)
+                    {
+                        <tr>
+                            <td><span class="se-id-chip">@r.RequestNumber</span></td>
+                            <td>@r.DocumentType.Name</td>
+                            <td><span class="se-badge text-bg-@r.Status.BootstrapTone()">@r.Status.DisplayName()</span></td>
+                            <td>@r.RequestedAt.ToDateLabel()</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

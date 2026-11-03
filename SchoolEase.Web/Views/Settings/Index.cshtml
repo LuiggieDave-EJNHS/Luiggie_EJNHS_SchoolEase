@@ -1,0 +1,113 @@
+@model SettingsIndexViewModel
+@{
+    ViewData["Title"] = "System Settings";
+    var summary = Model.Summary;
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = "System Settings",
+    Subtitle = "Manage school-wide configuration and review system information.",
+    Icon = "bi-sliders",
+    Actions = new List<PageAction>
+    {
+        new() { Text = "Audit Logs", Url = Url.Action("Index", "AuditLogs"), Icon = "bi-shield-check", Css = "btn btn-light" }
+    }
+})" />
+
+<form asp-action="Save" method="post">
+    <div class="row g-3">
+        <div class="col-lg-8">
+            @if (Model.Settings.Count == 0)
+            {
+                <div class="se-card">
+                    <partial name="_EmptyState" model="@(new EmptyState
+                    {
+                        Icon = "bi-sliders",
+                        Title = "No settings found",
+                        Message = "System settings will appear here once they are seeded."
+                    })" />
+                </div>
+            }
+            else
+            {
+                foreach (var group in Model.Groups)
+                {
+                    <div class="se-card mb-3">
+                        <div class="se-card__head">
+                            <h3><i class="bi bi-gear me-1"></i>@group.Key</h3>
+                            <span class="se-pill"><i class="bi bi-list"></i>@group.Count()</span>
+                        </div>
+                        <div class="se-card__body">
+                            @foreach (var setting in group)
+                            {
+                                <div class="mb-3">
+                                    <label class="se-form-label" for="setting_@setting.Id">@setting.Key</label>
+                                    <input id="setting_@setting.Id" name="values[@setting.Key]" value="@setting.Value" class="form-control" />
+                                    @if (!string.IsNullOrWhiteSpace(setting.Description))
+                                    {
+                                        <span class="se-tiny se-muted d-block mt-1">@setting.Description</span>
+                                    }
+                                    <span class="se-tiny se-muted d-block">
+                                        Last updated @setting.UpdatedAt.ToRelativeTime()@(string.IsNullOrWhiteSpace(setting.UpdatedByName) ? "" : $" by {setting.UpdatedByName}")
+                                    </span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check2 me-1"></i>Save settings</button>
+                    <a class="btn btn-light" asp-action="Index">Reset</a>
+                </div>
+            }
+        </div>
+
+        <div class="col-lg-4">
+            <div class="se-card mb-3">
+                <div class="se-card__head"><h3><i class="bi bi-cpu me-1"></i>System information</h3></div>
+                <div class="se-card__body">
+                    <dl class="row se-small mb-0">
+                        <dt class="col-6 se-muted">Database provider</dt>
+                        <dd class="col-6">@summary.ProviderDisplayName</dd>
+                        <dt class="col-6 se-muted">Framework</dt>
+                        <dd class="col-6">@summary.AspNetCoreVersion</dd>
+                        <dt class="col-6 se-muted">Server time</dt>
+                        <dd class="col-6">@summary.ServerTime.ToString("MMM d, yyyy h:mm tt")</dd>
+                        <dt class="col-6 se-muted">School year</dt>
+                        <dd class="col-6">S.Y. @SchoolInfo.SchoolYear</dd>
+                    </dl>
+                    <hr />
+                    <div class="row g-2 text-center">
+                        <div class="col-4"><span class="se-strong d-block">@summary.Students</span><span class="se-tiny se-muted">Students</span></div>
+                        <div class="col-4"><span class="se-strong d-block">@summary.Teachers</span><span class="se-tiny se-muted">Teachers</span></div>
+                        <div class="col-4"><span class="se-strong d-block">@summary.Staff</span><span class="se-tiny se-muted">Staff</span></div>
+                        <div class="col-4"><span class="se-strong d-block">@summary.Sections</span><span class="se-tiny se-muted">Sections</span></div>
+                        <div class="col-4"><span class="se-strong d-block">@summary.Subjects</span><span class="se-tiny se-muted">Subjects</span></div>
+                        <div class="col-4"><span class="se-strong d-block">@summary.Users</span><span class="se-tiny se-muted">Users</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="se-card">
+                <div class="se-card__head"><h3><i class="bi bi-database me-1"></i>Database &amp; provider</h3></div>
+                <div class="se-card__body">
+                    <p class="se-small mb-2">
+                        SchoolEase ships with <strong>SQLite</strong> so it runs with zero setup. You can switch engines
+                        at any time without changing any code.
+                    </p>
+                    <ol class="se-small se-muted ps-3 mb-2">
+                        <li>Open <code>appsettings.json</code>.</li>
+                        <li>Set <code>Database:Provider</code> to <code>Sqlite</code>, <code>MySql</code> or <code>SqlServer</code>.</li>
+                        <li>Point <code>ConnectionStrings:DefaultConnection</code> at the target server.</li>
+                        <li>Restart the application.</li>
+                    </ol>
+                    <p class="se-small se-muted mb-0">
+                        Active provider: <strong>@summary.ProviderDisplayName</strong>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>

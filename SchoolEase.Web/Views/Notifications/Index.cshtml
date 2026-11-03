@@ -1,0 +1,77 @@
+@model List<Notification>
+@{
+    var filter = ViewData["Filter"] as string;
+    var unread = ViewData["Unread"] as int? ?? 0;
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = "Notifications",
+    Subtitle = $"{unread} unread notification{(unread == 1 ? "" : "s")}",
+    Icon = "bi-bell"
+})" />
+
+<div class="se-card">
+    <div class="se-card__head">
+        <ul class="nav nav-tabs border-0">
+            <li class="nav-item">
+                <a class="nav-link @(string.IsNullOrWhiteSpace(filter) ? "active" : "")" asp-action="Index">All</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link @(filter == "unread" ? "active" : "")" asp-action="Index" asp-route-filter="unread">Unread</a>
+            </li>
+        </ul>
+        @if (unread > 0)
+        {
+            <form asp-action="MarkAllRead" method="post" class="m-0">
+                <button type="submit" class="btn btn-sm btn-light"><i class="bi bi-check2-all me-1"></i>Mark all as read</button>
+            </form>
+        }
+    </div>
+
+    @if (Model.Count == 0)
+    {
+        <partial name="_EmptyState" model="@(new EmptyState
+        {
+            Icon = "bi-bell-slash",
+            Title = "You're all caught up",
+            Message = "Notifications about document requests, attendance, grades and announcements will appear here."
+        })" />
+    }
+    else
+    {
+        <ul class="list-unstyled mb-0">
+            @foreach (var item in Model)
+            {
+                <li class="d-flex gap-3 p-3 border-bottom @(item.IsRead ? "" : "bg-soft-primary")">
+                    <span class="se-feed__icon bg-soft-@item.ToneCss"><i class="bi @item.Icon"></i></span>
+                    <div class="flex-grow-1">
+                        <div class="d-flex justify-content-between align-items-start gap-2">
+                            <strong class="d-block">@item.Title</strong>
+                            <span class="se-tiny se-muted text-nowrap">@item.CreatedAt.ToRelativeTime()</span>
+                        </div>
+                        <p class="se-small se-muted mb-2">@item.Message</p>
+                        <div class="d-flex gap-2">
+                            <form asp-action="MarkRead" asp-route-id="@item.Id" method="post" class="d-inline">
+                                <button type="submit" class="btn btn-sm btn-light">
+                                    @if (string.IsNullOrWhiteSpace(item.Url))
+                                    {
+                                        <i class="bi bi-check2 me-1"></i><span>Mark as read</span>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-box-arrow-up-right me-1"></i><span>Open</span>
+                                    }
+                                </button>
+                            </form>
+                            <form asp-action="Delete" asp-route-id="@item.Id" method="post" class="d-inline"
+                                  data-se-confirm="Remove this notification?">
+                                <button type="submit" class="btn btn-sm btn-light text-danger"><i class="bi bi-trash"></i></button>
+                            </form>
+                        </div>
+                    </div>
+                </li>
+            }
+        </ul>
+    }
+</div>

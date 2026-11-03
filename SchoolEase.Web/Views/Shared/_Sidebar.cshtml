@@ -1,0 +1,239 @@
+@{
+    var controller = ViewContext.RouteData.Values["controller"]?.ToString() ?? string.Empty;
+    var action = ViewContext.RouteData.Values["action"]?.ToString() ?? string.Empty;
+
+    string Active(string c, params string[] actions)
+    {
+        if (!string.Equals(controller, c, StringComparison.OrdinalIgnoreCase)) return string.Empty;
+        if (actions.Length == 0) return "active";
+        return actions.Any(a => string.Equals(action, a, StringComparison.OrdinalIgnoreCase)) ? "active" : string.Empty;
+    }
+
+    var isAdmin = CurrentUser.IsAdministrator;
+    var isTeacher = CurrentUser.IsTeacher;
+    var isStudent = CurrentUser.IsStudent;
+    var isRegistrar = CurrentUser.IsRegistrar;
+    var isCoordinator = CurrentUser.IsIctHeadCoordinator;
+}
+
+<aside class="se-sidebar" id="seSidebar">
+    <div class="se-sidebar__brand">
+        <span class="se-sidebar__logo">@await Html.PartialAsync("_Logo")</span>
+        <span class="se-sidebar__title">
+            <strong>SchoolEase</strong>
+            <span>EJNHS Management</span>
+        </span>
+    </div>
+
+    <nav class="se-nav" aria-label="Main navigation">
+        @if (isStudent)
+        {
+            <a class="se-nav__link @Active("Student", "Dashboard")" asp-controller="Student" asp-action="Dashboard">
+                <i class="bi bi-speedometer2"></i><span>Dashboard</span>
+            </a>
+            <a class="se-nav__link @Active("Student", "Profile")" asp-controller="Student" asp-action="Profile">
+                <i class="bi bi-person-badge"></i><span>My Profile</span>
+            </a>
+            <a class="se-nav__link @Active("Student", "Schedule")" asp-controller="Student" asp-action="Schedule">
+                <i class="bi bi-calendar-week"></i><span>My Schedule</span>
+            </a>
+            <a class="se-nav__link @Active("Student", "Attendance")" asp-controller="Student" asp-action="Attendance">
+                <i class="bi bi-clipboard-check"></i><span>My Attendance</span>
+            </a>
+            <a class="se-nav__link @Active("Student", "Grades")" asp-controller="Student" asp-action="Grades">
+                <i class="bi bi-mortarboard"></i><span>My Grades</span>
+            </a>
+            <a class="se-nav__link @Active("Student", "Requests")" asp-controller="Student" asp-action="Requests">
+                <i class="bi bi-file-earmark-text"></i><span>Document Requests</span>
+            </a>
+            <div class="se-nav__label">School</div>
+            <a class="se-nav__link @Active("Announcements")" asp-controller="Announcements" asp-action="Index">
+                <i class="bi bi-megaphone"></i><span>Announcements</span>
+            </a>
+            <a class="se-nav__link @Active("Calendar")" asp-controller="Calendar" asp-action="Index">
+                <i class="bi bi-calendar3"></i><span>Calendar</span>
+            </a>
+            <a class="se-nav__link @Active("Notifications")" asp-controller="Notifications" asp-action="Index">
+                <i class="bi bi-bell"></i><span>Notifications</span>
+            </a>
+        }
+        else if (isTeacher)
+        {
+            <a class="se-nav__link @Active("Teacher", "Dashboard")" asp-controller="Teacher" asp-action="Dashboard">
+                <i class="bi bi-speedometer2"></i><span>Dashboard</span>
+            </a>
+            <div class="se-nav__label">Teaching</div>
+            <a class="se-nav__link @Active("Teacher", "Classes")" asp-controller="Teacher" asp-action="Classes">
+                <i class="bi bi-people"></i><span>My Classes</span>
+            </a>
+            <a class="se-nav__link @Active("Teacher", "Schedule")" asp-controller="Teacher" asp-action="Schedule">
+                <i class="bi bi-calendar-week"></i><span>My Schedule</span>
+            </a>
+            <a class="se-nav__link @Active("Attendance")" asp-controller="Attendance" asp-action="Index">
+                <i class="bi bi-clipboard-check"></i><span>Attendance</span>
+            </a>
+            <a class="se-nav__link @Active("Grades")" asp-controller="Grades" asp-action="Index">
+                <i class="bi bi-mortarboard"></i><span>Grades</span>
+            </a>
+            <div class="se-nav__label">School</div>
+            <a class="se-nav__link @Active("Announcements")" asp-controller="Announcements" asp-action="Index">
+                <i class="bi bi-megaphone"></i><span>Announcements</span>
+            </a>
+            <a class="se-nav__link @Active("Calendar")" asp-controller="Calendar" asp-action="Index">
+                <i class="bi bi-calendar3"></i><span>Calendar</span>
+            </a>
+            <a class="se-nav__link @Active("Notifications")" asp-controller="Notifications" asp-action="Index">
+                <i class="bi bi-bell"></i><span>Notifications</span>
+            </a>
+            <a class="se-nav__link @Active("Teacher", "Profile")" asp-controller="Teacher" asp-action="Profile">
+                <i class="bi bi-person-gear"></i><span>Profile</span>
+            </a>
+        }
+        else if (isAdmin)
+        {
+            <a class="se-nav__link @Active("Dashboard")" asp-controller="Dashboard" asp-action="Index">
+                <i class="bi bi-speedometer2"></i><span>Dashboard</span>
+            </a>
+
+            <div class="se-nav__label">People</div>
+            <a class="se-nav__link @Active("Students")" asp-controller="Students" asp-action="Index">
+                <i class="bi bi-people"></i><span>Students</span>
+            </a>
+            <a class="se-nav__link @Active("Teachers")" asp-controller="Teachers" asp-action="Index">
+                <i class="bi bi-person-video3"></i><span>Teachers</span>
+            </a>
+            <a class="se-nav__link @Active("Staff")" asp-controller="Staff" asp-action="Index">
+                <i class="bi bi-person-workspace"></i><span>Staff</span>
+            </a>
+            <a class="se-nav__link @Active("Guardians")" asp-controller="Guardians" asp-action="Index">
+                <i class="bi bi-person-hearts"></i><span>Guardians</span>
+            </a>
+
+            <div class="se-nav__label">Academics</div>
+            <a class="se-nav__link @Active("Sections")" asp-controller="Sections" asp-action="Index">
+                <i class="bi bi-diagram-3"></i><span>Classes &amp; Sections</span>
+            </a>
+            <a class="se-nav__link @Active("Subjects")" asp-controller="Subjects" asp-action="Index">
+                <i class="bi bi-journal-bookmark"></i><span>Subjects</span>
+            </a>
+            <a class="se-nav__link @Active("Schedules")" asp-controller="Schedules" asp-action="Index">
+                <i class="bi bi-calendar-week"></i><span>Schedules</span>
+            </a>
+            <a class="se-nav__link @Active("Attendance")" asp-controller="Attendance" asp-action="Index">
+                <i class="bi bi-clipboard-check"></i><span>Attendance</span>
+            </a>
+            <a class="se-nav__link @Active("Grades")" asp-controller="Grades" asp-action="Index">
+                <i class="bi bi-mortarboard"></i><span>Grades</span>
+            </a>
+
+            <div class="se-nav__label">Records &amp; Communication</div>
+            <a class="se-nav__link @Active("DocumentRequests")" asp-controller="DocumentRequests" asp-action="Index">
+                <i class="bi bi-file-earmark-text"></i><span>Document Requests</span>
+            </a>
+            <a class="se-nav__link @Active("Announcements")" asp-controller="Announcements" asp-action="Index">
+                <i class="bi bi-megaphone"></i><span>Announcements</span>
+            </a>
+            <a class="se-nav__link @Active("Calendar")" asp-controller="Calendar" asp-action="Index">
+                <i class="bi bi-calendar3"></i><span>Calendar</span>
+            </a>
+            <a class="se-nav__link @Active("Reports")" asp-controller="Reports" asp-action="Index">
+                <i class="bi bi-file-earmark-bar-graph"></i><span>Reports</span>
+            </a>
+
+            <div class="se-nav__label">Administration</div>
+            <a class="se-nav__link @Active("Accounts")" asp-controller="Accounts" asp-action="Index">
+                <i class="bi bi-person-lock"></i><span>User Accounts</span>
+            </a>
+            <a class="se-nav__link @Active("Settings")" asp-controller="Settings" asp-action="Index">
+                <i class="bi bi-sliders"></i><span>System Settings</span>
+            </a>
+            <a class="se-nav__link @Active("AuditLogs")" asp-controller="AuditLogs" asp-action="Index">
+                <i class="bi bi-shield-check"></i><span>Audit Logs</span>
+            </a>
+        }
+        else if (isCoordinator)
+        {
+            <a class="se-nav__link @Active("Dashboard")" asp-controller="Dashboard" asp-action="Index">
+                <i class="bi bi-speedometer2"></i><span>Dashboard</span>
+            </a>
+
+            <div class="se-nav__label">People</div>
+            <a class="se-nav__link @Active("Students")" asp-controller="Students" asp-action="Index">
+                <i class="bi bi-people"></i><span>Students</span>
+            </a>
+            <a class="se-nav__link @Active("Teachers")" asp-controller="Teachers" asp-action="Index">
+                <i class="bi bi-person-video3"></i><span>Teachers</span>
+            </a>
+
+            <div class="se-nav__label">Academics</div>
+            <a class="se-nav__link @Active("Sections")" asp-controller="Sections" asp-action="Index">
+                <i class="bi bi-diagram-3"></i><span>Classes &amp; Sections</span>
+            </a>
+            <a class="se-nav__link @Active("Subjects")" asp-controller="Subjects" asp-action="Index">
+                <i class="bi bi-journal-bookmark"></i><span>Subjects</span>
+            </a>
+            <a class="se-nav__link @Active("Schedules")" asp-controller="Schedules" asp-action="Index">
+                <i class="bi bi-calendar-week"></i><span>Schedules</span>
+            </a>
+            <a class="se-nav__link @Active("Attendance")" asp-controller="Attendance" asp-action="Index">
+                <i class="bi bi-clipboard-check"></i><span>Attendance</span>
+            </a>
+            <a class="se-nav__link @Active("Grades")" asp-controller="Grades" asp-action="Index">
+                <i class="bi bi-mortarboard"></i><span>Grades</span>
+            </a>
+
+            <div class="se-nav__label">Records &amp; Communication</div>
+            <a class="se-nav__link @Active("Reports")" asp-controller="Reports" asp-action="Index">
+                <i class="bi bi-file-earmark-bar-graph"></i><span>Reports</span>
+            </a>
+            <a class="se-nav__link @Active("Announcements")" asp-controller="Announcements" asp-action="Index">
+                <i class="bi bi-megaphone"></i><span>Announcements</span>
+            </a>
+            <a class="se-nav__link @Active("Calendar")" asp-controller="Calendar" asp-action="Index">
+                <i class="bi bi-calendar3"></i><span>Calendar</span>
+            </a>
+            <a class="se-nav__link @Active("Notifications")" asp-controller="Notifications" asp-action="Index">
+                <i class="bi bi-bell"></i><span>Notifications</span>
+            </a>
+        }
+        else if (isRegistrar)
+        {
+            <a class="se-nav__link @Active("Dashboard")" asp-controller="Dashboard" asp-action="Index">
+                <i class="bi bi-speedometer2"></i><span>Dashboard</span>
+            </a>
+            <a class="se-nav__link @Active("DocumentRequests")" asp-controller="DocumentRequests" asp-action="Index">
+                <i class="bi bi-file-earmark-text"></i><span>Document Requests</span>
+            </a>
+            <a class="se-nav__link @Active("Students")" asp-controller="Students" asp-action="Index">
+                <i class="bi bi-people"></i><span>Students</span>
+            </a>
+            <div class="se-nav__label">School</div>
+            <a class="se-nav__link @Active("Announcements")" asp-controller="Announcements" asp-action="Index">
+                <i class="bi bi-megaphone"></i><span>Announcements</span>
+            </a>
+            <a class="se-nav__link @Active("Calendar")" asp-controller="Calendar" asp-action="Index">
+                <i class="bi bi-calendar3"></i><span>Calendar</span>
+            </a>
+            <a class="se-nav__link @Active("Reports")" asp-controller="Reports" asp-action="Index">
+                <i class="bi bi-file-earmark-bar-graph"></i><span>Reports</span>
+            </a>
+            <a class="se-nav__link @Active("Notifications")" asp-controller="Notifications" asp-action="Index">
+                <i class="bi bi-bell"></i><span>Notifications</span>
+            </a>
+        }
+
+        <div class="se-nav__label">Account</div>
+        <form asp-controller="Account" asp-action="Logout" method="post" class="m-0" data-se-no-loading="1">
+            <button type="submit" class="se-nav__link w-100 border-0 bg-transparent text-start">
+                <i class="bi bi-box-arrow-right"></i><span>Logout</span>
+            </button>
+        </form>
+    </nav>
+
+    <div class="se-sidebar__footer">
+        <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-mortarboard-fill"></i>
+            <span>S.Y. @SchoolInfo.SchoolYear</span>
+        </div>
+    </div>
+</aside>

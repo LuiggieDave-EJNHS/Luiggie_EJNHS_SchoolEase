@@ -1,0 +1,81 @@
+@model SchoolEvent
+@{
+    ViewData["Title"] = "New Event";
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = "New Calendar Event",
+    Subtitle = "Schedule an event, holiday, examination or deadline.",
+    Icon = "bi-calendar-plus",
+    Actions = new List<PageAction>
+    {
+        new() { Text = "Back to Calendar", Url = Url.Action("Index"), Icon = "bi-arrow-left", Css = "btn btn-light" }
+    }
+})" />
+
+<div class="se-card">
+    <div class="se-card__body">
+        <form asp-action="Create" method="post">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 se-small"></div>
+
+            <div class="se-form-grid">
+                <div class="se-form-section"><h3>Event details</h3></div>
+
+                <div class="se-span-2">
+                    <label class="se-form-label" asp-for="Title">Title <span class="req">*</span></label>
+                    <input asp-for="Title" class="form-control" placeholder="e.g. Foundation Day" />
+                    <span asp-validation-for="Title" class="text-danger se-small"></span>
+                </div>
+
+                <div>
+                    <label class="se-form-label" asp-for="Category">Category <span class="req">*</span></label>
+                    <select asp-for="Category" asp-items="SelectLists.EnumOptions<EventCategory>(Model.Category)" class="form-select"></select>
+                    <span asp-validation-for="Category" class="text-danger se-small"></span>
+                </div>
+
+                <div>
+                    <label class="se-form-label" asp-for="Audience">Target Audience <span class="req">*</span></label>
+                    <select asp-for="Audience" asp-items="SelectLists.EnumOptions<Audience>(Model.Audience)" class="form-select"></select>
+                    <span asp-validation-for="Audience" class="text-danger se-small"></span>
+                </div>
+
+                <div>
+                    <label class="se-form-label" asp-for="StartDate">Start <span class="req">*</span></label>
+                    <input asp-for="StartDate" class="form-control" />
+                    <span asp-validation-for="StartDate" class="text-danger se-small"></span>
+                </div>
+
+                <div>
+                    <label class="se-form-label" asp-for="EndDate">End</label>
+                    <input asp-for="EndDate" class="form-control" />
+                    <span asp-validation-for="EndDate" class="text-danger se-small"></span>
+                </div>
+
+                <div>
+                    <label class="se-form-label" asp-for="Location">Location</label>
+                    <input asp-for="Location" class="form-control" placeholder="e.g. Covered Court" />
+                    <span asp-validation-for="Location" class="text-danger se-small"></span>
+                </div>
+
+                <div class="se-span-2">
+                    <label class="se-form-label" asp-for="Description">Description</label>
+                    <textarea asp-for="Description" rows="4" class="form-control"></textarea>
+                    <span asp-validation-for="Description" class="text-danger se-small"></span>
+                </div>
+
+                <div class="se-span-2">
+                    <div class="form-check">
+                        <input asp-for="AllDay" class="form-check-input" />
+                        <label class="form-check-label se-small" asp-for="AllDay">Whole-day event</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-check2 me-1"></i>Save event</button>
+                <a class="btn btn-light" asp-action="Index">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>

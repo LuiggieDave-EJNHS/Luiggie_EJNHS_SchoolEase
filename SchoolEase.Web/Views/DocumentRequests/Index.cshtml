@@ -1,0 +1,134 @@
+@model DocumentRequestListViewModel
+@{
+    ViewData["Title"] = "Document Requests";
+
+    var cards = new List<StatCard>
+    {
+        new() { Label = "Total Requests", Value = Model.Total.ToString("N0"), Icon = "bi-inboxes", Tone = "primary" },
+        new() { Label = "Pending", Value = Model.Pending.ToString("N0"), Icon = "bi-hourglass-split", Tone = "warning" },
+        new() { Label = "Processing", Value = Model.Processing.ToString("N0"), Icon = "bi-arrow-repeat", Tone = "info" },
+        new() { Label = "Ready for Release", Value = Model.ReadyForRelease.ToString("N0"), Icon = "bi-box-seam", Tone = "purple" },
+        new() { Label = "Released", Value = Model.Released.ToString("N0"), Icon = "bi-check2-circle", Tone = "success" }
+    };
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = "Document Requests",
+    Subtitle = "Process and track student requests for school documents.",
+    Icon = "bi-file-earmark-text",
+    Actions = new List<PageAction>
+    {
+        new() { Text = "Document Types", Url = Url.Action("Types"), Icon = "bi-list-check", Css = "btn btn-light" }
+    }
+})" />
+
+<div class="row g-3 mb-3">
+    @foreach (var card in cards)
+    {
+        <div class="col-6 col-xl-3">
+            <partial name="_StatCard" model="card" />
+        </div>
+    }
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-lg-8">
+        <div class="se-card h-100">
+            <div class="se-card__head">
+                <h3><i class="bi bi-clipboard-data me-1"></i>Registrar worklist</h3>
+            </div>
+
+            <form method="get" asp-action="Index" class="se-filters">
+                <select name="status" class="form-select" data-se-autosubmit aria-label="Filter by status">
+                    <option value="">All statuses</option>
+                    @foreach (var opt in SelectLists.EnumOptions<DocumentRequestStatus>(Model.Status))
+                    {
+                        <option value="@opt.Value" selected="@opt.Selected">@opt.Text</option>
+                    }
+                </select>
+                <input name="keyword" value="@Model.Keyword" class="form-control se-filters__grow"
+                       placeholder="Search request no., student, document or purpose…" />
+                <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i></button>
+                <button type="button" class="btn btn-light" data-se-reset="@Url.Action("Index")">Reset</button>
+            </form>
+
+            @if (Model.Requests.Count == 0)
+            {
+                <partial name="_EmptyState" model="@(new EmptyState
+                {
+                    Icon = "bi-inboxes",
+                    Title = "No document requests",
+                    Message = "Requests submitted by students will appear here.",
+                    ActionText = "Manage document types",
+                    ActionUrl = Url.Action("Types")
+                })" />
+            }
+            else
+            {
+                <div class="se-table-wrap">
+                    <table class="se-table">
+                        <thead>
+                            <tr>
+                                <th>Request No.</th>
+                                <th>Student</th>
+                                <th>Document</th>
+                                <th class="text-center">Copies</th>
+                                <th>Requested</th>
+                                <th>Status</th>
+                                <th>Processed By</th>
+                                <th class="se-col-actions">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var row in Model.Requests)
+                            {
+                                <tr>
+                                    <td><span class="se-id-chip">@row.RequestNumber</span></td>
+                                    <td>
+                                        <span class="d-flex align-items-center gap-2">
+                                            <span class="se-avatar se-avatar--@row.Student.FullName.AvatarTone()">@row.Student.FullName.Initials()</span>
+                                            <span>
+                                                <span class="se-strong d-block">@row.Student.FullName</span>
+                                                <span class="se-tiny se-muted">@row.Student.StudentNumber</span>
+                                            </span>
+                                        </span>
+                                    </td>
+                                    <td>@row.DocumentType.Name</td>
+                                    <td class="text-center">@row.Copies</td>
+                                    <td>@row.RequestedAt.ToLocalTime().ToDateLabel()</td>
+                                    <td>
+                                        <span class="se-badge text-bg-@row.Status.BootstrapTone()">
+                                            <i class="bi @row.Status.Icon()"></i>@row.Status.DisplayName()
+                                        </span>
+                                    </td>
+                                    <td>@(row.ProcessedBy?.FullName ?? "—")</td>
+                                    <td class="se-col-actions">
+                                        <a class="btn btn-sm btn-light" asp-action="Details" asp-route-id="@row.Id" title="View">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        @if (CurrentUser.IsAdministrator)
+                                        {
+                                            <form asp-action="Delete" asp-route-id="@row.Id" method="post" class="d-inline"
+                                                  data-se-confirm="Delete this document request?">
+                                                <button type="submit" class="btn btn-sm btn-light text-danger" title="Delete">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </form>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <partial name="_Pagination" model="@(ViewData["Pagination"] as PaginationInfo ?? new PaginationInfo())" />
+            }
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <partial name="_ChartCard" model="@(new ChartWidget { Data = Model.StatusChart, Type = "doughnut", Height = "se-chart--md" })" />
+    </div>
+</div>

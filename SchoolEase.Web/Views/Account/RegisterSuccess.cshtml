@@ -1,0 +1,30 @@
+@model string
+@{
+    Layout = "_AuthLayout";
+    ViewData["Title"] = "Registration Successful";
+}
+
+<div class="se-auth__card">
+    <div class="text-center mb-4">
+        <div class="se-auth__logo-large">
+            <i class="bi bi-envelope-check text-success" style="font-size: 4rem;"></i>
+        </div>
+        <h1 class="h3 mb-1 fw-bold">Check your email</h1>
+        <p class="se-muted se-small mb-0">We've sent a confirmation link to <strong>@Model</strong>.</p>
+    </div>
+
+    <div class="alert alert-info se-small">
+        <i class="bi bi-info-circle me-2"></i>
+        Please click the link in the email to activate your account. If you don't see it, check your spam folder.
+    </div>
+
+    <div class="text-center mt-4">
+        <a asp-action="Login" class="btn btn-outline-primary w-100">
+            Back to Sign in
+        </a>
+    </div>
+
+    <div class="mt-4 p-3 bg-light rounded border se-tiny text-muted">
+        <strong>Note for Demo:</strong> Since this is a local development environment, the confirmation link has been logged to the server console. Open the terminal where you ran the app to find the link.
+    </div>
+</div>

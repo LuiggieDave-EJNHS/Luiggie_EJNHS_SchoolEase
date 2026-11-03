@@ -1,0 +1,36 @@
+@model PageHeader
+<div class="se-page-head">
+    <div>
+        @if (!string.IsNullOrWhiteSpace(Model.Icon))
+        {
+            <span class="se-muted se-small d-block mb-1"><i class="bi @Model.Icon me-1"></i>@ViewData["Section"]</span>
+        }
+        <h1>@Model.Title</h1>
+        @if (!string.IsNullOrWhiteSpace(Model.Subtitle))
+        {
+            <p>@Model.Subtitle</p>
+        }
+    </div>
+    @if (Model.Actions.Count > 0)
+    {
+        <div class="se-page-head__actions">
+            @foreach (var action in Model.Actions)
+            {
+                if (action.IsSubmit)
+                {
+                    <button type="submit" class="@action.Css">
+                        <i class="bi @action.Icon me-1"></i>@action.Text
+                    </button>
+                }
+                else
+                {
+                    <a class="@action.Css" href="@action.Url"
+                       data-se-confirm="@action.Confirm"
+                       target="@action.Target">
+                        <i class="bi @action.Icon me-1"></i>@action.Text
+                    </a>
+                }
+            }
+        </div>
+    }
+</div>

@@ -1,0 +1,114 @@
+@{
+    Layout = "_PublicLayout";
+    ViewData["Title"] = "Welcome";
+}
+
+<section class="se-hero">
+    <div class="container">
+        <div class="row align-items-center g-5">
+            <div class="col-lg-9">
+                <span class="se-pill mb-3" style="background:rgba(255,255,255,.14);color:#dbe8ff;">
+                    <i class="bi bi-mortarboard-fill"></i>@SchoolInfo.SchoolYear &bull; Senior High School
+                </span>
+                <h1 class="mb-3">@SchoolInfo.Name</h1>
+                <p class="lead mb-4">
+                    @SchoolInfo.Tagline A complete school management and office-management system for
+                    learners, teachers, staff and administrators &mdash; built for Philippine senior high schools.
+                </p>
+                <div class="d-flex flex-wrap gap-2">
+                    <a class="btn btn-light btn-lg" asp-controller="Account" asp-action="Login">
+                        <i class="bi bi-box-arrow-in-right me-1"></i>Sign in to SchoolEase
+                    </a>
+                    <a class="btn btn-outline-light btn-lg" href="#modules">Explore the modules</a>
+                </div>
+                <p class="se-tiny mt-4 mb-0" style="color:#9db8e0;">
+                    Use the account issued by your school administrator.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="container py-5">
+    <div class="row g-4">
+        <div class="col-6 col-lg-3">
+            <div class="se-stat">
+                <span class="se-stat__icon bg-soft-primary"><i class="bi bi-people"></i></span>
+                <span>
+                    <span class="se-stat__label d-block">Learners</span>
+                    <span class="se-stat__value d-block">Records</span>
+                </span>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="se-stat">
+                <span class="se-stat__icon bg-soft-success"><i class="bi bi-calendar-check"></i></span>
+                <span>
+                    <span class="se-stat__label d-block">Attendance</span>
+                    <span class="se-stat__value d-block">Daily</span>
+                </span>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="se-stat">
+                <span class="se-stat__icon bg-soft-warning"><i class="bi bi-mortarboard"></i></span>
+                <span>
+                    <span class="se-stat__label d-block">Grades</span>
+                    <span class="se-stat__value d-block">DepEd</span>
+                </span>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="se-stat">
+                <span class="se-stat__icon bg-soft-info"><i class="bi bi-file-earmark-text"></i></span>
+                <span>
+                    <span class="se-stat__label d-block">Requests</span>
+                    <span class="se-stat__value d-block">Online</span>
+                </span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="container pb-5" id="modules">
+    <div class="text-center mb-4">
+        <h2 class="h3">Everything the school office needs</h2>
+        <p class="se-muted">Fourteen connected modules replace paperwork with one organised digital workflow.</p>
+    </div>
+    <div class="row g-4">
+        @{
+            var features = new (string Icon, string Tone, string Title, string Text)[]
+            {
+                ("bi-speedometer2", "primary", "Role-based dashboards", "Live statistics, charts and activity feeds tailored to administrators, teachers and students."),
+                ("bi-people", "success", "Student records", "Complete learner profiles with guardians, grade level, section, attendance and academic history."),
+                ("bi-person-video3", "info", "Teaching staff", "Manage teachers, subject loads, advisory sections and weekly schedules."),
+                ("bi-diagram-3", "warning", "Classes & sections", "Create sections, assign advisers, subjects and learners under each grade level."),
+                ("bi-clipboard-check", "purple", "Attendance tracking", "Teachers mark present, late or absent with remarks; administrators get instant analytics."),
+                ("bi-mortarboard", "teal", "Grades & academic records", "Encode term grades with the DepEd written work, performance task and exam weighting."),
+                ("bi-file-earmark-text", "pink", "Document requests", "Request certificates online and follow the registrar workflow from pending to released."),
+                ("bi-megaphone", "danger", "Announcements & calendar", "Post bulletins by audience priority and keep the whole school on one calendar."),
+                ("bi-file-earmark-bar-graph", "primary", "Printable reports", "Professional school-document layouts for student lists, attendance, grades and more.")
+            };
+        }
+        @foreach (var feature in features)
+        {
+            <div class="col-md-6 col-lg-4">
+                <div class="se-feature h-100">
+                    <i class="bi @feature.Icon text-@feature.Tone"></i>
+                    <h3>@feature.Title</h3>
+                    <p>@feature.Text</p>
+                </div>
+            </div>
+        }
+    </div>
+</section>
+
+<section class="py-5" style="background:var(--se-bg);">
+    <div class="container text-center">
+        <h2 class="h3 mb-2">Ready to make school management easier?</h2>
+        <p class="se-muted mb-4">Sign in with your SchoolEase account to explore every role and module.</p>
+        <a class="btn btn-primary btn-lg" asp-controller="Account" asp-action="Login">
+            <i class="bi bi-box-arrow-in-right me-1"></i>Go to sign in
+        </a>
+    </div>
+</section>

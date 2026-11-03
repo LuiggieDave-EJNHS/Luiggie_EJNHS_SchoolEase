@@ -1,0 +1,77 @@
+@model GradePrintViewModel
+@{
+    ViewData["Title"] = "Class Record";
+    ViewData["Section"] = "Academics";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <span class="se-muted se-small d-block"><i class="bi bi-mortarboard me-1"></i>Academics</span>
+        <h1 class="h4 mb-0">Class Record</h1>
+        <p class="se-small se-muted mb-0">@Model.SectionLabel • @Model.SubjectLabel • Term @Model.Term</p>
+    </div>
+    <button class="btn btn-light se-no-print" onclick="window.print()"><i class="bi bi-printer me-1"></i>Print</button>
+</div>
+
+<div class="se-report">
+    <div class="se-report__head">
+        <div class="se-report__school">@SchoolInfo.SchoolName</div>
+        <div class="se-report__addr">@SchoolInfo.SchoolAddress</div>
+        <h2>Term Class Record</h2>
+    </div>
+
+    <div class="se-report__meta">
+        <span><strong>Section:</strong> @Model.SectionLabel</span>
+        <span><strong>Subject:</strong> @Model.SubjectLabel</span>
+        <span><strong>Term:</strong> @Model.Term</span>
+        <span><strong>School Year:</strong> @Model.SchoolYear</span>
+        <span><strong>Generated:</strong> @Model.GeneratedAt.ToString("MMM d, yyyy h:mm tt")</span>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th class="center" style="width:42px;">#</th>
+                <th style="width:110px;">Student No.</th>
+                <th>Student</th>
+                <th class="num">WW (30%)</th>
+                <th class="num">PT (50%)</th>
+                <th class="num">TA (20%)</th>
+                <th class="num">Final Grade</th>
+                <th>Remarks</th>
+            </tr>
+        </thead>
+        <tbody>
+            @for (var i = 0; i < Model.Rows.Count; i++)
+            {
+                var row = Model.Rows[i];
+                <tr>
+                    <td class="center">@(i + 1)</td>
+                    <td>@row.StudentNumber</td>
+                    <td>@row.StudentName</td>
+                    <td class="num">@(row.WrittenWork?.ToString("0.##") ?? "—")</td>
+                    <td class="num">@(row.PerformanceTask?.ToString("0.##") ?? "—")</td>
+                    <td class="num">@(row.TermAssessment?.ToString("0.##") ?? "—")</td>
+                    <td class="num se-strong">@(row.FinalGrade?.ToString("0.##") ?? "—")</td>
+                    <td>@(string.IsNullOrWhiteSpace(row.Remarks) ? row.FinalGrade.GradeRemarks() : row.Remarks)</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <div class="se-report__summary">
+        <div>
+            <dt>Learners</dt>
+            <dd>@Model.Rows.Count</dd>
+        </div>
+        <div>
+            <dt>Class Average</dt>
+            <dd>@(Model.ClassAverage?.ToString("0.##") ?? "—")</dd>
+        </div>
+    </div>
+
+    <div class="se-report__sign">
+        <div><span>Encoded by (Subject Teacher)</span></div>
+        <div><span>School Head</span></div>
+    </div>
+</div>

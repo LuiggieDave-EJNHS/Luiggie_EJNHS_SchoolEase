@@ -1,0 +1,57 @@
+@model SectionFormViewModel
+<div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 se-small"></div>
+
+<div class="se-form-grid">
+    <div class="se-form-section"><h3>Section details</h3></div>
+
+    <div>
+        <label asp-for="Name" class="form-label"></label>
+        <input asp-for="Name" class="form-control" placeholder="12-ICT-CCS" />
+        <span asp-validation-for="Name" class="text-danger se-small"></span>
+    </div>
+    <div>
+        <label asp-for="Code" class="form-label"></label>
+        <input asp-for="Code" class="form-control" placeholder="12-ICT-CCS" />
+        <span asp-validation-for="Code" class="text-danger se-small"></span>
+    </div>
+    <div>
+        <label asp-for="GradeLevelId" class="form-label"></label>
+        <select asp-for="GradeLevelId" asp-items="Model.GradeLevels" class="form-select">
+            <option value="">— Select grade level —</option>
+        </select>
+        <span asp-validation-for="GradeLevelId" class="text-danger se-small"></span>
+    </div>
+    <div>
+        <label asp-for="AdviserId" class="form-label"></label>
+        <select asp-for="AdviserId" asp-items="Model.Advisers" class="form-select">
+            <option value="">— No adviser —</option>
+        </select>
+        <span asp-validation-for="AdviserId" class="text-danger se-small"></span>
+    </div>
+    <div>
+        <label asp-for="TrackStrand" class="form-label"></label>
+        <input asp-for="TrackStrand" class="form-control" placeholder="Academic - STEM" />
+        <span asp-validation-for="TrackStrand" class="text-danger se-small"></span>
+    </div>
+    <div>
+        <label asp-for="Room" class="form-label"></label>
+        <input asp-for="Room" class="form-control" placeholder="Room 204" />
+        <span asp-validation-for="Room" class="text-danger se-small"></span>
+    </div>
+    <div>
+        <label asp-for="Capacity" class="form-label"></label>
+        <input asp-for="Capacity" type="number" min="1" max="100" class="form-control" />
+        <span asp-validation-for="Capacity" class="text-danger se-small"></span>
+    </div>
+    <div>
+        <label asp-for="SchoolYear" class="form-label"></label>
+        <input asp-for="SchoolYear" class="form-control" placeholder="@SchoolInfo.SchoolYear" />
+        <span asp-validation-for="SchoolYear" class="text-danger se-small"></span>
+    </div>
+    <div>
+        <label asp-for="IsActive" class="form-label d-block"></label>
+        <div class="form-check form-switch">
+            <input asp-for="IsActive" class="form-check-input" role="switch" />
+        </div>
+    </div>
+</div>

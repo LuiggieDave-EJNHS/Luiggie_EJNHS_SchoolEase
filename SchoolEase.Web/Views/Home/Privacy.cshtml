@@ -1,0 +1,55 @@
+@{
+    Layout = "_PublicLayout";
+    ViewData["Title"] = "About SchoolEase";
+}
+<section class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-9">
+            <h1 class="h3 mb-2">About SchoolEase</h1>
+            <p class="se-muted">@SchoolInfo.LongName</p>
+
+            <div class="se-card">
+                <div class="se-card__body">
+                    <p>
+                        <strong>@SchoolInfo.Name</strong> is a centralised school management and office-management
+                        system designed for Philippine senior high schools. It reduces paperwork, organises school
+                        records, improves communication and gives administrators, teachers, staff and students one
+                        easy-to-use digital platform.
+                    </p>
+                    <dl class="row se-def-list mb-0">
+                        <dt class="col-sm-4">School</dt>
+                        <dd class="col-sm-8">@SchoolInfo.SchoolName</dd>
+
+                        <dt class="col-sm-4">Address</dt>
+                        <dd class="col-sm-8">@SchoolInfo.SchoolAddress</dd>
+
+                        <dt class="col-sm-4">Division</dt>
+                        <dd class="col-sm-8">@SchoolInfo.Division</dd>
+
+                        <dt class="col-sm-4">Region</dt>
+                        <dd class="col-sm-8">@SchoolInfo.Region</dd>
+
+                        <dt class="col-sm-4">School Year</dt>
+                        <dd class="col-sm-8">@SchoolInfo.SchoolYear</dd>
+                    </dl>
+                </div>
+            </div>
+
+            <div class="se-card">
+                <div class="se-card__head"><h3>Privacy &amp; data handling</h3></div>
+                <div class="se-card__body">
+                    <p class="mb-0">
+                        Records entered into SchoolEase are stored in the school's own database and are only
+                        accessible to signed-in users according to their role. Passwords are stored using
+                        industry-standard hashing, all state-changing requests are protected against cross-site
+                        request forgery, and security-relevant actions are written to an audit trail.
+                    </p>
+                </div>
+            </div>
+
+            <a class="btn btn-primary mt-3" asp-controller="Account" asp-action="Login">
+                <i class="bi bi-box-arrow-in-right me-1"></i>Sign in
+            </a>
+        </div>
+    </div>
+</section>

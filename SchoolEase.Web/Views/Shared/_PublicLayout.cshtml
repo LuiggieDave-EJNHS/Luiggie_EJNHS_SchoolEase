@@ -1,0 +1,59 @@
+@{
+    var pageTitle = ViewData["Title"] as string ?? SchoolInfo.Name;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@pageTitle &bull; @SchoolInfo.Name</title>
+    <meta name="description" content="@SchoolInfo.LongName" />
+    <link rel="icon" href="~/favicon.ico" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+    <link rel="stylesheet" href="~/css/schoolease.css" asp-append-version="true" />
+</head>
+<body class="bg-white">
+    <nav class="navbar navbar-expand-lg bg-white border-bottom py-3">
+        <div class="container">
+            <a class="navbar-brand d-flex align-items-center gap-2" asp-controller="Home" asp-action="Index">
+                <span class="se-sidebar__logo">@await Html.PartialAsync("_Logo")</span>
+                <span class="se-sidebar__title">
+                    <strong class="text-dark">SchoolEase</strong>
+                    <span class="text-muted">@SchoolInfo.Tagline</span>
+                </span>
+            </a>
+            <div class="ms-auto d-flex align-items-center gap-2">
+                @if (CurrentUser.IsAuthenticated)
+                {
+                    <a class="btn btn-primary" href="@CurrentUser.HomeAction"><i class="bi bi-speedometer2 me-1"></i>Go to dashboard</a>
+                }
+                else
+                {
+                    <a class="btn btn-light d-none d-sm-inline-flex" asp-controller="Home" asp-action="Privacy">About</a>
+                    <a class="btn btn-primary" asp-controller="Account" asp-action="Login"><i class="bi bi-box-arrow-in-right me-1"></i>Sign in</a>
+                }
+            </div>
+        </div>
+    </nav>
+
+    <main role="main">
+        @RenderBody()
+    </main>
+
+    <footer class="border-top py-4 bg-white">
+        <div class="container d-flex flex-wrap justify-content-between gap-2 se-small se-muted">
+            <span>&copy; @DateTime.Now.Year @SchoolInfo.SchoolName. All rights reserved.</span>
+            <span>@SchoolInfo.Division &bull; @SchoolInfo.Region</span>
+        </div>
+    </footer>
+
+    <div class="se-toasts" id="seToasts"></div>
+    <partial name="_Flash" />
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/schoolease.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

@@ -1,0 +1,81 @@
+@model RegisterViewModel
+@{
+    Layout = "_AuthLayout";
+    ViewData["Title"] = "Create Account";
+}
+
+<div class="se-auth__card">
+    <div class="text-center mb-4">
+        <div class="se-auth__logo-large">
+            @await Html.PartialAsync("_Logo")
+        </div>
+        <h1 class="h3 mb-1 fw-bold">Create an account</h1>
+        <p class="se-muted se-small mb-0">Join SchoolEase to request and track documents.</p>
+    </div>
+
+    <form asp-action="Register" method="post" novalidate>
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 se-small @(ViewData.ModelState.ErrorCount > 0 ? "" : "d-none")"></div>
+
+        <div class="mb-3">
+            <label asp-for="FullName" class="form-label"></label>
+            <div class="input-group">
+                <span class="input-group-text bg-white"><i class="bi bi-person se-muted"></i></span>
+                <input asp-for="FullName" class="form-control" placeholder="Your full name" autofocus />
+            </div>
+            <span asp-validation-for="FullName" class="text-danger se-small"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Email" class="form-label"></label>
+            <div class="input-group">
+                <span class="input-group-text bg-white"><i class="bi bi-envelope se-muted"></i></span>
+                <input asp-for="Email" class="form-control" autocomplete="username" placeholder="you@example.com" />
+            </div>
+            <span asp-validation-for="Email" class="text-danger se-small"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="RegistrationRole" class="form-label"></label>
+            <div class="input-group">
+                <span class="input-group-text bg-white"><i class="bi bi-person-badge se-muted"></i></span>
+                <select asp-for="RegistrationRole" class="form-select">
+                    <option value="@Roles.FormerStudent">Former Student</option>
+                    <option value="@Roles.Student">Current Student</option>
+                </select>
+            </div>
+            <span asp-validation-for="RegistrationRole" class="text-danger se-small"></span>
+        </div>
+
+        <div class="row g-2 mb-3">
+            <div class="col-md-6">
+                <label asp-for="Password" class="form-label"></label>
+                <div class="input-group">
+                    <span class="input-group-text bg-white"><i class="bi bi-lock se-muted"></i></span>
+                    <input asp-for="Password" class="form-control" autocomplete="new-password" placeholder="Password" id="sePassword" />
+                </div>
+                <span asp-validation-for="Password" class="text-danger se-small"></span>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="ConfirmPassword" class="form-label"></label>
+                <div class="input-group">
+                    <span class="input-group-text bg-white"><i class="bi bi-check-circle se-muted"></i></span>
+                    <input asp-for="ConfirmPassword" class="form-control" autocomplete="new-password" placeholder="Confirm" />
+                </div>
+                <span asp-validation-for="ConfirmPassword" class="text-danger se-small"></span>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100 py-2 mb-3">
+            <i class="bi bi-person-plus me-1"></i>Create Account
+        </button>
+
+        <div class="text-center se-small">
+            <span class="se-muted">Already have an account?</span>
+            <a asp-action="Login" class="fw-bold">Sign in</a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

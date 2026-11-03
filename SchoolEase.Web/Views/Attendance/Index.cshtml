@@ -1,0 +1,160 @@
+@model AttendanceIndexViewModel
+@{
+    ViewData["Title"] = "Attendance";
+    ViewData["Section"] = "Academics";
+
+    var cards = new List<StatCard>
+    {
+        new() { Label = "Present", Value = Model.PresentCount.ToString("N0"), Icon = "bi-check-circle", Tone = "success", Meta = $"{Model.TotalCount} record(s) in view", Url = Url.Action("Index", new { sectionId = Model.SectionId, gradeLevelId = Model.GradeLevelId, date = Model.Date?.ToString("yyyy-MM-dd"), status = (int)AttendanceStatus.Present, studentId = Model.StudentId }) },
+        new() { Label = "Late", Value = Model.LateCount.ToString("N0"), Icon = "bi-clock-history", Tone = "warning", Meta = "Tardy marks", Url = Url.Action("Index", new { sectionId = Model.SectionId, gradeLevelId = Model.GradeLevelId, date = Model.Date?.ToString("yyyy-MM-dd"), status = (int)AttendanceStatus.Late, studentId = Model.StudentId }) },
+        new() { Label = "Absent", Value = Model.AbsentCount.ToString("N0"), Icon = "bi-x-circle", Tone = "danger", Meta = "Unexcused absence", Url = Url.Action("Index", new { sectionId = Model.SectionId, gradeLevelId = Model.GradeLevelId, date = Model.Date?.ToString("yyyy-MM-dd"), status = (int)AttendanceStatus.Absent, studentId = Model.StudentId }) },
+        new() { Label = "Excused", Value = Model.ExcusedCount.ToString("N0"), Icon = "bi-file-earmark-medical", Tone = "info", Meta = "Authorised absence" },
+        new() { Label = "Attendance Rate", Value = $"{Model.AttendanceRate:0.#}%", Icon = "bi-graph-up", Tone = "teal", Meta = "Present + late over marks" }
+    };
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = "Attendance",
+    Subtitle = $"Register for S.Y. {SchoolInfo.SchoolYear} — {Model.TotalCount} record(s) match the filters",
+    Icon = "bi-clipboard-check",
+    Actions = new()
+    {
+        new PageAction { Text = "Mark attendance", Url = Url.Action("Mark", "Attendance"), Icon = "bi-pencil-square", Css = "btn btn-primary" },
+        new PageAction { Text = "Export CSV", Url = Url.Action("Export", "Attendance", new { sectionId = Model.SectionId, dateFrom = Model.Date?.ToString("yyyy-MM-dd"), dateTo = Model.Date?.ToString("yyyy-MM-dd") }), Icon = "bi-download", Css = "btn btn-light" }
+    }
+})" />
+
+<div class="row g-3 mb-3">
+    @foreach (var card in cards)
+    {
+        <div class="col-6 col-xl-3">
+            <partial name="_StatCard" model="card" />
+        </div>
+    }
+</div>
+
+<div class="se-card mb-3">
+    <form class="se-filters" method="get" asp-action="Index">
+        <div>
+            <label class="form-label se-small">Section</label>
+            <select class="form-select form-select-sm" name="sectionId" data-se-autosubmit>
+                <option value="">All sections</option>
+                @foreach (var s in Model.Sections)
+                {
+                    <option value="@s.Value" selected="@(s.Selected ? "selected" : null)">@s.Text</option>
+                }
+            </select>
+        </div>
+        <div>
+            <label class="form-label se-small">Grade level</label>
+            <select class="form-select form-select-sm" name="gradeLevelId" data-se-autosubmit>
+                <option value="">All grade levels</option>
+                @foreach (var g in Model.GradeLevels)
+                {
+                    <option value="@g.Value" selected="@(g.Selected ? "selected" : null)">@g.Text</option>
+                }
+            </select>
+        </div>
+        <div>
+            <label class="form-label se-small">Date</label>
+            <input type="date" class="form-control form-control-sm" name="date" value="@(Model.Date?.ToString("yyyy-MM-dd"))" data-se-autosubmit />
+        </div>
+        <div>
+            <label class="form-label se-small">Status</label>
+            <select class="form-select form-select-sm" name="status" data-se-autosubmit>
+                <option value="">All statuses</option>
+                @foreach (var st in Enum.GetValues<AttendanceStatus>())
+                {
+                    <option value="@((int)st)" selected="@(Model.Status == st ? "selected" : null)">@st.DisplayName()</option>
+                }
+            </select>
+        </div>
+        <div>
+            <label class="form-label se-small">Student</label>
+            <select class="form-select form-select-sm" name="studentId" data-se-autosubmit>
+                <option value="">All students</option>
+                @foreach (var s in Model.Students)
+                {
+                    <option value="@s.Value" selected="@(s.Selected ? "selected" : null)">@s.Text</option>
+                }
+            </select>
+        </div>
+        <button class="btn btn-sm btn-primary" type="submit"><i class="bi bi-funnel me-1"></i>Filter</button>
+        <button type="button" class="btn btn-sm btn-light" data-se-reset="@Url.Action("Index")">Reset</button>
+    </form>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-lg-4">
+        <partial name="_ChartCard" model="@(new ChartWidget { Data = Model.StatusDistribution, Type = "doughnut", Height = "se-chart--sm" })" />
+    </div>
+    <div class="col-lg-8">
+        <partial name="_ChartCard" model="@(new ChartWidget { Data = Model.DailyTrend, Type = "line", Height = "se-chart--sm", DatasetLabel = "Present + late" })" />
+    </div>
+</div>
+
+<div class="se-card">
+    <div class="se-card__head">
+        <h3><i class="bi bi-list-check me-1"></i>Attendance records</h3>
+        <span class="se-small se-muted">@Model.TotalCount match(es)</span>
+    </div>
+
+    @if (Model.Records.Count == 0)
+    {
+        <partial name="_EmptyState" model="@(new EmptyState
+        {
+            Icon = "bi-clipboard-check",
+            Title = "No attendance records",
+            Message = "No marks match the active filters. Try a different section, date or status.",
+            ActionText = "Mark attendance",
+            ActionUrl = Url.Action("Mark", "Attendance"),
+            ActionIcon = "bi-pencil-square"
+        })" />
+    }
+    else
+    {
+        <div class="se-table-wrap">
+            <table class="se-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Student No.</th>
+                        <th>Student</th>
+                        <th>Grade &amp; Section</th>
+                        <th>Status</th>
+                        <th>Remarks</th>
+                        <th>Recorded By</th>
+                        <th class="se-col-actions">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var record in Model.Records)
+                    {
+                        <tr>
+                            <td>@record.Date.ToDateLabel()</td>
+                            <td><span class="se-id-chip">@record.Student.StudentNumber</span></td>
+                            <td>
+                                <span class="d-flex align-items-center gap-2">
+                                    <span class="se-avatar se-avatar--@record.Student.FullName.AvatarTone()">@record.Student.FullName.Initials()</span>
+                                    <span class="se-strong">@record.Student.FullName</span>
+                                </span>
+                            </td>
+                            <td>@(record.Section?.DisplayName ?? "—")</td>
+                            <td>
+                                <span class="se-badge text-bg-@record.Status.BootstrapTone()"><i class="bi @record.Status.Icon()"></i>@record.Status.DisplayName()</span>
+                            </td>
+                            <td class="se-small">@(string.IsNullOrWhiteSpace(record.Remarks) ? "—" : record.Remarks)</td>
+                            <td class="se-small">@(record.RecordedBy?.FullName ?? "—")</td>
+                            <td class="se-col-actions">
+                                <a class="btn btn-sm btn-light" asp-action="Index" asp-route-studentId="@record.StudentId"
+                                   title="Show this learner's attendance"><i class="bi bi-eye"></i></a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <partial name="_Pagination" model="@(ViewData["Pagination"] as PaginationInfo ?? new PaginationInfo())" />
+    }
+</div>

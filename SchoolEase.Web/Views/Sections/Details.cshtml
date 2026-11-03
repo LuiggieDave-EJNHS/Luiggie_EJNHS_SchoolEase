@@ -1,0 +1,269 @@
+@model SectionDetailsViewModel
+@{
+    ViewData["Title"] = Model.Section.DisplayName;
+    var sec = Model.Section;
+    var percent = Model.CapacityPercent;
+    var barTone = percent >= 100 ? "bg-danger" : percent >= 85 ? "bg-warning" : "bg-success";
+    var slots = Model.Schedules.Select(c => c.StartTime).Distinct().OrderBy(t => t).ToList();
+    var days = new[] { DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday, DayOfWeek.Thursday, DayOfWeek.Friday };
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = sec.DisplayName,
+    Subtitle = $"{sec.Code} • S.Y. {sec.SchoolYear}",
+    Icon = "bi-diagram-3",
+    Actions = new List<PageAction>
+    {
+        new() { Text = "Assign Students", Url = Url.Action("AssignStudents", new { id = sec.Id }), Icon = "bi-person-plus", Css = "btn btn-light" },
+        new() { Text = "Assign Subjects", Url = Url.Action("AssignSubjects", new { id = sec.Id }), Icon = "bi-journal-plus", Css = "btn btn-light" },
+        new() { Text = "Edit", Url = Url.Action("Edit", new { id = sec.Id }), Icon = "bi-pencil" }
+    }
+})" />
+
+<div class="row g-3 mb-3">
+    <div class="col-lg-4">
+        <div class="se-card h-100">
+            <div class="se-card__head"><h3><i class="bi bi-person-badge me-1"></i>Class adviser</h3></div>
+            <div class="se-card__body">
+                @if (sec.Adviser is not null)
+                {
+                    <div class="d-flex align-items-center gap-3">
+                        <span class="se-avatar se-avatar--lg se-avatar--@sec.Adviser.FullName.AvatarTone()">@sec.Adviser.FullName.Initials()</span>
+                        <span>
+                            <span class="se-strong d-block">@sec.Adviser.FullName</span>
+                            <span class="se-small se-muted d-block">@(string.IsNullOrWhiteSpace(sec.Adviser.Department) ? "Faculty" : sec.Adviser.Department)</span>
+                            @if (!string.IsNullOrWhiteSpace(sec.Adviser.Email))
+                            {
+                                <span class="se-small se-muted d-block"><i class="bi bi-envelope me-1"></i>@sec.Adviser.Email</span>
+                            }
+                        </span>
+                    </div>
+                }
+                else
+                {
+                    <p class="se-muted se-small mb-0">No adviser has been assigned to this section yet.</p>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="se-card h-100">
+            <div class="se-card__head"><h3><i class="bi bi-people me-1"></i>Capacity utilisation</h3></div>
+            <div class="se-card__body">
+                <div class="d-flex justify-content-between align-items-baseline mb-2">
+                    <span class="se-strong">@sec.StudentCount / @sec.Capacity</span>
+                    <span class="se-small se-muted">@percent%</span>
+                </div>
+                <div class="progress" role="progressbar" aria-valuenow="@percent" aria-valuemin="0" aria-valuemax="100" style="height:10px;">
+                    <div class="progress-bar @barTone" style="width:@(percent)%"></div>
+                </div>
+                <p class="se-small se-muted mb-0 mt-2">
+                    @(sec.Capacity - sec.StudentCount > 0
+                        ? $"{sec.Capacity - sec.StudentCount} slot(s) remaining"
+                        : "Section is at or over capacity")
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="se-card h-100">
+            <div class="se-card__head"><h3><i class="bi bi-info-circle me-1"></i>Overview</h3></div>
+            <div class="se-card__body">
+                <dl class="row se-small mb-0">
+                    <dt class="col-5 se-muted">Grade level</dt>
+                    <dd class="col-7">@sec.GradeLevel?.Name</dd>
+                    <dt class="col-5 se-muted">Track / Strand</dt>
+                    <dd class="col-7">@(string.IsNullOrWhiteSpace(sec.TrackStrand) ? "—" : sec.TrackStrand)</dd>
+                    <dt class="col-5 se-muted">Room</dt>
+                    <dd class="col-7">@(string.IsNullOrWhiteSpace(sec.Room) ? "—" : sec.Room)</dd>
+                    <dt class="col-5 se-muted">Status</dt>
+                    <dd class="col-7">
+                        @if (sec.IsActive)
+                        {
+                            <span class="se-badge text-bg-success">Active</span>
+                        }
+                        else
+                        {
+                            <span class="se-badge text-bg-secondary">Inactive</span>
+                        }
+                    </dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="se-card">
+    <div class="se-card__head">
+        <ul class="nav nav-tabs border-0" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-students" type="button" role="tab">
+                    <i class="bi bi-people me-1"></i>Students <span class="se-badge text-bg-primary ms-1">@Model.Students.Count</span>
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-subjects" type="button" role="tab">
+                    <i class="bi bi-journal-bookmark me-1"></i>Subjects &amp; Teachers <span class="se-badge text-bg-primary ms-1">@Model.Assignments.Count</span>
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-schedule" type="button" role="tab">
+                    <i class="bi bi-calendar-week me-1"></i>Weekly Schedule
+                </button>
+            </li>
+        </ul>
+    </div>
+
+    <div class="tab-content">
+        <!-- Students -->
+        <div class="tab-pane fade show active" id="tab-students" role="tabpanel">
+            @if (Model.Students.Count == 0)
+            {
+                <partial name="_EmptyState" model="@(new EmptyState
+                {
+                    Icon = "bi-people",
+                    Title = "No students assigned",
+                    Message = "Use \"Assign Students\" to move learners into this sec.",
+                    ActionText = "Assign students",
+                    ActionUrl = Url.Action("AssignStudents", new { id = sec.Id })
+                })" />
+            }
+            else
+            {
+                <div class="se-table-wrap">
+                    <table class="se-table">
+                        <thead>
+                            <tr>
+                                <th>Student No.</th>
+                                <th>Name</th>
+                                <th>LRN</th>
+                                <th>Sex</th>
+                                <th>Status</th>
+                                <th>Enrolled</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var student in Model.Students)
+                            {
+                                <tr>
+                                    <td><span class="se-id-chip">@student.StudentNumber</span></td>
+                                    <td>
+                                        <span class="d-flex align-items-center gap-2">
+                                            <span class="se-avatar se-avatar--@student.FullName.AvatarTone()">@student.FullName.Initials()</span>
+                                            <span class="se-strong">@student.FullName</span>
+                                        </span>
+                                    </td>
+                                    <td>@(string.IsNullOrWhiteSpace(student.Lrn) ? "—" : student.Lrn)</td>
+                                    <td>@student.Gender.DisplayName()</td>
+                                    <td><span class="se-badge text-bg-@student.EnrollmentStatus.BootstrapTone()">@student.EnrollmentStatus.DisplayName()</span></td>
+                                    <td>@student.DateEnrolled.ToDateLabel()</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+
+        <!-- Subjects & Teachers -->
+        <div class="tab-pane fade" id="tab-subjects" role="tabpanel">
+            @if (Model.Assignments.Count == 0)
+            {
+                <partial name="_EmptyState" model="@(new EmptyState
+                {
+                    Icon = "bi-journal-bookmark",
+                    Title = "No subjects assigned",
+                    Message = "Assign subjects and teachers to build this section's subject load.",
+                    ActionText = "Assign subjects",
+                    ActionUrl = Url.Action("AssignSubjects", new { id = sec.Id })
+                })" />
+            }
+            else
+            {
+                <div class="se-table-wrap">
+                    <table class="se-table">
+                        <thead>
+                            <tr>
+                                <th>Subject Code</th>
+                                <th>Subject Title</th>
+                                <th>Teacher</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var assignment in Model.Assignments)
+                            {
+                                <tr>
+                                    <td><span class="se-id-chip">@assignment.Subject?.Code</span></td>
+                                    <td>@assignment.Subject?.Title</td>
+                                    <td>
+                                        <span class="d-flex align-items-center gap-2">
+                                            <span class="se-avatar se-avatar--@assignment.Teacher?.FullName.AvatarTone()">@assignment.Teacher?.FullName.Initials()</span>
+                                            <span>@assignment.Teacher?.FullName</span>
+                                        </span>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+
+        <!-- Weekly Schedule -->
+        <div class="tab-pane fade" id="tab-schedule" role="tabpanel">
+            @if (Model.Schedules.Count == 0)
+            {
+                <partial name="_EmptyState" model="@(new EmptyState
+                {
+                    Icon = "bi-calendar-week",
+                    Title = "No classes scheduled",
+                    Message = "Add class schedules for this section to see the weekly timetable.",
+                    ActionText = "Add schedule",
+                    ActionUrl = Url.Action("Create", "Schedules", new { sectionId = sec.Id })
+                })" />
+            }
+            else
+            {
+                <div class="se-table-wrap p-3">
+                    <table class="se-sched">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                @foreach (var day in days)
+                                {
+                                    <th>@day.DayShortName()</th>
+                                }
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var slot in slots)
+                            {
+                                <tr>
+                                    <th>@slot.To12Hour()</th>
+                                    @foreach (var day in days)
+                                    {
+                                        var cell = Model.Schedules.FirstOrDefault(c => c.DayOfWeek == day && c.StartTime == slot);
+                                        <td>
+                                            @if (cell is not null)
+                                            {
+                                                <div class="se-sched__slot">
+                                                    <strong>@cell.Subject?.Code</strong>
+                                                    <span>@cell.Teacher?.FullName</span>
+                                                    <span>@(string.IsNullOrWhiteSpace(cell.Room) ? "—" : cell.Room)</span>
+                                                    <span>@cell.TimeRange</span>
+                                                </div>
+                                            }
+                                        </td>
+                                    }
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>

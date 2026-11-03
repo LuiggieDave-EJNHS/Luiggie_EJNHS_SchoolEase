@@ -1,0 +1,144 @@
+@model CalendarIndexViewModel
+@{
+    ViewData["Title"] = "Calendar";
+
+    var actions = new List<PageAction>
+    {
+        new() { Text = "Prev", Url = Url.Action("Index", new { year = Model.PreviousYear, month = Model.PreviousMonth }), Icon = "bi-chevron-left", Css = "btn btn-light" },
+        new() { Text = "Next", Url = Url.Action("Index", new { year = Model.NextYear, month = Model.NextMonth }), Icon = "bi-chevron-right", Css = "btn btn-light" }
+    };
+    if (Model.CanManage)
+    {
+        actions.Add(new PageAction { Text = "New Event", Url = Url.Action("Create", new { year = Model.Year, month = Model.Month }), Icon = "bi-plus-lg" });
+    }
+
+    var days = new[] { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = "School Calendar",
+    Subtitle = Model.MonthLabel,
+    Icon = "bi-calendar3",
+    Actions = actions
+})" />
+
+<div class="se-cal mb-3">
+    @foreach (var dow in days)
+    {
+        <div class="se-cal__dow">@dow</div>
+    }
+
+    @foreach (var day in Model.Days)
+    {
+        var cellClass = !day.IsCurrentMonth
+            ? "se-cal__cell se-cal__cell--muted"
+            : day.IsToday ? "se-cal__cell se-cal__cell--today" : "se-cal__cell";
+
+        <div class="@cellClass">
+            @if (day.IsCurrentMonth)
+            {
+                <span class="se-cal__day">@day.DayNumber</span>
+                @if (Model.CanManage)
+                {
+                    <a class="se-tiny se-muted float-end text-decoration-none"
+                       asp-action="Create" asp-route-year="@Model.Year" asp-route-month="@Model.Month" title="Add event">
+                        <i class="bi bi-plus"></i>
+                    </a>
+                }
+                @foreach (var evt in day.Events)
+                {
+                    <a class="se-cal__event text-decoration-none" style="background:@evt.ColorHex"
+                       asp-action="Index" asp-route-year="@evt.StartDate.Year" asp-route-month="@evt.StartDate.Month"
+                       title="@evt.Title">@evt.Title</a>
+                }
+            }
+        </div>
+    }
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-8">
+        <div class="se-card h-100">
+            <div class="se-card__head">
+                <h3><i class="bi bi-calendar-event me-1"></i>Events in @Model.MonthLabel</h3>
+                <span class="se-pill"><i class="bi bi-collection"></i>@Model.MonthEvents.Count event(s)</span>
+            </div>
+            <div class="se-card__body">
+                @if (Model.MonthEvents.Count == 0)
+                {
+                    <p class="se-muted se-small mb-0">No events scheduled this month.</p>
+                }
+                else
+                {
+                    foreach (var group in Model.MonthEvents.GroupBy(e => e.Category))
+                    {
+                        <h4 class="se-small text-uppercase se-muted fw-bold mt-3 mb-2">
+                            <i class="bi @group.Key.Icon() me-1"></i>@group.Key.DisplayName()
+                        </h4>
+                        @foreach (var evt in group)
+                        {
+                            <div class="se-event-row">
+                                <span class="se-event-date" style="background:@(evt.ColorHex)1a;color:@evt.ColorHex;">
+                                    <strong>@evt.StartDate.Day</strong>
+                                    <span>@evt.StartDate.ToString("MMM")</span>
+                                </span>
+                                <span class="flex-grow-1">
+                                    <span class="se-strong se-small d-block">@evt.Title</span>
+                                    <span class="se-small se-muted d-block">
+                                        @(evt.AllDay ? "All day" : evt.StartDate.ToString("h:mm tt"))
+                                        @if (!string.IsNullOrWhiteSpace(evt.Location))
+                                        {
+                                            <text> • </text>@evt.Location
+                                        }
+                                    </span>
+                                    @if (!string.IsNullOrWhiteSpace(evt.Description))
+                                    {
+                                        <span class="se-tiny se-muted d-block">@evt.Description</span>
+                                    }
+                                </span>
+                                @if (Model.CanManage)
+                                {
+                                    <span class="d-flex gap-1">
+                                        <a class="btn btn-sm btn-light" asp-action="Edit" asp-route-id="@evt.Id" title="Edit"><i class="bi bi-pencil"></i></a>
+                                        <form asp-action="Delete" asp-route-id="@evt.Id" method="post" class="d-inline" data-se-confirm="Delete this event?">
+                                            <button type="submit" class="btn btn-sm btn-light text-danger" title="Delete"><i class="bi bi-trash"></i></button>
+                                        </form>
+                                    </span>
+                                }
+                            </div>
+                        }
+                    }
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="se-card h-100">
+            <div class="se-card__head"><h3><i class="bi bi-clock-history me-1"></i>Upcoming events</h3></div>
+            <div class="se-card__body">
+                @if (Model.Upcoming.Count == 0)
+                {
+                    <p class="se-muted se-small mb-0">Nothing scheduled coming up.</p>
+                }
+                else
+                {
+                    foreach (var evt in Model.Upcoming)
+                    {
+                        <div class="se-event-row">
+                            <span class="se-event-date" style="background:@(evt.ColorHex)1a;color:@evt.ColorHex;">
+                                <strong>@evt.StartDate.Day</strong>
+                                <span>@evt.StartDate.ToString("MMM")</span>
+                            </span>
+                            <span>
+                                <span class="se-strong se-small d-block">@evt.Title</span>
+                                <span class="se-small se-muted">@evt.Category.DisplayName()@(string.IsNullOrWhiteSpace(evt.Location) ? "" : $" • {evt.Location}")</span>
+                            </span>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+</div>

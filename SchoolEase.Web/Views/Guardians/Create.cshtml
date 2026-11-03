@@ -1,0 +1,17 @@
+@model Guardian
+@{
+    ViewData["Title"] = "Add Guardian";
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = "Add Guardian",
+    Subtitle = "Register a parent or guardian",
+    Icon = "bi-person-plus"
+})" />
+
+<form asp-action="Create" method="post" class="se-card">
+    <div class="se-card__body">
+        <partial name="_Form" model="Model" />
+    </div>
+</form>

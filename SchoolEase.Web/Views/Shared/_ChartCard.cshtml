@@ -1,0 +1,40 @@
+@model ChartWidget
+@{
+    var scriptId = Model.ElementId + "Data";
+    var payload = new
+    {
+        type = Model.Type,
+        labels = Model.Data.Labels,
+        values = Model.Data.Values,
+        colors = Model.Data.Colors,
+        datasetLabel = Model.DatasetLabel ?? "Total"
+    };
+}
+<div class="se-card h-100">
+    <div class="se-card__head">
+        <h3>@Model.Data.Title</h3>
+        @if (!Model.Data.IsEmpty)
+        {
+            <span class="se-pill"><i class="bi bi-bar-chart-line"></i>@Model.Type</span>
+        }
+    </div>
+    <div class="se-card__body">
+        @if (Model.Data.IsEmpty)
+        {
+            <div class="se-chart-empty @Model.Height">
+                <span><i class="bi bi-graph-up-arrow fs-4 d-block mb-1"></i>No data to display yet.</span>
+            </div>
+        }
+        else
+        {
+            <div class="se-chart @Model.Height">
+                <canvas data-se-chart="#@scriptId" aria-label="@Model.Data.Title chart" role="img"></canvas>
+            </div>
+            <script type="application/json" id="@scriptId">@Html.Raw(JsonSerializer.Serialize(payload))</script>
+        }
+    </div>
+    @if (!string.IsNullOrWhiteSpace(Model.Footer))
+    {
+        <div class="se-card__foot se-small se-muted">@Model.Footer</div>
+    }
+</div>

@@ -1,0 +1,93 @@
+@model StudentGradesViewModel
+@{
+    ViewData["Title"] = "Academic Record";
+    ViewData["Section"] = "Academics";
+
+    string TermCell(SubjectGradeGroup group, int term) =>
+        group.Terms.TryGetValue(term, out var value) && value.HasValue
+            ? value.Value.ToString("0.##")
+            : "—";
+
+    var hasGrades = Model.Subjects.Count > 0;
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = "Academic Record",
+    Subtitle = $"{Model.StudentName} • {Model.ClassLabel ?? "Unassigned"}",
+    Icon = "bi-mortarboard"
+})" />
+
+<div class="d-flex justify-content-end mb-3 se-no-print">
+    <button class="btn btn-light" onclick="window.print()"><i class="bi bi-printer me-1"></i>Print</button>
+</div>
+
+<div class="se-report">
+    <div class="se-report__head">
+        <div class="se-report__school">@SchoolInfo.SchoolName</div>
+        <div class="se-report__addr">@SchoolInfo.SchoolAddress</div>
+        <h2>Academic Record</h2>
+    </div>
+
+    <div class="se-report__meta">
+        <span><strong>Learner:</strong> @Model.StudentName</span>
+        <span><strong>Student No.:</strong> @Model.Student.StudentNumber</span>
+        <span><strong>Class:</strong> @(Model.ClassLabel ?? "Unassigned")</span>
+        <span><strong>School Year:</strong> @Model.SchoolYear</span>
+    </div>
+
+    @if (!hasGrades)
+    {
+        <partial name="_EmptyState" model="@(new EmptyState
+        {
+            Icon = "bi-mortarboard",
+            Title = "No grades on record",
+            Message = "This learner has no encoded grades yet. Grades will appear here once teachers submit them."
+        })" />
+    }
+    else
+    {
+        <table>
+            <thead>
+                <tr>
+                    <th>Subject</th>
+                    <th class="center">Term 1</th>
+                    <th class="center">Term 2</th>
+                    <th class="center">Term 3</th>
+                    <th class="num">Average</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var group in Model.Subjects)
+                {
+                    <tr>
+                        <td>
+                            <span class="se-strong d-block">@group.SubjectCode</span>
+                            <span class="se-small se-muted">@group.SubjectTitle</span>
+                        </td>
+                        <td class="center">@TermCell(group, 1)</td>
+                        <td class="center">@TermCell(group, 2)</td>
+                        <td class="center">@TermCell(group, 3)</td>
+                        <td class="num se-strong">@(group.Average?.ToString("0.##") ?? "—")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <div class="se-report__summary">
+            <div>
+                <dt>General Average</dt>
+                <dd>@(Model.GeneralAverage?.ToString("0.##") ?? "—")</dd>
+            </div>
+            <div>
+                <dt>Remarks</dt>
+                <dd>@Model.GeneralAverage.GradeRemarks()</dd>
+            </div>
+        </div>
+
+        <div class="se-report__sign">
+            <div><span>Prepared by</span></div>
+            <div><span>School Head / Registrar</span></div>
+        </div>
+    }
+</div>

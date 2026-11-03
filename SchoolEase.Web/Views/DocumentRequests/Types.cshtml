@@ -1,0 +1,103 @@
+@model DocumentTypesViewModel
+@{
+    ViewData["Title"] = "Document Types";
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = "Document Types",
+    Subtitle = "Manage the documents the registrar can issue, with their turnaround time.",
+    Icon = "bi-list-check",
+    Actions = new List<PageAction>
+    {
+        new() { Text = "Back to Requests", Url = Url.Action("Index"), Icon = "bi-arrow-left", Css = "btn btn-light" },
+        new() { Text = "New Document Type", Url = Url.Action("CreateType"), Icon = "bi-plus-lg" }
+    }
+})" />
+
+<div class="se-card">
+    <div class="se-card__head">
+        <h3><i class="bi bi-journals me-1"></i>Configured documents</h3>
+        <span class="se-pill"><i class="bi bi-collection"></i>@Model.Types.Count type(s)</span>
+    </div>
+
+    @if (Model.Types.Count == 0)
+    {
+        <partial name="_EmptyState" model="@(new EmptyState
+        {
+            Icon = "bi-journal-plus",
+            Title = "No document types",
+            Message = "Add a document type so students can start requesting documents.",
+            ActionText = "Add document type",
+            ActionUrl = Url.Action("CreateType")
+        })" />
+    }
+    else
+    {
+        <div class="se-table-wrap">
+            <table class="se-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Code</th>
+                        <th class="text-center">Processing Days</th>
+                        <th class="text-center">Requests</th>
+                        <th>Active</th>
+                        <th class="se-col-actions">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model.Types)
+                    {
+                        <tr>
+                            <td>
+                                <span class="se-strong d-block">@row.Type.Name</span>
+                                @if (!string.IsNullOrWhiteSpace(row.Type.Description))
+                                {
+                                    <span class="se-tiny se-muted">@row.Type.Description</span>
+                                }
+                            </td>
+                            <td><span class="se-id-chip">@row.Type.Code</span></td>
+                            <td class="text-center">@row.Type.ProcessingDays</td>
+                            <td class="text-center">@row.RequestCount</td>
+                            <td>
+                                @if (row.Type.IsActive)
+                                {
+                                    <span class="se-badge text-bg-success"><i class="bi bi-check-circle"></i>Active</span>
+                                }
+                                else
+                                {
+                                    <span class="se-badge text-bg-secondary"><i class="bi bi-slash-circle"></i>Inactive</span>
+                                }
+                            </td>
+                            <td class="se-col-actions">
+                                <a class="btn btn-sm btn-light" asp-action="EditType" asp-route-id="@row.Type.Id" title="Edit">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                @if (CurrentUser.IsAdministrator)
+                                {
+                                    @if (row.RequestCount > 0)
+                                    {
+                                        <button type="button" class="btn btn-sm btn-light" disabled
+                                                title="Cannot delete: used by existing requests">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <form asp-action="DeleteType" asp-route-id="@row.Type.Id" method="post" class="d-inline"
+                                              data-se-confirm="Delete this document type?">
+                                            <button type="submit" class="btn btn-sm btn-light text-danger" title="Delete">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

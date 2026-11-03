@@ -1,0 +1,132 @@
+@model AttendanceMarkViewModel
+@{
+    ViewData["Title"] = "Mark Attendance";
+    ViewData["Section"] = "Academics";
+
+    var statuses = new[] { AttendanceStatus.Present, AttendanceStatus.Late, AttendanceStatus.Absent, AttendanceStatus.Excused };
+    var hasRoster = Model.SectionId > 0 && Model.Rows.Count > 0;
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = "Mark Attendance",
+    Subtitle = $"{Model.SectionLabel} • {Model.Date.ToString("dddd, MMM d, yyyy")}",
+    Icon = "bi-clipboard-check",
+    Actions = new()
+    {
+        new PageAction { Text = "Attendance register", Url = Url.Action("Index"), Icon = "bi-list-check", Css = "btn btn-light" }
+    }
+})" />
+
+<div class="se-card mb-3">
+    <div class="se-card__body">
+        <form class="row g-2 align-items-end" method="get" asp-action="Mark">
+            <div class="col-sm-6 col-lg-4">
+                <label class="form-label">Section</label>
+                <select class="form-select" name="sectionId" data-se-autosubmit>
+                    @if (Model.Sections.Count == 0)
+                    {
+                        <option value="">No sections available</option>
+                    }
+                    else
+                    {
+                        @foreach (var s in Model.Sections)
+                        {
+                            <option value="@s.Value" selected="@(s.Value == Model.SectionId.ToString())">@s.Text</option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <label class="form-label">Date</label>
+                <input type="date" class="form-control" name="date" value="@Model.Date.ToString("yyyy-MM-dd")" data-se-autosubmit />
+            </div>
+            <div class="col-lg-3">
+                <button class="btn btn-primary" type="submit"><i class="bi bi-arrow-repeat me-1"></i>Load roster</button>
+            </div>
+        </form>
+        @if (Model.Sections.Count == 0)
+        {
+            <p class="se-small se-muted mb-0 mt-2">
+                <i class="bi bi-info-circle me-1"></i>You are not yet assigned to any section. Ask an administrator to assign you a class.
+            </p>
+        }
+    </div>
+</div>
+
+@if (!hasRoster)
+{
+    <div class="se-card">
+        <partial name="_EmptyState" model="@(new EmptyState
+        {
+            Icon = "bi-people",
+            Title = Model.SectionId <= 0 ? "No section selected" : "No students in this section",
+            Message = Model.SectionId <= 0
+                ? "Choose a section and date above to load the roster and start marking attendance."
+                : "This section has no enrolled learners yet, so there is nobody to mark."
+        })" />
+    </div>
+}
+else
+{
+    <form method="post" asp-action="Save">
+        <input type="hidden" name="sectionId" value="@Model.SectionId" />
+        <input type="hidden" name="date" value="@Model.Date.ToString("yyyy-MM-dd")" />
+
+        <div class="se-card">
+            <div class="se-card__head">
+                <h3><i class="bi bi-people me-1"></i>@Model.SectionLabel</h3>
+                <span class="se-small se-muted">@Model.Rows.Count learner(s) • @Model.Date.ToDateLabel()</span>
+            </div>
+
+            <div class="se-table-wrap">
+                <table class="se-table se-table--compact">
+                    <thead>
+                        <tr>
+                            <th style="width:48px;">#</th>
+                            <th>Student</th>
+                            <th style="width:340px;">Status</th>
+                            <th style="width:260px;">Remarks</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (var i = 0; i < Model.Rows.Count; i++)
+                        {
+                            var row = Model.Rows[i];
+                            <tr>
+                                <td class="se-muted se-small">@(i + 1)</td>
+                                <td>
+                                    <input type="hidden" name="rows[@i].StudentId" value="@row.StudentId" />
+                                    <span class="se-strong d-block">@row.StudentName</span>
+                                    <span class="se-small se-muted">@row.StudentNumber</span>
+                                </td>
+                                <td>
+                                    @foreach (var status in statuses)
+                                    {
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="rows[@i].Status"
+                                                   id="st_@(i)_@((int)status)" value="@((int)status)"
+                                                   checked="@(row.Status == status ? "checked" : null)" />
+                                            <label class="form-check-label se-small" for="st_@(i)_@((int)status)">@status.DisplayName()</label>
+                                        </div>
+                                    }
+                                </td>
+                                <td>
+                                    <input class="form-control form-control-sm" name="rows[@i].Remarks"
+                                           value="@row.Remarks" placeholder="Optional remark" />
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="se-card__foot d-flex justify-content-end gap-2">
+                <a class="btn btn-light" asp-action="Mark" asp-route-sectionId="@Model.SectionId" asp-route-date="@Model.Date.ToString("yyyy-MM-dd")">
+                    <i class="bi bi-x-lg me-1"></i>Cancel
+                </a>
+                <button type="submit" class="btn btn-primary"><i class="bi bi-save me-1"></i>Save attendance</button>
+            </div>
+        </div>
+    </form>
+}

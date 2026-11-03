@@ -1,0 +1,10 @@
+@model EmptyState
+<div class="se-empty">
+    <div class="se-empty__icon"><i class="bi @Model.Icon"></i></div>
+    <h3>@Model.Title</h3>
+    <p>@Model.Message</p>
+    @if (!string.IsNullOrWhiteSpace(Model.ActionText) && !string.IsNullOrWhiteSpace(Model.ActionUrl))
+    {
+        <a class="btn btn-primary" href="@Model.ActionUrl"><i class="bi @Model.ActionIcon me-1"></i>@Model.ActionText</a>
+    }
+</div>

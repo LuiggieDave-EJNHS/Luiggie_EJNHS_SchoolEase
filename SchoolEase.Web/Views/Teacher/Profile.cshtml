@@ -1,0 +1,164 @@
+@model TeacherProfileViewModel
+@{
+    ViewData["Title"] = "My Profile";
+    var teacher = Model.Teacher;
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = "My Profile",
+    Subtitle = "Your personal and employment details on record.",
+    Icon = "bi-person-gear"
+})" />
+
+@if (teacher is null)
+{
+    <div class="se-card">
+        <partial name="_EmptyState" model="@(new EmptyState
+        {
+            Icon = "bi-person-video3",
+            Title = "No teaching record linked",
+            Message = "Your account is not yet linked to a teacher record. Please contact the school administrator."
+        })" />
+    </div>
+}
+else
+{
+    <div class="row g-3 mb-3">
+        <div class="col-6 col-xl-3">
+            <partial name="_StatCard" model="@(new StatCard
+            {
+                Label = "Advisory Sections",
+                Value = Model.AdvisoryCount.ToString("N0"),
+                Icon = "bi-diagram-3",
+                Tone = "primary",
+                Meta = "Sections you advise"
+            })" />
+        </div>
+        <div class="col-6 col-xl-3">
+            <partial name="_StatCard" model="@(new StatCard
+            {
+                Label = "Assigned Subjects",
+                Value = Model.AssignedSubjectCount.ToString("N0"),
+                Icon = "bi-journal-bookmark",
+                Tone = "purple",
+                Meta = "Distinct learning areas"
+            })" />
+        </div>
+        <div class="col-6 col-xl-3">
+            <partial name="_StatCard" model="@(new StatCard
+            {
+                Label = "Assigned Sections",
+                Value = Model.AssignedSectionCount.ToString("N0"),
+                Icon = "bi-people",
+                Tone = "teal",
+                Meta = "Sections you handle"
+            })" />
+        </div>
+        <div class="col-6 col-xl-3">
+            <partial name="_StatCard" model="@(new StatCard
+            {
+                Label = "Employment",
+                Value = teacher.EmploymentStatus.DisplayName(),
+                Icon = "bi-briefcase",
+                Tone = teacher.EmploymentStatus.BootstrapTone(),
+                Meta = $"Employee No. {teacher.EmployeeNumber}"
+            })" />
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-lg-7">
+            <div class="se-card h-100 mb-0">
+                <div class="se-card__head">
+                    <h3><i class="bi bi-person-badge me-1"></i>Personal &amp; employment details</h3>
+                </div>
+                <div class="se-card__body">
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <dl class="se-def-list mb-0">
+                                <dt>Full Name</dt>
+                                <dd>@teacher.FullName</dd>
+
+                                <dt>Employee Number</dt>
+                                <dd>@teacher.EmployeeNumber</dd>
+
+                                <dt>Sex</dt>
+                                <dd>@teacher.Gender.DisplayName()</dd>
+
+                                <dt>Date of Birth</dt>
+                                <dd>@(teacher.BirthDate?.ToDateLabel() ?? "-")</dd>
+
+                                <dt>Address</dt>
+                                <dd>@(string.IsNullOrWhiteSpace(teacher.Address) ? "-" : teacher.Address)</dd>
+                            </dl>
+                        </div>
+                        <div class="col-sm-6">
+                            <dl class="se-def-list mb-0">
+                                <dt>Department</dt>
+                                <dd>@(string.IsNullOrWhiteSpace(teacher.Department) ? "-" : teacher.Department)</dd>
+
+                                <dt>Specialization</dt>
+                                <dd>@(string.IsNullOrWhiteSpace(teacher.Specialization) ? "-" : teacher.Specialization)</dd>
+
+                                <dt>Employment Status</dt>
+                                <dd>@teacher.EmploymentStatus.DisplayName()</dd>
+
+                                <dt>Date Hired</dt>
+                                <dd>@(teacher.DateHired?.ToDateLabel() ?? "-")</dd>
+
+                                <dt>Status</dt>
+                                <dd>
+                                    <span class="se-badge text-bg-@(teacher.IsActive ? "success" : "secondary")">
+                                        <i class="bi @(teacher.IsActive ? "bi-check-circle" : "bi-slash-circle")"></i>@(teacher.IsActive ? "Active" : "Inactive")
+                                    </span>
+                                </dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="se-card h-100 mb-0">
+                <div class="se-card__head">
+                    <h3><i class="bi bi-pencil-square me-1"></i>Update contact details</h3>
+                </div>
+                <div class="se-card__body">
+                    <form asp-action="Profile" method="post">
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 se-small"></div>
+
+                        <div class="mb-3">
+                            <label class="se-form-label" asp-for="Form.ContactNumber"></label>
+                            <input class="form-control" asp-for="Form.ContactNumber" placeholder="e.g. 0917 000 0000" />
+                            <span asp-validation-for="Form.ContactNumber" class="text-danger se-small"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="se-form-label" asp-for="Form.Email"></label>
+                            <input class="form-control" asp-for="Form.Email" placeholder="name@school.edu.ph" />
+                            <span asp-validation-for="Form.Email" class="text-danger se-small"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="se-form-label" asp-for="Form.Address"></label>
+                            <input class="form-control" asp-for="Form.Address" />
+                            <span asp-validation-for="Form.Address" class="text-danger se-small"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="se-form-label" asp-for="Form.Specialization"></label>
+                            <input class="form-control" asp-for="Form.Specialization" />
+                            <span asp-validation-for="Form.Specialization" class="text-danger se-small"></span>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary"><i class="bi bi-check2 me-1"></i>Save changes</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+}

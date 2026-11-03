@@ -1,0 +1,68 @@
+@model ScheduleFormViewModel
+@{
+    var dayOptions = new[]
+    {
+        DayOfWeek.Monday, DayOfWeek.Tuesday, DayOfWeek.Wednesday,
+        DayOfWeek.Thursday, DayOfWeek.Friday, DayOfWeek.Saturday, DayOfWeek.Sunday
+    };
+}
+<div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 se-small"></div>
+
+<div class="se-form-grid se-form-grid--3">
+    <div class="se-form-section"><h3>Class</h3></div>
+
+    <div>
+        <label asp-for="SectionId" class="form-label"></label>
+        <select asp-for="SectionId" asp-items="Model.Sections" class="form-select">
+            <option value="">— Select section —</option>
+        </select>
+        <span asp-validation-for="SectionId" class="text-danger se-small"></span>
+    </div>
+    <div>
+        <label asp-for="SubjectId" class="form-label"></label>
+        <select asp-for="SubjectId" asp-items="Model.Subjects" class="form-select">
+            <option value="">— Select subject —</option>
+        </select>
+        <span asp-validation-for="SubjectId" class="text-danger se-small"></span>
+    </div>
+    <div>
+        <label asp-for="TeacherId" class="form-label"></label>
+        <select asp-for="TeacherId" asp-items="Model.Teachers" class="form-select">
+            <option value="">— Select teacher —</option>
+        </select>
+        <span asp-validation-for="TeacherId" class="text-danger se-small"></span>
+    </div>
+
+    <div class="se-form-section"><h3>When &amp; where</h3></div>
+
+    <div>
+        <label asp-for="DayOfWeek" class="form-label"></label>
+        <select asp-for="DayOfWeek" class="form-select">
+            @foreach (var day in dayOptions)
+            {
+                <option value="@((int)day)" selected="@(Model.DayOfWeek == day)">@day</option>
+            }
+        </select>
+        <span asp-validation-for="DayOfWeek" class="text-danger se-small"></span>
+    </div>
+    <div>
+        <label asp-for="StartTime" class="form-label"></label>
+        <input type="time" asp-for="StartTime" class="form-control" />
+        <span asp-validation-for="StartTime" class="text-danger se-small"></span>
+    </div>
+    <div>
+        <label asp-for="EndTime" class="form-label"></label>
+        <input type="time" asp-for="EndTime" class="form-control" />
+        <span asp-validation-for="EndTime" class="text-danger se-small"></span>
+    </div>
+    <div>
+        <label asp-for="Room" class="form-label"></label>
+        <input asp-for="Room" class="form-control" placeholder="Room 204" />
+        <span asp-validation-for="Room" class="text-danger se-small"></span>
+    </div>
+    <div>
+        <label asp-for="SchoolYear" class="form-label"></label>
+        <input asp-for="SchoolYear" class="form-control" placeholder="@SchoolInfo.SchoolYear" />
+        <span asp-validation-for="SchoolYear" class="text-danger se-small"></span>
+    </div>
+</div>

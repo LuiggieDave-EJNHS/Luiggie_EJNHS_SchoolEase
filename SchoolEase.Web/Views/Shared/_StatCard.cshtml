@@ -1,0 +1,18 @@
+@model StatCard
+@{
+    var tag = string.IsNullOrWhiteSpace(Model.Url) ? "div" : "a";
+    var href = string.IsNullOrWhiteSpace(Model.Url) ? null : Model.Url;
+}
+<@tag class="se-stat text-decoration-none text-reset" href="@href">
+    <span class="se-stat__icon bg-soft-@Model.Tone">
+        <i class="bi @Model.Icon"></i>
+    </span>
+    <span class="flex-grow-1">
+        <span class="se-stat__label d-block">@Model.Label</span>
+        <span class="se-stat__value d-block">@Model.Value</span>
+        @if (!string.IsNullOrWhiteSpace(Model.Meta))
+        {
+            <span class="se-stat__meta d-block">@Model.Meta</span>
+        }
+    </span>
+</@tag>

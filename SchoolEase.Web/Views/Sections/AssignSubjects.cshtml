@@ -1,0 +1,88 @@
+@model AssignSubjectsViewModel
+@{
+    ViewData["Title"] = "Assign Subjects";
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = "Assign Subjects",
+    Subtitle = $"{Model.Section.DisplayName} • choose the subject load and its teacher",
+    Icon = "bi-journal-plus",
+    Actions = new List<PageAction>
+    {
+        new() { Text = "Back to section", Url = Url.Action("Details", new { id = Model.Section.Id }), Icon = "bi-arrow-left", Css = "btn btn-light" }
+    }
+})" />
+
+<form asp-action="AssignSubjects" asp-route-id="@Model.Section.Id" method="post">
+    <div class="se-card">
+        <div class="se-card__head">
+            <h3><i class="bi bi-journal-bookmark me-1"></i>Subjects</h3>
+            <span class="se-small se-muted">Tick a subject and pick the teacher who will handle it.</span>
+        </div>
+
+        @if (Model.Subjects.Count == 0)
+        {
+            <partial name="_EmptyState" model="@(new EmptyState
+            {
+                Icon = "bi-journal-bookmark",
+                Title = "No active subjects",
+                Message = "Create subjects first, then return here to assign them to this section.",
+                ActionText = "Manage subjects",
+                ActionUrl = Url.Action("Index", "Subjects")
+            })" />
+        }
+        else
+        {
+            <div class="se-table-wrap">
+                <table class="se-table">
+                    <thead>
+                        <tr>
+                            <th style="width:44px;">Include</th>
+                            <th>Subject</th>
+                            <th>Units</th>
+                            <th style="min-width:240px;">Teacher</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.Subjects)
+                        {
+                            <tr>
+                                <td>
+                                    <input type="checkbox" class="form-check-input" name="subjectIds" value="@item.Subject.Id"
+                                           checked="@item.Assigned" aria-label="Assign @item.Subject.DisplayName" />
+                                </td>
+                                <td>
+                                    <span class="se-id-chip">@item.Subject.Code</span>
+                                    <span class="ms-2">@item.Subject.Title</span>
+                                    @if (!string.IsNullOrWhiteSpace(item.Subject.TrackStrand))
+                                    {
+                                        <span class="se-small se-muted d-block">@item.Subject.TrackStrand</span>
+                                    }
+                                </td>
+                                <td>@item.Subject.Units.ToString("0.##")</td>
+                                <td>
+                                    <select name="teacherBySubject[@item.Subject.Id]" class="form-select form-select-sm">
+                                        <option value="0">— Unassigned —</option>
+                                        @foreach (var teacher in Model.Teachers)
+                                        {
+                                            <option value="@teacher.Value" selected="@(item.TeacherId?.ToString() == teacher.Value)">@teacher.Text</option>
+                                        }
+                                    </select>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="se-card__foot d-flex justify-content-between align-items-center gap-2">
+                <span class="se-small se-muted">Checked subjects without a teacher are ignored.</span>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check2 me-1"></i>Save assignments</button>
+                    <a class="btn btn-light" asp-action="Details" asp-route-id="@Model.Section.Id">Cancel</a>
+                </div>
+            </div>
+        }
+    </div>
+</form>

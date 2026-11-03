@@ -1,0 +1,153 @@
+@model TeacherDashboardViewModel
+@{
+    ViewData["Title"] = "Teacher Dashboard";
+    var noRecord = ViewData["NoTeacherRecord"] as bool? ?? false;
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = $"Welcome, {Model.TeacherName}",
+    Subtitle = $"Your teaching overview for S.Y. {SchoolInfo.SchoolYear} — generated {DateTime.Now:MMM d, yyyy h:mm tt}",
+    Icon = "bi-speedometer2"
+})" />
+
+@if (noRecord)
+{
+    <div class="se-card">
+        <partial name="_EmptyState" model="@(new EmptyState
+        {
+            Icon = "bi-person-video3",
+            Title = "No teaching record linked",
+            Message = "Your account is not yet linked to a teacher record. Please contact the school administrator to have your teaching profile set up."
+        })" />
+    </div>
+}
+else
+{
+    var cards = new List<StatCard>
+    {
+        new() { Label = "Advisory Sections", Value = Model.AdvisorySectionCount.ToString("N0"), Icon = "bi-diagram-3", Tone = "primary", Meta = "Sections you advise", Url = Url.Action("Classes") },
+        new() { Label = "Assigned Sections", Value = Model.AssignedSectionCount.ToString("N0"), Icon = "bi-people", Tone = "info", Meta = "Advisory + subject loads", Url = Url.Action("Classes") },
+        new() { Label = "Assigned Subjects", Value = Model.AssignedSubjectCount.ToString("N0"), Icon = "bi-journal-bookmark", Tone = "purple", Meta = "Distinct learning areas" },
+        new() { Label = "Students Handled", Value = Model.StudentsHandled.ToString("N0"), Icon = "bi-person-badge", Tone = "teal", Meta = "Active learners in your sections" },
+
+        new() { Label = "Classes Today", Value = Model.ClassesToday.ToString("N0"), Icon = "bi-calendar-week", Tone = "success", Meta = DateTime.Today.ToString("dddd"), Url = Url.Action("Schedule") },
+        new() { Label = "Attendance Pending", Value = Model.AttendancePendingToday.ToString("N0"), Icon = "bi-clipboard-check", Tone = "warning", Meta = "Sections not yet marked today" },
+        new() { Label = "Grades Pending", Value = Model.GradesPendingEncoding.ToString("N0"), Icon = "bi-mortarboard", Tone = "danger", Meta = "Ungraded records this month" }
+    };
+
+    <div class="row g-3 mb-3">
+        @foreach (var card in cards)
+        {
+            <div class="col-6 col-xl-3">
+                <partial name="_StatCard" model="card" />
+            </div>
+        }
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-lg-7">
+            <div class="se-card h-100">
+                <div class="se-card__head">
+                    <h3><i class="bi bi-clock-history me-1"></i>Today's timetable</h3>
+                    <a class="se-small" asp-action="Schedule">Full week</a>
+                </div>
+                <div class="se-card__body">
+                    @if (Model.TodaySchedule.Count == 0)
+                    {
+                        <p class="se-muted se-small mb-0">No classes are scheduled for today.</p>
+                    }
+                    else
+                    {
+                        <ul class="se-timeline">
+                            @foreach (var slot in Model.TodaySchedule)
+                            {
+                                <li>
+                                    <span class="se-strong se-small d-block">@slot.TimeRange</span>
+                                    <span class="d-block">
+                                        <span class="se-strong">@slot.Subject?.Code</span>
+                                        <span class="se-muted">@slot.Subject?.Title</span>
+                                    </span>
+                                    <span class="se-small se-muted d-block">
+                                        <i class="bi bi-diagram-3 me-1"></i>@slot.Section?.Name
+                                        @if (!string.IsNullOrWhiteSpace(slot.Room))
+                                        {
+                                            <span> • <i class="bi bi-geo-alt me-1"></i>@slot.Room</span>
+                                        }
+                                    </span>
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <partial name="_ChartCard" model="@(new ChartWidget { Data = Model.AttendanceTrend, Type = "line", Height = "se-chart--sm", DatasetLabel = "Present + late" })" />
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <div class="col-lg-7">
+            <partial name="_ChartCard" model="@(new ChartWidget { Data = Model.SectionPopulation, Type = "bar", Height = "se-chart--sm", DatasetLabel = "Students" })" />
+        </div>
+        <div class="col-lg-5">
+            <div class="se-card h-100">
+                <div class="se-card__head">
+                    <h3><i class="bi bi-megaphone me-1"></i>Announcements</h3>
+                    <a class="se-small" asp-controller="Announcements" asp-action="Index">View all</a>
+                </div>
+                <div class="se-card__body">
+                    @if (Model.Announcements.Count == 0)
+                    {
+                        <p class="se-muted se-small mb-0">No announcements have been posted yet.</p>
+                    }
+                    else
+                    {
+                        foreach (var item in Model.Announcements)
+                        {
+                            <div class="se-announce se-announce--@item.PriorityCss">
+                                <h4>@item.Title</h4>
+                                <p>@(item.Content.Length > 150 ? item.Content[..150] + "…" : item.Content)</p>
+                                <div class="se-announce__meta">
+                                    <span><i class="bi bi-person me-1"></i>@item.AuthorName</span>
+                                    <span><i class="bi bi-clock me-1"></i>@item.PublishDate.ToRelativeTime()</span>
+                                    <span class="se-badge text-bg-@item.PriorityCss">@item.Priority.DisplayName()</span>
+                                </div>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="se-card">
+        <div class="se-card__head">
+            <h3><i class="bi bi-calendar3 me-1"></i>Upcoming events</h3>
+            <a class="se-small" asp-controller="Calendar" asp-action="Index">Calendar</a>
+        </div>
+        <div class="se-card__body">
+            @if (Model.UpcomingEvents.Count == 0)
+            {
+                <p class="se-muted se-small mb-0">Nothing scheduled coming up.</p>
+            }
+            else
+            {
+                foreach (var evt in Model.UpcomingEvents)
+                {
+                    <div class="se-event-row">
+                        <span class="se-event-date" style="background:@(evt.ColorHex)1a;color:@evt.ColorHex;">
+                            <strong>@evt.StartDate.Day</strong>
+                            <span>@evt.StartDate.ToString("MMM")</span>
+                        </span>
+                        <span>
+                            <span class="se-strong se-small d-block">@evt.Title</span>
+                            <span class="se-small se-muted">@evt.Category.DisplayName()@(string.IsNullOrWhiteSpace(evt.Location) ? "" : $" • {evt.Location}")</span>
+                        </span>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+}

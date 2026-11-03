@@ -1,0 +1,72 @@
+@model List<DocumentRequest>
+@{
+    ViewData["Title"] = "My Document Requests";
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = "My Document Requests",
+    Subtitle = "Track the school documents you have requested and their status.",
+    Icon = "bi-file-earmark-text",
+    Actions = new List<PageAction>
+    {
+        new() { Text = "Request a document", Url = Url.Action("Create", "DocumentRequests"), Icon = "bi-plus-lg", Css = "btn btn-primary" }
+    }
+})" />
+
+<div class="se-card">
+    <div class="se-card__head">
+        <h3><i class="bi bi-inboxes me-1"></i>My requests</h3>
+        <span class="se-pill"><i class="bi bi-list-ul"></i>@Model.Count request(s)</span>
+    </div>
+
+    @if (Model.Count == 0)
+    {
+        <partial name="_EmptyState" model="@(new EmptyState
+        {
+            Icon = "bi-inboxes",
+            Title = "No requests yet",
+            Message = "You have not requested any school documents yet.",
+            ActionText = "Request a document",
+            ActionUrl = Url.Action("Create", "DocumentRequests")
+        })" />
+    }
+    else
+    {
+        <div class="se-table-wrap">
+            <table class="se-table">
+                <thead>
+                    <tr>
+                        <th>Request No.</th>
+                        <th>Document</th>
+                        <th class="text-center">Copies</th>
+                        <th>Requested</th>
+                        <th>Status</th>
+                        <th class="se-col-actions">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var request in Model)
+                    {
+                        <tr>
+                            <td><span class="se-id-chip">@request.RequestNumber</span></td>
+                            <td><span class="se-strong">@request.DocumentType?.Name</span></td>
+                            <td class="text-center">@request.Copies</td>
+                            <td>@request.RequestedAt.ToLocalTime().ToDateLabel()</td>
+                            <td>
+                                <span class="se-badge text-bg-@request.Status.BootstrapTone()">
+                                    <i class="bi @request.Status.Icon()"></i>@request.Status.DisplayName()
+                                </span>
+                            </td>
+                            <td class="se-col-actions">
+                                <a class="btn btn-sm btn-light" asp-controller="DocumentRequests" asp-action="Details" asp-route-id="@request.Id">
+                                    <i class="bi bi-eye me-1"></i>Details
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

@@ -1,0 +1,222 @@
+@model TeacherDetailsViewModel
+@{
+    var t = Model.Teacher;
+    ViewData["Title"] = t.FullName;
+    var scheduleByDay = Model.Schedule
+        .GroupBy(c => c.DayOfWeek)
+        .OrderBy(g => ((int)g.Key + 6) % 7)
+        .ToList();
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = t.FullName,
+    Subtitle = $"Teaching personnel • {t.EmployeeNumber}",
+    Icon = "bi-person-badge",
+    Actions = new List<PageAction>
+    {
+        new() { Text = "Edit", Url = Url.Action("Edit", new { id = t.Id }), Icon = "bi-pencil" },
+        new() { Text = "Print", Url = "javascript:window.print()", Icon = "bi-printer", Css = "btn btn-light" },
+        new() { Text = "Back", Url = Url.Action("Index"), Icon = "bi-arrow-left", Css = "btn btn-light" }
+    }
+})" />
+
+<div class="row g-3 mb-3">
+    <div class="col-lg-8">
+        <div class="se-card h-100">
+            <div class="se-card__head"><h3><i class="bi bi-person-vcard me-1"></i>Personal information</h3></div>
+            <div class="se-card__body">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <span class="se-avatar se-avatar--lg se-avatar--@t.FullName.AvatarTone()">@t.FullName.Initials()</span>
+                    <div>
+                        <h2 class="h5 mb-1">@t.FullName</h2>
+                        <span class="se-id-chip">@t.EmployeeNumber</span>
+                        <span class="se-badge text-bg-@t.EmploymentStatus.BootstrapTone() ms-1">@t.EmploymentStatus.DisplayName()</span>
+                    </div>
+                </div>
+                <dl class="se-def-list row mb-0">
+                    <div class="col-sm-6">
+                        <dt>Sex</dt>
+                        <dd>@t.Gender.DisplayName()</dd>
+                    </div>
+                    <div class="col-sm-6">
+                        <dt>Date of Birth</dt>
+                        <dd>@(t.BirthDate?.ToDateLabel() ?? "—")</dd>
+                    </div>
+                    <div class="col-sm-6">
+                        <dt>Contact Number</dt>
+                        <dd>@(string.IsNullOrWhiteSpace(t.ContactNumber) ? "—" : t.ContactNumber)</dd>
+                    </div>
+                    <div class="col-sm-6">
+                        <dt>Email</dt>
+                        <dd>@(string.IsNullOrWhiteSpace(t.Email) ? "—" : t.Email)</dd>
+                    </div>
+                    <div class="col-12">
+                        <dt>Address</dt>
+                        <dd>@(string.IsNullOrWhiteSpace(t.Address) ? "—" : t.Address)</dd>
+                    </div>
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="se-card">
+            <div class="se-card__head"><h3><i class="bi bi-briefcase me-1"></i>Employment</h3></div>
+            <div class="se-card__body">
+                <dl class="se-def-list mb-0">
+                    <dt>Department</dt>
+                    <dd>@(string.IsNullOrWhiteSpace(t.Department) ? "—" : t.Department)</dd>
+                    <dt>Specialization</dt>
+                    <dd>@(string.IsNullOrWhiteSpace(t.Specialization) ? "—" : t.Specialization)</dd>
+                    <dt>Employment Status</dt>
+                    <dd><span class="se-badge text-bg-@t.EmploymentStatus.BootstrapTone()">@t.EmploymentStatus.DisplayName()</span></dd>
+                    <dt>Date Hired</dt>
+                    <dd>@(t.DateHired?.ToDateLabel() ?? "—")</dd>
+                    <dt>Active</dt>
+                    <dd>@(t.IsActive ? "Yes" : "No")</dd>
+                </dl>
+            </div>
+        </div>
+        <div class="se-card">
+            <div class="se-card__head"><h3><i class="bi bi-clock-history me-1"></i>Weekly load</h3></div>
+            <div class="se-card__body">
+                <div class="se-stat__value">@Model.WeeklyHours.ToString("0.#")<span class="se-small se-muted"> hrs</span></div>
+                <p class="se-small se-muted mb-0">@Model.Schedule.Count class meeting(s) per week</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-lg-6">
+        <div class="se-card h-100">
+            <div class="se-card__head"><h3><i class="bi bi-diagram-3 me-1"></i>Advisory sections</h3></div>
+            @if (Model.AdvisorySections.Count == 0)
+            {
+                <partial name="_EmptyState" model="@(new EmptyState
+                {
+                    Icon = "bi-diagram-3",
+                    Title = "No advisory section",
+                    Message = "This teacher is not currently assigned as a class adviser."
+                })" />
+            }
+            else
+            {
+                <div class="se-table-wrap">
+                    <table class="se-table se-table--compact">
+                        <thead>
+                            <tr>
+                                <th>Section</th>
+                                <th>Track / Strand</th>
+                                <th>Room</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var sec in Model.AdvisorySections)
+                            {
+                                <tr>
+                                    <td class="se-strong">@sec.DisplayName</td>
+                                    <td>@(string.IsNullOrWhiteSpace(sec.TrackStrand) ? "—" : sec.TrackStrand)</td>
+                                    <td>@(string.IsNullOrWhiteSpace(sec.Room) ? "—" : sec.Room)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="se-card h-100">
+            <div class="se-card__head"><h3><i class="bi bi-journal-bookmark me-1"></i>Subject assignments</h3></div>
+            @if (Model.SubjectAssignments.Count == 0)
+            {
+                <partial name="_EmptyState" model="@(new EmptyState
+                {
+                    Icon = "bi-journal-bookmark",
+                    Title = "No subject assignments",
+                    Message = "Subjects assigned to this teacher will appear here."
+                })" />
+            }
+            else
+            {
+                <div class="se-table-wrap">
+                    <table class="se-table se-table--compact">
+                        <thead>
+                            <tr>
+                                <th>Subject</th>
+                                <th>Section</th>
+                                <th>School Year</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var a in Model.SubjectAssignments)
+                            {
+                                <tr>
+                                    <td>
+                                        <span class="se-strong d-block">@a.Subject.Code</span>
+                                        <span class="se-tiny se-muted">@a.Subject.Title</span>
+                                    </td>
+                                    <td>@a.Section.Name</td>
+                                    <td>@a.SchoolYear</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<div class="se-card">
+    <div class="se-card__head"><h3><i class="bi bi-calendar-week me-1"></i>Weekly class schedule</h3></div>
+    @if (scheduleByDay.Count == 0)
+    {
+        <partial name="_EmptyState" model="@(new EmptyState
+        {
+            Icon = "bi-calendar-week",
+            Title = "No schedule yet",
+            Message = "Class meetings assigned to this teacher will be listed here."
+        })" />
+    }
+    else
+    {
+        <div class="se-card__body">
+            @foreach (var day in scheduleByDay)
+            {
+                <div class="mb-3">
+                    <h4 class="se-small text-uppercase se-muted">@day.Key</h4>
+                    <div class="se-table-wrap">
+                        <table class="se-table se-table--compact">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Subject</th>
+                                    <th>Section</th>
+                                    <th>Room</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var c in day.OrderBy(x => x.StartTime))
+                                {
+                                    <tr>
+                                        <td>@c.TimeRange</td>
+                                        <td>
+                                            <span class="se-strong d-block">@c.Subject.Code</span>
+                                            <span class="se-tiny se-muted">@c.Subject.Title</span>
+                                        </td>
+                                        <td>@c.Section.Name</td>
+                                        <td>@(string.IsNullOrWhiteSpace(c.Room) ? "—" : c.Room)</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>

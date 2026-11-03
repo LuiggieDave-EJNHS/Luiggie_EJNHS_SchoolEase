@@ -1,0 +1,69 @@
+@model PaginationInfo
+@{
+    if (Model.TotalPages <= 1 && Model.TotalCount <= Model.PageSize)
+    {
+        <div class="se-card__foot se-small se-muted">
+            Showing @Model.TotalCount record@(Model.TotalCount == 1 ? "" : "s").
+        </div>
+    }
+    else
+    {
+        <div class="se-card__foot d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <span class="se-small se-muted">
+                Showing <strong>@Model.FirstItemOnPage</strong>&ndash;<strong>@Model.LastItemOnPage</strong>
+                of <strong>@Model.TotalCount</strong>
+            </span>
+            <ul class="pagination mb-0">
+                <li class="page-item @(Model.HasPrevious ? "" : "disabled")">
+                    <a class="page-link" asp-action="@Model.Action" asp-controller="@Model.Controller"
+                       asp-all-route-data="Model.ForPage(Model.PageIndex - 1)" aria-label="Previous">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                </li>
+                @{
+                    var start = Math.Max(1, Model.PageIndex - 2);
+                    var end = Math.Min(Model.TotalPages, start + 4);
+                    start = Math.Max(1, end - 4);
+
+                    if (start > 1)
+                    {
+                        <li class="page-item">
+                            <a class="page-link" asp-action="@Model.Action" asp-controller="@Model.Controller"
+                               asp-all-route-data="Model.ForPage(1)">1</a>
+                        </li>
+                        if (start > 2)
+                        {
+                            <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+                        }
+                    }
+
+                    for (var i = start; i <= end; i++)
+                    {
+                        <li class="page-item @(i == Model.PageIndex ? "active" : "")">
+                            <a class="page-link" asp-action="@Model.Action" asp-controller="@Model.Controller"
+                               asp-all-route-data="Model.ForPage(i)">@i</a>
+                        </li>
+                    }
+
+                    if (end < Model.TotalPages)
+                    {
+                        if (end < Model.TotalPages - 1)
+                        {
+                            <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+                        }
+                        <li class="page-item">
+                            <a class="page-link" asp-action="@Model.Action" asp-controller="@Model.Controller"
+                               asp-all-route-data="Model.ForPage(Model.TotalPages)">@Model.TotalPages</a>
+                        </li>
+                    }
+                }
+                <li class="page-item @(Model.HasNext ? "" : "disabled")">
+                    <a class="page-link" asp-action="@Model.Action" asp-controller="@Model.Controller"
+                       asp-all-route-data="Model.ForPage(Model.PageIndex + 1)" aria-label="Next">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    }
+}

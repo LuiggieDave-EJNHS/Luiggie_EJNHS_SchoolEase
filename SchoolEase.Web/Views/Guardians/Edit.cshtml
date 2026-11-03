@@ -1,0 +1,21 @@
+@model Guardian
+@{
+    ViewData["Title"] = "Edit Guardian";
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = "Edit Guardian",
+    Subtitle = Model.FullName,
+    Icon = "bi-pencil-square",
+    Actions = new List<PageAction>
+    {
+        new() { Text = "View Profile", Url = Url.Action("Details", new { id = Model.Id }), Icon = "bi-eye", Css = "btn btn-light" }
+    }
+})" />
+
+<form asp-action="Edit" asp-route-id="@Model.Id" method="post" class="se-card">
+    <div class="se-card__body">
+        <partial name="_Form" model="Model" />
+    </div>
+</form>

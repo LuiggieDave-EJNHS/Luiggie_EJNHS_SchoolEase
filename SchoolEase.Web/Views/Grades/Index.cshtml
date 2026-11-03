@@ -1,0 +1,166 @@
+@model GradeIndexViewModel
+@{
+    ViewData["Title"] = "Grades";
+    ViewData["Section"] = "Academics";
+
+    var cards = new List<StatCard>
+    {
+        new() { Label = "Records", Value = Model.TotalRecords.ToString("N0"), Icon = "bi-journal-text", Tone = "primary", Meta = "Grade rows in view" },
+        new() { Label = "Graded", Value = Model.GradedCount.ToString("N0"), Icon = "bi-check2-square", Tone = "info", Meta = "With a final grade" },
+        new() { Label = "Class Average", Value = $"{Model.ClassAverage:0.##}", Icon = "bi-graph-up", Tone = "teal", Meta = "Across graded records" },
+        new() { Label = "Passed / Failed", Value = $"{Model.PassedCount} / {Model.FailedCount}", Icon = "bi-mortarboard", Tone = "warning", Meta = "75 passing threshold" }
+    };
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = "Grades",
+    Subtitle = $"Term grade records for S.Y. {SchoolInfo.SchoolYear}",
+    Icon = "bi-mortarboard",
+    Actions = new()
+    {
+        new PageAction { Text = "Encode grades", Url = Url.Action("Encode", "Grades", new { sectionId = Model.SectionId, subjectId = Model.SubjectId, term = Model.Term ?? 1 }), Icon = "bi-pencil-square", Css = "btn btn-primary" },
+        new PageAction { Text = "Print class record", Url = Url.Action("Print", "Grades", new { sectionId = Model.SectionId, subjectId = Model.SubjectId, term = Model.Term ?? 1 }), Icon = "bi-printer", Css = "btn btn-light", Target = "_blank" }
+    }
+})" />
+
+<div class="row g-3 mb-3">
+    @foreach (var card in cards)
+    {
+        <div class="col-6 col-xl-3">
+            <partial name="_StatCard" model="card" />
+        </div>
+    }
+</div>
+
+<div class="se-card mb-3">
+    <form class="se-filters" method="get" asp-action="Index">
+        <div>
+            <label class="form-label se-small">Section</label>
+            <select class="form-select form-select-sm" name="sectionId" data-se-autosubmit>
+                <option value="">All sections</option>
+                @foreach (var s in Model.Sections)
+                {
+                    <option value="@s.Value" selected="@(s.Selected ? "selected" : null)">@s.Text</option>
+                }
+            </select>
+        </div>
+        <div>
+            <label class="form-label se-small">Subject</label>
+            <select class="form-select form-select-sm" name="subjectId" data-se-autosubmit>
+                <option value="">All subjects</option>
+                @foreach (var s in Model.Subjects)
+                {
+                    <option value="@s.Value" selected="@(s.Selected ? "selected" : null)">@s.Text</option>
+                }
+            </select>
+        </div>
+        <div>
+            <label class="form-label se-small">Term</label>
+            <select class="form-select form-select-sm" name="term" data-se-autosubmit>
+                <option value="">All terms</option>
+                @foreach (var q in SelectLists.Terms())
+                {
+                    <option value="@q.Value" selected="@(Model.Term?.ToString() == q.Value)">@q.Text</option>
+                }
+            </select>
+        </div>
+        <div>
+            <label class="form-label se-small">Grade level</label>
+            <select class="form-select form-select-sm" name="gradeLevelId" data-se-autosubmit>
+                <option value="">All grade levels</option>
+                @foreach (var g in Model.GradeLevels)
+                {
+                    <option value="@g.Value" selected="@(g.Selected ? "selected" : null)">@g.Text</option>
+                }
+            </select>
+        </div>
+        <button class="btn btn-sm btn-primary" type="submit"><i class="bi bi-funnel me-1"></i>Filter</button>
+        <button type="button" class="btn btn-sm btn-light" data-se-reset="@Url.Action("Index")">Reset</button>
+    </form>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-12">
+        <partial name="_ChartCard" model="@(new ChartWidget { Data = Model.SubjectAverages, Type = "bar", Height = "se-chart--sm", DatasetLabel = "Average final grade" })" />
+    </div>
+</div>
+
+<div class="se-card">
+    <div class="se-card__head">
+        <h3><i class="bi bi-list-check me-1"></i>Grade records</h3>
+        <span class="se-small se-muted">@Model.TotalRecords match(es)</span>
+    </div>
+
+    @if (Model.Records.Count == 0)
+    {
+        <partial name="_EmptyState" model="@(new EmptyState
+        {
+            Icon = "bi-mortarboard",
+            Title = "No grade records",
+            Message = "No grades match the active filters. Encode grades or adjust the filters above.",
+            ActionText = "Encode grades",
+            ActionUrl = Url.Action("Encode", "Grades", new { sectionId = Model.SectionId, subjectId = Model.SubjectId, term = Model.Term ?? 1 }),
+            ActionIcon = "bi-pencil-square"
+        })" />
+    }
+    else
+    {
+        <div class="se-table-wrap">
+            <table class="se-table">
+                <thead>
+                    <tr>
+                        <th>Student No.</th>
+                        <th>Student</th>
+                        <th>Subject</th>
+                        <th>Term</th>
+                        <th class="text-end">Written Work</th>
+                        <th class="text-end">Performance Task</th>
+                        <th class="text-end">Term Assessment</th>
+                        <th class="text-end">Final Grade</th>
+                        <th>Remarks</th>
+                        <th class="se-col-actions">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var record in Model.Records)
+                    {
+                        <tr>
+                            <td><span class="se-id-chip">@record.Student.StudentNumber</span></td>
+                            <td>
+                                <span class="d-flex align-items-center gap-2">
+                                    <span class="se-avatar se-avatar--@record.Student.FullName.AvatarTone()">@record.Student.FullName.Initials()</span>
+                                    <span class="se-strong">@record.Student.FullName</span>
+                                </span>
+                            </td>
+                            <td>
+                                <span class="se-strong d-block">@record.Subject.Code</span>
+                                <span class="se-small se-muted">@record.Subject.Title</span>
+                            </td>
+                            <td><span class="se-pill">T@(record.Term)</span></td>
+                            <td class="text-end">@(record.WrittenWork?.ToString("0.##") ?? "—")</td>
+                            <td class="text-end">@(record.PerformanceTask?.ToString("0.##") ?? "—")</td>
+                            <td class="text-end">@(record.TermAssessment?.ToString("0.##") ?? "—")</td>
+                            <td class="text-end se-strong">@(record.FinalGrade?.ToString("0.##") ?? "—")</td>
+                            <td>
+                                <span class="se-badge text-bg-@(record.FinalGrade >= 75 ? "success" : record.FinalGrade.HasValue ? "danger" : "secondary")">
+                                    @record.FinalGrade.GradeRemarks()
+                                </span>
+                            </td>
+                            <td class="se-col-actions">
+                                <span class="se-row-actions">
+                                    <a class="btn btn-sm btn-light" asp-action="StudentGrades" asp-route-studentId="@record.StudentId"
+                                       title="Student academic record"><i class="bi bi-eye"></i></a>
+                                    <a class="btn btn-sm btn-light" asp-action="Print" asp-route-sectionId="@record.SectionId"
+                                       asp-route-subjectId="@record.SubjectId" asp-route-term="@record.Term"
+                                       target="_blank" title="Print class record"><i class="bi bi-printer"></i></a>
+                                </span>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <partial name="_Pagination" model="@(ViewData["Pagination"] as PaginationInfo ?? new PaginationInfo())" />
+    }
+</div>

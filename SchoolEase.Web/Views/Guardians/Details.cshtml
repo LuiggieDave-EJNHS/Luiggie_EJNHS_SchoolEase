@@ -1,0 +1,91 @@
+@model Guardian
+@{
+    ViewData["Title"] = Model.FullName;
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = Model.FullName,
+    Subtitle = "Guardian profile",
+    Icon = "bi-person-hearts",
+    Actions = new List<PageAction>
+    {
+        new() { Text = "Edit", Url = Url.Action("Edit", new { id = Model.Id }), Icon = "bi-pencil" },
+        new() { Text = "Back", Url = Url.Action("Index"), Icon = "bi-arrow-left", Css = "btn btn-light" }
+    }
+})" />
+
+<div class="row g-3">
+    <div class="col-lg-5">
+        <div class="se-card h-100">
+            <div class="se-card__head"><h3><i class="bi bi-person-vcard me-1"></i>Guardian information</h3></div>
+            <div class="se-card__body">
+                <div class="d-flex align-items-center gap-3 mb-3">
+                    <span class="se-avatar se-avatar--lg se-avatar--@Model.FullName.AvatarTone()">@Model.FullName.Initials()</span>
+                    <div>
+                        <h2 class="h5 mb-1">@Model.FullName</h2>
+                        <span class="se-badge text-bg-primary">@Model.Relationship</span>
+                    </div>
+                </div>
+                <dl class="se-def-list mb-0">
+                    <dt>Contact Number</dt>
+                    <dd>@(string.IsNullOrWhiteSpace(Model.ContactNumber) ? "—" : Model.ContactNumber)</dd>
+                    <dt>Email</dt>
+                    <dd>@(string.IsNullOrWhiteSpace(Model.Email) ? "—" : Model.Email)</dd>
+                    <dt>Occupation</dt>
+                    <dd>@(string.IsNullOrWhiteSpace(Model.Occupation) ? "—" : Model.Occupation)</dd>
+                    <dt>Address</dt>
+                    <dd>@(string.IsNullOrWhiteSpace(Model.Address) ? "—" : Model.Address)</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-7">
+        <div class="se-card h-100">
+            <div class="se-card__head">
+                <h3><i class="bi bi-people me-1"></i>Linked students</h3>
+                <span class="se-small se-muted">@Model.Students.Count record(s)</span>
+            </div>
+            @if (Model.Students.Count == 0)
+            {
+                <partial name="_EmptyState" model="@(new EmptyState
+                {
+                    Icon = "bi-people",
+                    Title = "No linked students",
+                    Message = "Students assigned to this guardian will be listed here. Link a guardian from the student form."
+                })" />
+            }
+            else
+            {
+                <div class="se-table-wrap">
+                    <table class="se-table se-table--compact">
+                        <thead>
+                            <tr>
+                                <th>Student No.</th>
+                                <th>Name</th>
+                                <th>Grade &amp; Section</th>
+                                <th class="se-col-actions">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var s in Model.Students.OrderBy(x => x.LastName).ThenBy(x => x.FirstName))
+                            {
+                                <tr>
+                                    <td><span class="se-id-chip">@s.StudentNumber</span></td>
+                                    <td class="se-strong">@s.FullName</td>
+                                    <td>@s.ClassLabel</td>
+                                    <td class="se-col-actions">
+                                        <a class="btn btn-sm btn-light" asp-controller="Students" asp-action="Details" asp-route-id="@s.Id" title="View student">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>

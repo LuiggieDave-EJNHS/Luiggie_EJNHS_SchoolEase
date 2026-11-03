@@ -1,0 +1,134 @@
+@model AccountListViewModel
+@{
+    ViewData["Title"] = "User Accounts";
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = "User Accounts",
+    Subtitle = "Create and manage the login accounts for students, teachers, staff and administrators.",
+    Icon = "bi-person-lock",
+    Actions = new List<PageAction>
+    {
+        new() { Text = "New Account", Url = Url.Action("Create"), Icon = "bi-person-plus" }
+    }
+})" />
+
+<div class="se-card">
+    <form method="get" asp-action="Index" class="se-filters">
+        <select name="role" class="form-select" data-se-autosubmit aria-label="Filter by role">
+            <option value="">All roles</option>
+            @foreach (var item in Roles.All)
+            {
+                <option value="@item" selected="@(Model.Role == item)">@item</option>
+            }
+        </select>
+        <select name="active" class="form-select" data-se-autosubmit aria-label="Filter by status">
+            <option value="">All statuses</option>
+            <option value="true" selected="@(Model.Active == true)">Active</option>
+            <option value="false" selected="@(Model.Active == false)">Inactive</option>
+        </select>
+        <input name="keyword" value="@Model.Keyword" class="form-control se-filters__grow"
+               placeholder="Search name or email…" />
+        <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i></button>
+        <button type="button" class="btn btn-light" data-se-reset="@Url.Action("Index")">Reset</button>
+    </form>
+
+    @if (Model.Accounts.Count == 0)
+    {
+        <partial name="_EmptyState" model="@(new EmptyState
+        {
+            Icon = "bi-person-lock",
+            Title = "No accounts found",
+            Message = "Adjust the filters or create a new account.",
+            ActionText = "New account",
+            ActionUrl = Url.Action("Create")
+        })" />
+    }
+    else
+    {
+        <div class="se-table-wrap">
+            <table class="se-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Role(s)</th>
+                        <th>Status</th>
+                        <th>Last Login</th>
+                        <th>Created</th>
+                        <th class="se-col-actions">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model.Accounts)
+                    {
+                        var isSelf = row.User.Id == CurrentUser.UserId;
+                        <tr>
+                            <td>
+                                <span class="d-flex align-items-center gap-2">
+                                    <span class="se-avatar se-avatar--@row.User.FullName.AvatarTone()">@row.User.FullName.Initials()</span>
+                                    <span class="se-strong">@row.User.FullName</span>
+                                </span>
+                            </td>
+                            <td>@row.User.Email</td>
+                            <td>
+                                @if (row.Roles.Count == 0)
+                                {
+                                    <span class="se-tiny se-muted">No role</span>
+                                }
+                                else
+                                {
+                                    foreach (var roleName in row.Roles)
+                                    {
+                                        <span class="se-badge text-bg-primary me-1">@roleName</span>
+                                    }
+                                }
+                            </td>
+                            <td>
+                                @if (row.User.IsActive)
+                                {
+                                    <span class="se-badge text-bg-success"><i class="bi bi-check-circle"></i>Active</span>
+                                }
+                                else
+                                {
+                                    <span class="se-badge text-bg-secondary"><i class="bi bi-slash-circle"></i>Inactive</span>
+                                }
+                            </td>
+                            <td>@(row.User.LastLoginAt.HasValue ? row.User.LastLoginAt.Value.ToRelativeTime() : "Never")</td>
+                            <td>@row.User.CreatedAt.ToLocalTime().ToDateLabel()</td>
+                            <td class="se-col-actions">
+                                <a class="btn btn-sm btn-light" asp-action="Details" asp-route-id="@row.User.Id" title="View">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <a class="btn btn-sm btn-light" asp-action="Edit" asp-route-id="@row.User.Id" title="Edit">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                @if (!isSelf)
+                                {
+                                    <form asp-action="ToggleActive" asp-route-id="@row.User.Id" method="post" class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-light" title="@(row.User.IsActive ? "Deactivate" : "Activate")">
+                                            <i class="bi @(row.User.IsActive ? "bi-toggle-on" : "bi-toggle-off")"></i>
+                                        </button>
+                                    </form>
+                                    <form asp-action="Delete" asp-route-id="@row.User.Id" method="post" class="d-inline"
+                                          data-se-confirm="Delete this account permanently?">
+                                        <button type="submit" class="btn btn-sm btn-light text-danger" title="Delete">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <span class="se-badge text-bg-light"><i class="bi bi-person-check"></i>You</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <partial name="_Pagination" model="@(ViewData["Pagination"] as PaginationInfo ?? new PaginationInfo())" />
+    }
+</div>

@@ -1,0 +1,107 @@
+@model ScheduleGridViewModel
+@using Microsoft.AspNetCore.Mvc.Rendering
+@{
+    ViewData["Title"] = "Weekly Timetable";
+    var sectionOptions = ViewData["SectionOptions"] as List<SelectListItem> ?? new List<SelectListItem>();
+    var teacherOptions = ViewData["TeacherOptions"] as List<SelectListItem> ?? new List<SelectListItem>();
+    var sectionId = ViewData["SectionId"] as int?;
+    var teacherId = ViewData["TeacherId"] as int?;
+
+    var subtitle = Model.SectionName is null && Model.TeacherName is null
+        ? "All sections and teachers"
+        : string.Join(" • ", new[] { Model.SectionName, Model.TeacherName }.Where(s => !string.IsNullOrWhiteSpace(s)));
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = "Weekly Timetable",
+    Subtitle = subtitle,
+    Icon = "bi-grid-3x3-gap",
+    Actions = new List<PageAction>
+    {
+        new() { Text = "List view", Url = Url.Action("Index", new { sectionId, teacherId }), Icon = "bi-list-ul", Css = "btn btn-light" },
+        new() { Text = "New Schedule", Url = Url.Action("Create"), Icon = "bi-plus-lg" }
+    }
+})" />
+
+<div class="se-card">
+    <form asp-action="Grid" method="get" class="se-filters">
+        <div>
+            <label class="form-label">Section</label>
+            <select name="sectionId" class="form-select" data-se-autosubmit>
+                <option value="">All sections</option>
+                @foreach (var option in sectionOptions)
+                {
+                    <option value="@option.Value" selected="@(sectionId.HasValue && sectionId.Value.ToString() == option.Value)">@option.Text</option>
+                }
+            </select>
+        </div>
+        <div>
+            <label class="form-label">Teacher</label>
+            <select name="teacherId" class="form-select" data-se-autosubmit>
+                <option value="">All teachers</option>
+                @foreach (var option in teacherOptions)
+                {
+                    <option value="@option.Value" selected="@(teacherId.HasValue && teacherId.Value.ToString() == option.Value)">@option.Text</option>
+                }
+            </select>
+        </div>
+        <div>
+            <button type="submit" class="btn btn-primary"><i class="bi bi-funnel me-1"></i>Filter</button>
+        </div>
+        <div>
+            <button type="button" class="btn btn-light" data-se-reset="@Url.Action("Grid")">Reset</button>
+        </div>
+    </form>
+
+    @if (Model.Schedules.Count == 0)
+    {
+        <partial name="_EmptyState" model="@(new EmptyState
+        {
+            Icon = "bi-calendar-week",
+            Title = "Timetable is empty",
+            Message = "No class meetings match the current filter. Add a schedule to populate the grid.",
+            ActionText = "New schedule",
+            ActionUrl = Url.Action("Create")
+        })" />
+    }
+    else
+    {
+        <div class="se-table-wrap p-3">
+            <table class="se-sched">
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        @foreach (var day in Model.Days)
+                        {
+                            <th>@day</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var slot in Model.Slots)
+                    {
+                        <tr>
+                            <th>@slot.To12Hour()</th>
+                            @foreach (var day in Model.Days)
+                            {
+                                var cell = Model.Schedules.FirstOrDefault(c => c.DayOfWeek == day && c.StartTime == slot);
+                                <td>
+                                    @if (cell is not null)
+                                    {
+                                        <div class="se-sched__slot">
+                                            <strong>@cell.Subject?.Code</strong>
+                                            <span>@(cell.Section?.DisplayName ?? cell.Section?.Name)</span>
+                                            <span>@cell.Teacher?.FullName</span>
+                                            <span>@(string.IsNullOrWhiteSpace(cell.Room) ? "—" : cell.Room)</span>
+                                        </div>
+                                    }
+                                </td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
