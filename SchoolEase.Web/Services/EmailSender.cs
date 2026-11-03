@@ -44,8 +44,8 @@ public class EmailSender : IEmailSender
             // Set a 10-second timeout so the UI doesn't hang forever if SMTP is misconfigured
             client.Timeout = 10000;
 
-            // Use StartTls for Port 587 - this is more reliable on cloud hosts like Render
-            await client.ConnectAsync(_settings.SmtpServer, _settings.SmtpPort, SecureSocketOptions.StartTls);
+            // Use Auto to support both 465 (SSL/TLS) and 587 (STARTTLS)
+            await client.ConnectAsync(_settings.SmtpServer, _settings.SmtpPort, SecureSocketOptions.Auto);
 
             if (!string.IsNullOrEmpty(_settings.SmtpUser))
             {
