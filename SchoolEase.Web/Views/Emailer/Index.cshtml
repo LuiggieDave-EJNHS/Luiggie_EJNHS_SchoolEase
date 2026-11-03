@@ -1,0 +1,101 @@
+@model EmailerViewModel
+@{
+    ViewData["Title"] = "Email Center";
+}
+
+<partial name="_PageHeader" model="@(new PageHeader 
+{ 
+    Title = "Email Center", 
+    Subtitle = "Send official emails to students, parents, or other educational institutions.", 
+    Icon = "bi-envelope-paper" 
+})" />
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="se-card">
+            <div class="se-card__head">
+                <h3><i class="bi bi-pencil-square me-2"></i>Compose Message</h3>
+            </div>
+            <div class="se-card__body">
+                <form asp-action="Send" method="post">
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="Recipient" class="form-label"></label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-person"></i></span>
+                            <input asp-for="Recipient" class="form-control" placeholder="example@school.edu.ph" />
+                        </div>
+                        <span asp-validation-for="Recipient" class="text-danger se-xsmall"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Subject" class="form-label"></label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-type-h1"></i></span>
+                            <input asp-for="Subject" class="form-control" placeholder="Enter email subject..." />
+                        </div>
+                        <span asp-validation-for="Subject" class="text-danger se-xsmall"></span>
+                    </div>
+
+                    <div class="mb-4">
+                        <label asp-for="Body" class="form-label"></label>
+                        <textarea asp-for="Body" class="form-control" rows="10" placeholder="Type your official message here..."></textarea>
+                        <span asp-validation-for="Body" class="text-danger se-xsmall"></span>
+                        <div class="form-text se-xsmall mt-2">
+                            <i class="bi bi-info-circle me-1"></i>
+                            This message will be sent as a plain-text email from the official school account.
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a href="javascript:history.back()" class="se-btn se-btn--light">Cancel</a>
+                        <button type="submit" class="se-btn se-btn--primary">
+                            <i class="bi bi-send me-2"></i>Send Email
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="se-card">
+            <div class="se-card__head">
+                <h3><i class="bi bi-shield-check me-2"></i>Usage Guidelines</h3>
+            </div>
+            <div class="se-card__body se-small">
+                <ul class="ps-3 mb-0">
+                    <li class="mb-2">Ensure the recipient's email address is correct to avoid bounces.</li>
+                    <li class="mb-2">Use a clear and professional subject line for all official communications.</li>
+                    <li class="mb-2">All sent emails are logged in the <strong>Audit Logs</strong> for security and tracking.</li>
+                    <li>Avoid sending sensitive information (like passwords) through email.</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="se-card mt-3">
+            <div class="se-card__head">
+                <h3><i class="bi bi-lightning-charge me-2"></i>Quick Templates</h3>
+            </div>
+            <div class="se-card__body">
+                <button type="button" class="se-btn se-btn--light w-100 mb-2 text-start se-small" onclick="applyTemplate('SF10 Request', 'Good day,\n\nWe would like to request the SF10 (Form 137) for student [Name] who is seeking enrollment in our school.\n\nThank you.')">
+                    <i class="bi bi-file-earmark-text me-2"></i>SF10 Request
+                </button>
+                <button type="button" class="se-btn se-btn--light w-100 mb-2 text-start se-small" onclick="applyTemplate('Document Ready', 'Hello,\n\nThis is to inform you that your requested document is now ready for pick-up at the Registrar\'s office.\n\nRegards.')">
+                    <i class="bi bi-check2-circle me-2"></i>Document Ready
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        function applyTemplate(subject, body) {
+            document.getElementById('Subject').value = subject;
+            document.getElementById('Body').value = body;
+        }
+    </script>
+}

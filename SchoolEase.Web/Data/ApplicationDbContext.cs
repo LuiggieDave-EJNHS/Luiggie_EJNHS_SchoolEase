@@ -28,7 +28,6 @@ public class ApplicationDbContext : IdentityDbContext<AppUser>
     public DbSet<GradeRecord> GradeRecords => Set<GradeRecord>();
     public DbSet<DocumentType> DocumentTypes => Set<DocumentType>();
     public DbSet<DocumentRequest> DocumentRequests => Set<DocumentRequest>();
-    public DbSet<SchoolContact> SchoolContacts => Set<SchoolContact>();
     public DbSet<Announcement> Announcements => Set<Announcement>();
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<SchoolEvent> SchoolEvents => Set<SchoolEvent>();
