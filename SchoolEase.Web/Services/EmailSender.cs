@@ -1,14 +1,22 @@
-using MailKit.Net.Smtp;
-using MailKit.Security;
+using System.Net.Http.Json;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.Extensions.Options;
-using MimeKit;
 using SchoolEase.Web.Models;
 
 namespace SchoolEase.Web.Services;
 
+/// <summary>
+/// Sends account emails through Brevo's HTTPS transactional API.
+/// Direct SMTP cannot be used here: hosts such as Render's free tier block all
+/// outbound traffic to ports 25/465/587, so mail has to leave over HTTPS (443).
+/// </summary>
 public class EmailSender : IEmailSender
 {
+    private const string Endpoint = "https://api.brevo.com/v3/smtp/email";
+
+    // Single shared client so repeated sends do not exhaust sockets.
+    private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(15) };
+
     private readonly EmailSettings _settings;
     private readonly ILogger<EmailSender> _logger;
 
@@ -20,63 +28,41 @@ public class EmailSender : IEmailSender
 
     public async Task SendEmailAsync(string email, string subject, string htmlMessage)
     {
-        if (string.IsNullOrEmpty(_settings.SmtpServer))
+        if (string.IsNullOrWhiteSpace(_settings.ApiKey) || string.IsNullOrWhiteSpace(_settings.SenderEmail))
         {
-            _logger.LogWarning("Email sender is not configured. Email to {Email} with subject '{Subject}' was NOT sent.", email, subject);
+            _logger.LogWarning("Email sender is not configured (Mail__ApiKey / Mail__SenderEmail missing). Email to {Email} was NOT sent.", email);
             return;
         }
 
+        var payload = new
+        {
+            sender = new { name = _settings.SenderName, email = _settings.SenderEmail },
+            to = new[] { new { email } },
+            subject,
+            htmlContent = htmlMessage
+        };
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, Endpoint)
+        {
+            Content = JsonContent.Create(payload)
+        };
+        request.Headers.Add("api-key", _settings.ApiKey);
+
         try
         {
-            var message = new MimeMessage();
-            message.From.Add(new MailboxAddress(_settings.SenderName, _settings.SenderEmail));
-            message.To.Add(new MailboxAddress(email, email));
-            message.Subject = subject;
-
-            var bodyBuilder = new BodyBuilder
+            using var response = await Http.SendAsync(request);
+            if (!response.IsSuccessStatusCode)
             {
-                HtmlBody = htmlMessage
-            };
-            message.Body = bodyBuilder.ToMessageBody();
-
-            using var client = new SmtpClient();
-            
-            // 30 second timeout + ignore certificate revocation hangs
-            client.Timeout = 30000;
-            client.CheckCertificateRevocation = false;
-
-            // Use smtp.googlemail.com if smtp.gmail.com is blocked
-            var host = _settings.SmtpServer.Contains("gmail.com") ? "smtp.googlemail.com" : _settings.SmtpServer;
-            var port = _settings.SmtpPort == 0 ? 465 : _settings.SmtpPort;
-            var options = port == 465 ? SecureSocketOptions.SslOnConnect : SecureSocketOptions.StartTls;
-
-            _logger.LogInformation("SMTP: Connecting to {Host}:{Port} ({Options})...", host, port, options);
-            
-            try 
-            {
-                await client.ConnectAsync(host, port, options);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning("Primary SMTP connection failed: {Message}. Trying fallback...", ex.Message);
-                // Fallback to the original setting if the hardcoded googlemail fails
-                await client.ConnectAsync(_settings.SmtpServer, port, options);
+                var body = await response.Content.ReadAsStringAsync();
+                throw new HttpRequestException($"Brevo API returned {(int)response.StatusCode}: {body}");
             }
 
-            if (!string.IsNullOrEmpty(_settings.SmtpUser))
-            {
-                await client.AuthenticateAsync(_settings.SmtpUser, _settings.SmtpPass);
-            }
-
-            await client.SendAsync(message);
-            await client.DisconnectAsync(true);
-
-            _logger.LogInformation("Email to {Email} sent successfully.", email);
+            _logger.LogInformation("Email to {Email} sent successfully via Brevo.", email);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to send email to {Email}.", email);
-            throw; // Rethrow to let Identity handle it or show error
+            throw; // Let the caller decide (registration shows a warning and keeps the account).
         }
     }
 }
