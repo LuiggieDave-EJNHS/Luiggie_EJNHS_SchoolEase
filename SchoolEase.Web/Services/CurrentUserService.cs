@@ -16,6 +16,7 @@ public interface ICurrentUserService
     bool IsIctHeadCoordinator { get; }
     bool IsTeacher { get; }
     bool IsStudent { get; }
+    bool IsFormerStudent { get; }
     bool IsRegistrar { get; }
 
     /// <summary>True for roles that see the whole school instead of only their own classes.</summary>
@@ -55,6 +56,7 @@ public class CurrentUserService : ICurrentUserService
     public bool IsIctHeadCoordinator => IsInRole(Roles.IctHeadCoordinator);
     public bool IsTeacher => IsInRole(Roles.Teacher);
     public bool IsStudent => IsInRole(Roles.Student) || IsInRole(Roles.FormerStudent);
+    public bool IsFormerStudent => IsInRole(Roles.FormerStudent);
     public bool IsRegistrar => IsInRole(Roles.Registrar);
 
     public bool HasSchoolWideAccess => IsAdministrator || IsIctHeadCoordinator;

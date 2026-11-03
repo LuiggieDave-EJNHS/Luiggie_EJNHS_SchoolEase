@@ -12,6 +12,7 @@
     var isAdmin = CurrentUser.IsAdministrator;
     var isTeacher = CurrentUser.IsTeacher;
     var isStudent = CurrentUser.IsStudent;
+    var isFormerStudent = CurrentUser.IsFormerStudent;
     var isRegistrar = CurrentUser.IsRegistrar;
     var isCoordinator = CurrentUser.IsIctHeadCoordinator;
 }
@@ -34,15 +35,18 @@
             <a class="se-nav__link @Active("Student", "Profile")" asp-controller="Student" asp-action="Profile">
                 <i class="bi bi-person-badge"></i><span>My Profile</span>
             </a>
-            <a class="se-nav__link @Active("Student", "Schedule")" asp-controller="Student" asp-action="Schedule">
-                <i class="bi bi-calendar-week"></i><span>My Schedule</span>
-            </a>
-            <a class="se-nav__link @Active("Student", "Attendance")" asp-controller="Student" asp-action="Attendance">
-                <i class="bi bi-clipboard-check"></i><span>My Attendance</span>
-            </a>
-            <a class="se-nav__link @Active("Student", "Grades")" asp-controller="Student" asp-action="Grades">
-                <i class="bi bi-mortarboard"></i><span>My Grades</span>
-            </a>
+            @if (!isFormerStudent)
+            {
+                <a class="se-nav__link @Active("Student", "Schedule")" asp-controller="Student" asp-action="Schedule">
+                    <i class="bi bi-calendar-week"></i><span>My Schedule</span>
+                </a>
+                <a class="se-nav__link @Active("Student", "Attendance")" asp-controller="Student" asp-action="Attendance">
+                    <i class="bi bi-clipboard-check"></i><span>My Attendance</span>
+                </a>
+                <a class="se-nav__link @Active("Student", "Grades")" asp-controller="Student" asp-action="Grades">
+                    <i class="bi bi-mortarboard"></i><span>My Grades</span>
+                </a>
+            }
             <a class="se-nav__link @Active("Student", "Requests")" asp-controller="Student" asp-action="Requests">
                 <i class="bi bi-file-earmark-text"></i><span>Document Requests</span>
             </a>

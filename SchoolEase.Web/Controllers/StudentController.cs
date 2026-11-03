@@ -33,7 +33,29 @@ public class StudentController : Controller
     // ------------------------------------------------------------------
     public async Task<IActionResult> Dashboard()
     {
-        var vm = await _dashboard.BuildStudentDashboardAsync(_currentUser.UserId!);
+        var userId = _currentUser.UserId!;
+        var student = await LoadStudentAsync();
+
+        // Auto-link a minimal record for Former Students if missing
+        if (student is null && _currentUser.IsFormerStudent)
+        {
+            var names = _currentUser.FullName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            student = new Student
+            {
+                UserId = userId,
+                FirstName = names.FirstOrDefault() ?? "Former",
+                LastName = names.Length > 1 ? string.Join(" ", names.Skip(1)) : "Student",
+                Email = _currentUser.UserName,
+                EnrollmentStatus = EnrollmentStatus.Graduated,
+                IsActive = true,
+                StudentNumber = $"ALUMNI-{DateTime.UtcNow:yyyyMMddHHmmss}"
+            };
+
+            _db.Students.Add(student);
+            await _db.SaveChangesAsync();
+        }
+
+        var vm = await _dashboard.BuildStudentDashboardAsync(userId);
 
         if (vm.Student?.SectionId is not null)
         {

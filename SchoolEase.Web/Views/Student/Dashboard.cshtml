@@ -48,14 +48,21 @@ else
         </div>
     </div>
 
-    var cards = new List<StatCard>
+    var isFormer = User.IsInRole(Roles.FormerStudent);
+
+    var cards = new List<StatCard>();
+    if (isFormer)
     {
-        new() { Label = "General Average", Value = Model.GeneralAverage?.ToString("0.00") ?? "N/A", Icon = "bi-mortarboard", Tone = "primary", Meta = "Across graded subjects", Url = Url.Action("Grades") },
-        new() { Label = "Attendance Rate", Value = $"{Model.AttendanceRate:0.#}%", Icon = "bi-graph-up", Tone = "success", Meta = "Present + late over all marks", Url = Url.Action("Attendance") },
-        new() { Label = "Present Days", Value = Model.PresentDays.ToString("N0"), Icon = "bi-check-circle", Tone = "teal", Meta = $"{Model.LateDays} late day(s)" },
-        new() { Label = "Absent Days", Value = Model.AbsentDays.ToString("N0"), Icon = "bi-x-circle", Tone = "danger", Meta = "Days marked absent" },
-        new() { Label = "Pending Requests", Value = Model.PendingRequests.ToString("N0"), Icon = "bi-file-earmark-text", Tone = "warning", Meta = $"{Model.TotalRequests} total request(s)", Url = Url.Action("Requests") }
-    };
+        cards.Add(new() { Label = "Pending Requests", Value = Model.PendingRequests.ToString("N0"), Icon = "bi-file-earmark-text", Tone = "warning", Meta = $"{Model.TotalRequests} total request(s)", Url = Url.Action("Requests") });
+    }
+    else
+    {
+        cards.Add(new() { Label = "General Average", Value = Model.GeneralAverage?.ToString("0.00") ?? "N/A", Icon = "bi-mortarboard", Tone = "primary", Meta = "Across graded subjects", Url = Url.Action("Grades") });
+        cards.Add(new() { Label = "Attendance Rate", Value = $"{Model.AttendanceRate:0.#}%", Icon = "bi-graph-up", Tone = "success", Meta = "Present + late over all marks", Url = Url.Action("Attendance") });
+        cards.Add(new() { Label = "Present Days", Value = Model.PresentDays.ToString("N0"), Icon = "bi-check-circle", Tone = "teal", Meta = $"{Model.LateDays} late day(s)" });
+        cards.Add(new() { Label = "Absent Days", Value = Model.AbsentDays.ToString("N0"), Icon = "bi-x-circle", Tone = "danger", Meta = "Days marked absent" });
+        cards.Add(new() { Label = "Pending Requests", Value = Model.PendingRequests.ToString("N0"), Icon = "bi-file-earmark-text", Tone = "warning", Meta = $"{Model.TotalRequests} total request(s)", Url = Url.Action("Requests") });
+    }
 
     <div class="row g-3 mb-3">
         @foreach (var card in cards)
@@ -66,94 +73,100 @@ else
         }
     </div>
 
-    <div class="row g-3 mb-3">
-        <div class="col-lg-7">
-            <div class="se-card h-100">
-                <div class="se-card__head">
-                    <h3><i class="bi bi-clock-history me-1"></i>Today's classes</h3>
-                    <a class="se-small" asp-action="Schedule">Full week</a>
+    @if (!isFormer)
+    {
+        <div class="row g-3 mb-3">
+            <div class="col-lg-7">
+                <div class="se-card h-100">
+                    <div class="se-card__head">
+                        <h3><i class="bi bi-clock-history me-1"></i>Today's classes</h3>
+                        <a class="se-small" asp-action="Schedule">Full week</a>
+                    </div>
+                    <div class="se-card__body">
+                        @if (Model.TodaySchedule.Count == 0)
+                        {
+                            <p class="se-muted se-small mb-0">No classes are scheduled for today.</p>
+                        }
+                        else
+                        {
+                            <ul class="se-timeline">
+                                @foreach (var slot in Model.TodaySchedule)
+                                {
+                                    <li>
+                                        <span class="se-strong se-small d-block">@slot.TimeRange</span>
+                                        <span class="d-block">
+                                            <span class="se-strong">@slot.Subject?.Code</span>
+                                            <span class="se-muted">@slot.Subject?.Title</span>
+                                        </span>
+                                        <span class="se-small se-muted d-block">
+                                            <i class="bi bi-person-video3 me-1"></i>@(slot.Teacher?.FullName ?? "Unassigned")
+                                            @if (!string.IsNullOrWhiteSpace(slot.Room))
+                                            {
+                                                <span> • <i class="bi bi-geo-alt me-1"></i>@slot.Room</span>
+                                            }
+                                        </span>
+                                    </li>
+                                }
+                            </ul>
+                        }
+                    </div>
                 </div>
-                <div class="se-card__body">
-                    @if (Model.TodaySchedule.Count == 0)
+            </div>
+            <div class="col-lg-5">
+                <partial name="_ChartCard" model="@(new ChartWidget { Data = Model.AttendanceTrend, Type = "line", Height = "se-chart--sm", DatasetLabel = "Present + late" })" />
+            </div>
+        </div>
+    }
+
+    <div class="row g-3 mb-3">
+        @if (!isFormer)
+        {
+            <div class="col-lg-7">
+                <div class="se-card h-100 mb-0">
+                    <div class="se-card__head">
+                        <h3><i class="bi bi-mortarboard me-1"></i>Latest grades</h3>
+                        <a class="se-small" asp-action="Grades">All grades</a>
+                    </div>
+                    @if (Model.LatestGrades.Count == 0)
                     {
-                        <p class="se-muted se-small mb-0">No classes are scheduled for today.</p>
+                        <partial name="_EmptyState" model="@(new EmptyState
+                        {
+                            Icon = "bi-mortarboard",
+                            Title = "No grades yet",
+                            Message = "Your grades will appear here once your teachers encode them."
+                        })" />
                     }
                     else
                     {
-                        <ul class="se-timeline">
-                            @foreach (var slot in Model.TodaySchedule)
-                            {
-                                <li>
-                                    <span class="se-strong se-small d-block">@slot.TimeRange</span>
-                                    <span class="d-block">
-                                        <span class="se-strong">@slot.Subject?.Code</span>
-                                        <span class="se-muted">@slot.Subject?.Title</span>
-                                    </span>
-                                    <span class="se-small se-muted d-block">
-                                        <i class="bi bi-person-video3 me-1"></i>@(slot.Teacher?.FullName ?? "Unassigned")
-                                        @if (!string.IsNullOrWhiteSpace(slot.Room))
-                                        {
-                                            <span> • <i class="bi bi-geo-alt me-1"></i>@slot.Room</span>
-                                        }
-                                    </span>
-                                </li>
-                            }
-                        </ul>
+                        <div class="se-table-wrap">
+                            <table class="se-table se-table--compact">
+                                <thead>
+                                    <tr>
+                                        <th>Subject</th>
+                                        <th class="text-center">Term</th>
+                                        <th class="text-end">Final Grade</th>
+                                        <th>Remarks</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var grade in Model.LatestGrades)
+                                    {
+                                        <tr>
+                                            <td><span class="se-strong">@grade.Subject?.Code</span> <span class="se-muted se-small">@grade.Subject?.Title</span></td>
+                                            <td class="text-center">T@(grade.Term)</td>
+                                            <td class="text-end">@(grade.FinalGrade?.ToString("0.00") ?? "-")</td>
+                                            <td>@grade.FinalGrade.GradeRemarks()</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
                     }
                 </div>
             </div>
-        </div>
-        <div class="col-lg-5">
-            <partial name="_ChartCard" model="@(new ChartWidget { Data = Model.AttendanceTrend, Type = "line", Height = "se-chart--sm", DatasetLabel = "Present + late" })" />
-        </div>
-    </div>
+        }
 
-    <div class="row g-3 mb-3">
-        <div class="col-lg-7">
-            <div class="se-card h-100 mb-0">
-                <div class="se-card__head">
-                    <h3><i class="bi bi-mortarboard me-1"></i>Latest grades</h3>
-                    <a class="se-small" asp-action="Grades">All grades</a>
-                </div>
-                @if (Model.LatestGrades.Count == 0)
-                {
-                    <partial name="_EmptyState" model="@(new EmptyState
-                    {
-                        Icon = "bi-mortarboard",
-                        Title = "No grades yet",
-                        Message = "Your grades will appear here once your teachers encode them."
-                    })" />
-                }
-                else
-                {
-                    <div class="se-table-wrap">
-                        <table class="se-table se-table--compact">
-                            <thead>
-                                <tr>
-                                    <th>Subject</th>
-                                    <th class="text-center">Term</th>
-                                    <th class="text-end">Final Grade</th>
-                                    <th>Remarks</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var grade in Model.LatestGrades)
-                                {
-                                    <tr>
-                                        <td><span class="se-strong">@grade.Subject?.Code</span> <span class="se-muted se-small">@grade.Subject?.Title</span></td>
-                                        <td class="text-center">T@(grade.Term)</td>
-                                        <td class="text-end">@(grade.FinalGrade?.ToString("0.00") ?? "-")</td>
-                                        <td>@grade.FinalGrade.GradeRemarks()</td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-                }
-            </div>
-        </div>
-
-        <div class="col-lg-5">
+        <div class="@(isFormer ? "col-12" : "col-lg-5")">
             <div class="se-card h-100 mb-0">
                 <div class="se-card__head">
                     <h3><i class="bi bi-file-earmark-text me-1"></i>Recent requests</h3>

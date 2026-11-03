@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
+using SchoolEase.Web.Data;
 using SchoolEase.Web.Models;
 using SchoolEase.Web.Models.Entities;
 using SchoolEase.Web.Models.ViewModels;
@@ -13,6 +14,7 @@ public class AccountController : Controller
 {
     private readonly SignInManager<AppUser> _signInManager;
     private readonly UserManager<AppUser> _userManager;
+    private readonly ApplicationDbContext _db;
     private readonly IEmailSender _emailSender;
     private readonly IAuditService _audit;
     private readonly ILogger<AccountController> _logger;
@@ -20,12 +22,14 @@ public class AccountController : Controller
     public AccountController(
         SignInManager<AppUser> signInManager,
         UserManager<AppUser> userManager,
+        ApplicationDbContext db,
         IEmailSender emailSender,
         IAuditService audit,
         ILogger<AccountController> logger)
     {
         _signInManager = signInManager;
         _userManager = userManager;
+        _db = db;
         _emailSender = emailSender;
         _audit = audit;
         _logger = logger;
@@ -145,6 +149,28 @@ public class AccountController : Controller
             // Assign the requested role (Student or Former Student)
             var role = model.RegistrationRole == Roles.Student ? Roles.Student : Roles.FormerStudent;
             await _userManager.AddToRoleAsync(user, role);
+
+            // Create a minimal student profile for Former Students so they can request documents immediately
+            if (role == Roles.FormerStudent)
+            {
+                var names = model.FullName.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                var firstName = names.FirstOrDefault() ?? "Former";
+                var lastName = names.Length > 1 ? string.Join(" ", names.Skip(1)) : "Student";
+
+                var student = new Student
+                {
+                    UserId = user.Id,
+                    FirstName = firstName,
+                    LastName = lastName,
+                    Email = user.Email,
+                    EnrollmentStatus = EnrollmentStatus.Graduated,
+                    IsActive = true,
+                    StudentNumber = $"ALUMNI-{DateTime.UtcNow:yyyyMMddHHmmss}"
+                };
+
+                _db.Students.Add(student);
+                await _db.SaveChangesAsync();
+            }
 
             await _audit.LogAsync("User Registration", "Account", user.Id, $"{user.FullName} registered as {role}.", userName: user.FullName, userId: user.Id);
             _logger.LogInformation("New user {Email} registered as {Role}.", user.Email, role);
