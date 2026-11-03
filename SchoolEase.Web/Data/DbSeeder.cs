@@ -41,6 +41,10 @@ public static class DbSeeder
 
         await SeedSettingsAsync(db);
 
+        await SeedDocumentTypesAsync(db);
+
+        await SeedSchoolDirectoryAsync(db);
+
         // The first administrator is created from configuration, so a fresh
         // install always has a way in without shipping any known credentials.
         await SeedAdministratorAsync(userManager, config, logger);
@@ -187,6 +191,38 @@ public static class DbSeeder
             new SystemSetting { Key = "Requests.DefaultProcessingDays", Value = "3", Description = "Fallback turnaround time in days.", Group = "Document Requests" },
             new SystemSetting { Key = "Notifications.EmailEnabled", Value = "false", Description = "Reserved for future e-mail notifications.", Group = "Notifications" },
             new SystemSetting { Key = "Security.SessionTimeoutMinutes", Value = "480", Description = "Session timeout in minutes.", Group = "Security" }
+        );
+
+        await db.SaveChangesAsync();
+    }
+
+    private static async Task SeedDocumentTypesAsync(ApplicationDbContext db)
+    {
+        if (await db.DocumentTypes.AnyAsync()) return;
+
+        db.DocumentTypes.AddRange(
+            new DocumentType { Code = "SF9", Name = "SF9 (Report Card)", Description = "Progress Report Card for the current school year.", ProcessingDays = 3 },
+            new DocumentType { Code = "SF10", Name = "SF10 (Permanent Record)", Description = "Official Form 137 / Learner Permanent Record.", ProcessingDays = 7 },
+            new DocumentType { Code = "GMC", Name = "Certificate of Good Moral Character", Description = "Certification of good conduct for transfer or employment.", ProcessingDays = 2 },
+            new DocumentType { Code = "COE", Name = "Certificate of Enrollment", Description = "Certification that the student is currently enrolled.", ProcessingDays = 1 },
+            new DocumentType { Code = "COG", Name = "Certificate of Graduation", Description = "Certification of completion of senior high school requirements.", ProcessingDays = 2 },
+            new DocumentType { Code = "DIPL", Name = "Diploma (Certified True Copy)", Description = "Certified copy of the original high school diploma.", ProcessingDays = 3 },
+            new DocumentType { Code = "HD", Name = "Honorable Dismissal", Description = "Transfer credential for students leaving the institution.", ProcessingDays = 5 }
+        );
+
+        await db.SaveChangesAsync();
+    }
+
+    private static async Task SeedSchoolDirectoryAsync(ApplicationDbContext db)
+    {
+        if (await db.SchoolContacts.AnyAsync()) return;
+
+        db.SchoolContacts.AddRange(
+            new SchoolContact { Name = "Manila Science High School", SchoolId = "305309", Division = "Manila", Region = "NCR", Email = "manilascience@deped.gov.ph", ContactNumber = "(02) 8525-6197", Address = "Taft Ave, Ermita, Manila" },
+            new SchoolContact { Name = "Ramon Magsaysay High School", SchoolId = "305315", Division = "Manila", Region = "NCR", Email = "ramonmagsaysayhs@deped.gov.ph", ContactNumber = "(02) 8735-1234", Address = "España Blvd, Sampaloc, Manila" },
+            new SchoolContact { Name = "Araullo High School", SchoolId = "305301", Division = "Manila", Region = "NCR", Email = "araullohs@deped.gov.ph", ContactNumber = "(02) 8527-2101", Address = "United Nations Ave, Ermita, Manila" },
+            new SchoolContact { Name = "Quezon City High School", SchoolId = "305389", Division = "Quezon City", Region = "NCR", Email = "qchs@deped.gov.ph", ContactNumber = "(02) 8928-1234", Address = "Scout Ybardolaza, Kamuning, QC" },
+            new SchoolContact { Name = "Pasig City Science High School", SchoolId = "305412", Division = "Pasig City", Region = "NCR", Email = "pasigscience@deped.gov.ph", ContactNumber = "(02) 8641-1234", Address = "Rainforest Park, Maybunga, Pasig" }
         );
 
         await db.SaveChangesAsync();

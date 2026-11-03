@@ -1,0 +1,105 @@
+@model IEnumerable<SchoolEase.Web.Models.Entities.SchoolContact>
+@{
+    ViewData["Title"] = "School Directory";
+    var search = ViewData["Search"] as string;
+}
+
+<partial name="_PageHeader" model="@(new PageHeader 
+{ 
+    Title = "School Directory", 
+    Subtitle = "Contact information for inter-school coordination.", 
+    Icon = "bi-telephone-outbound" 
+})" />
+
+<div class="se-card mb-4">
+    <div class="se-card__body">
+        <form method="get" class="row g-2 align-items-center">
+            <div class="col-md-5">
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-search se-muted"></i></span>
+                    <input type="text" name="search" value="@search" class="form-control border-start-0 ps-0" placeholder="Search by name, ID, or division...">
+                </div>
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="se-btn se-btn--primary">Search</button>
+                @if (!string.IsNullOrWhiteSpace(search))
+                {
+                    <a asp-action="Index" class="se-btn se-btn--light ms-1">Clear</a>
+                }
+            </div>
+        </form>
+    </div>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="se-card">
+        <partial name="_EmptyState" model="@(new EmptyState 
+        { 
+            Icon = "bi-telephone-x", 
+            Title = "No schools found", 
+            Message = string.IsNullOrWhiteSpace(search) ? "The school directory is currently empty." : $"No schools matched '{search}'." 
+        })" />
+    </div>
+}
+else
+{
+    <div class="row g-3">
+        @foreach (var school in Model)
+        {
+            <div class="col-md-6 col-xl-4">
+                <div class="se-card h-100 mb-0">
+                    <div class="se-card__body">
+                        <div class="d-flex align-items-start gap-3 mb-3">
+                            <span class="se-avatar se-avatar--@school.Name.AvatarTone()">@school.Name.Initials()</span>
+                            <div class="flex-grow-1">
+                                <h3 class="h6 mb-1">@school.Name</h3>
+                                <div class="se-small se-muted">
+                                    @if (!string.IsNullOrWhiteSpace(school.SchoolId))
+                                    {
+                                        <span class="me-2"><i class="bi bi-hash me-1"></i>ID: @school.SchoolId</span>
+                                    }
+                                    <span><i class="bi bi-geo-alt me-1"></i>@school.Division</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="se-small">
+                            @if (!string.IsNullOrWhiteSpace(school.RegistrarName))
+                            {
+                                <div class="mb-2">
+                                    <span class="se-muted d-block se-xsmall se-strong text-uppercase">Registrar</span>
+                                    <span class="se-strong">@school.RegistrarName</span>
+                                </div>
+                            }
+
+                            <div class="mb-2">
+                                <span class="se-muted d-block se-xsmall se-strong text-uppercase">Contact</span>
+                                @if (!string.IsNullOrWhiteSpace(school.Email))
+                                {
+                                    <a href="mailto:@school.Email" class="d-block text-decoration-none mb-1">
+                                        <i class="bi bi-envelope me-2"></i>@school.Email
+                                    </a>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(school.ContactNumber))
+                                {
+                                    <a href="tel:@school.ContactNumber" class="d-block text-decoration-none">
+                                        <i class="bi bi-telephone me-2"></i>@school.ContactNumber
+                                    </a>
+                                }
+                            </div>
+
+                            @if (!string.IsNullOrWhiteSpace(school.Address))
+                            {
+                                <div>
+                                    <span class="se-muted d-block se-xsmall se-strong text-uppercase">Address</span>
+                                    <span class="se-muted">@school.Address</span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
