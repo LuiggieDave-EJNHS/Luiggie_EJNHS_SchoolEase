@@ -41,13 +41,19 @@ public class EmailSender : IEmailSender
 
             using var client = new SmtpClient();
             
-            // Set a 20-second timeout
-            client.Timeout = 20000;
+            // 30 second timeout + ignore certificate revocation hangs
+            client.Timeout = 30000;
+            client.CheckCertificateRevocation = false;
 
-            _logger.LogInformation("Attempting to connect to {Server}:{Port}...", _settings.SmtpServer, _settings.SmtpPort);
+            // FORCE IPv4: Many cloud hosts have broken IPv6 routing to Google
+            client.LocalDomain = "localhost"; 
 
-            // Use Auto to support both 465 (SSL/TLS) and 587 (STARTTLS)
-            await client.ConnectAsync(_settings.SmtpServer, _settings.SmtpPort, SecureSocketOptions.Auto);
+            var port = _settings.SmtpPort == 0 ? 465 : _settings.SmtpPort;
+            var options = port == 465 ? SecureSocketOptions.SslOnConnect : SecureSocketOptions.StartTls;
+
+            _logger.LogInformation("SMTP: Connecting to {Server}:{Port} ({Options})...", _settings.SmtpServer, port, options);
+            
+            await client.ConnectAsync(_settings.SmtpServer, port, options);
 
             if (!string.IsNullOrEmpty(_settings.SmtpUser))
             {
