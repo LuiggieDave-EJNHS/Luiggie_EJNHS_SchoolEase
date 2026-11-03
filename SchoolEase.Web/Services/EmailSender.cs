@@ -41,8 +41,11 @@ public class EmailSender : IEmailSender
 
             using var client = new SmtpClient();
             
-            // Use SecureSocketOptions.Auto to let MailKit decide based on port
-            await client.ConnectAsync(_settings.SmtpServer, _settings.SmtpPort, SecureSocketOptions.Auto);
+            // Set a 10-second timeout so the UI doesn't hang forever if SMTP is misconfigured
+            client.Timeout = 10000;
+
+            // Use StartTls for Port 587 - this is more reliable on cloud hosts like Render
+            await client.ConnectAsync(_settings.SmtpServer, _settings.SmtpPort, SecureSocketOptions.StartTls);
 
             if (!string.IsNullOrEmpty(_settings.SmtpUser))
             {

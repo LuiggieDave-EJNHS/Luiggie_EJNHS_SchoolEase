@@ -153,9 +153,17 @@ public class AccountController : Controller
             var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
             var confirmationLink = Url.Action("ConfirmEmail", "Account", new { userId = user.Id, token }, Request.Scheme);
 
-            // Send actual email
-            await _emailSender.SendEmailAsync(user.Email, "Activate your SchoolEase Account", 
-                $"Please confirm your account by <a href='{confirmationLink}'>clicking here</a>.");
+            // Send actual email - wrapped in try/catch to prevent registration crash if SMTP fails
+            try
+            {
+                await _emailSender.SendEmailAsync(user.Email, "Activate your SchoolEase Account", 
+                    $"Please confirm your account by <a href='{confirmationLink}'>clicking here</a>.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send registration email to {Email}. The account was created but requires manual activation.", user.Email);
+                TempData["Warning"] = "Account created, but we couldn't send the activation email. Please contact the administrator to activate your account.";
+            }
 
             return View("RegisterSuccess", model.Email);
         }
