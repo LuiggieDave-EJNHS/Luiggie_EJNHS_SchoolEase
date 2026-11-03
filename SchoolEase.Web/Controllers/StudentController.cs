@@ -48,7 +48,7 @@ public class StudentController : Controller
                 Email = _currentUser.UserName,
                 EnrollmentStatus = EnrollmentStatus.Graduated,
                 IsActive = true,
-                StudentNumber = $"ALUMNI-{DateTime.UtcNow:yyyyMMddHHmmss}"
+                StudentNumber = $"ALM-{DateTime.UtcNow:yyyyMMddHHmmss}"
             };
 
             _db.Students.Add(student);

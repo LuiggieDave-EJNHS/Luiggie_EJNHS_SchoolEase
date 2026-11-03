@@ -165,7 +165,7 @@ public class AccountController : Controller
                     Email = user.Email,
                     EnrollmentStatus = EnrollmentStatus.Graduated,
                     IsActive = true,
-                    StudentNumber = $"ALUMNI-{DateTime.UtcNow:yyyyMMddHHmmss}"
+                    StudentNumber = $"ALM-{DateTime.UtcNow:yyyyMMddHHmmss}"
                 };
 
                 _db.Students.Add(student);
