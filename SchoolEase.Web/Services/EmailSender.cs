@@ -41,8 +41,10 @@ public class EmailSender : IEmailSender
 
             using var client = new SmtpClient();
             
-            // Set a 10-second timeout so the UI doesn't hang forever if SMTP is misconfigured
-            client.Timeout = 10000;
+            // Set a 20-second timeout
+            client.Timeout = 20000;
+
+            _logger.LogInformation("Attempting to connect to {Server}:{Port}...", _settings.SmtpServer, _settings.SmtpPort);
 
             // Use Auto to support both 465 (SSL/TLS) and 587 (STARTTLS)
             await client.ConnectAsync(_settings.SmtpServer, _settings.SmtpPort, SecureSocketOptions.Auto);
