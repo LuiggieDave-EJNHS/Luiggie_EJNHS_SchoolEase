@@ -84,6 +84,14 @@ h1, h2, h3, h4, h5, h6 { color: var(--se-ink); font-weight: 650; letter-spacing:
 .se-strong { font-weight: 650; }
 .se-mono { font-family: "Cascadia Mono", Consolas, "Courier New", monospace; font-size: .875em; }
 
+/* Developer credit footer — inherits the surrounding text colour */
+.se-credit { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem 1rem; color: inherit; font-size: .8125rem; }
+.se-credit__made strong { font-weight: 700; }
+.se-credit__links { display: inline-flex; flex-wrap: wrap; align-items: center; gap: .25rem 1rem; }
+.se-credit__links a { color: inherit; text-decoration: none; border-bottom: 1px dotted currentColor; transition: opacity .15s ease; }
+.se-credit__links a:hover { opacity: .7; }
+.se-credit__links i { margin-right: .3rem; }
+
 /* Bootstrap colour helpers for the extra tones used by badges */
 .text-bg-purple { background-color: var(--se-purple) !important; color: #fff !important; }
 .text-bg-teal { background-color: var(--se-teal) !important; color: #fff !important; }

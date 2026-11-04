@@ -25,9 +25,14 @@
                 @RenderBody()
             </main>
 
-            <footer class="px-4 py-3 se-small se-muted border-top bg-white d-flex flex-wrap justify-content-between gap-2">
-                <span>&copy; @DateTime.Now.Year @SchoolInfo.SchoolName &mdash; @SchoolInfo.Tagline</span>
-                <span>@SchoolInfo.Division</span>
+            <footer class="px-4 py-3 se-small se-muted border-top bg-white">
+                <div class="d-flex flex-wrap justify-content-between gap-2">
+                    <span>&copy; @DateTime.Now.Year @SchoolInfo.SchoolName &mdash; @SchoolInfo.Tagline</span>
+                    <span>@SchoolInfo.Division</span>
+                </div>
+                <div class="mt-2 pt-2 border-top">
+                    <partial name="_CreditFooter" />
+                </div>
             </footer>
         </div>
     </div>

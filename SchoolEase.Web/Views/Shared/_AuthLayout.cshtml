@@ -39,14 +39,22 @@
                 </ul>
             </div>
 
-            <p class="se-tiny mb-0" style="color:#9db8e0;">
-                @SchoolInfo.SchoolName &bull; @SchoolInfo.Division<br />
-                @SchoolInfo.SchoolAddress
-            </p>
+            <div>
+                <p class="se-tiny mb-0" style="color:#9db8e0;">
+                    @SchoolInfo.SchoolName &bull; @SchoolInfo.Division<br />
+                    @SchoolInfo.SchoolAddress
+                </p>
+                <div class="mt-3 pt-3" style="border-top:1px solid rgba(255,255,255,.18); color:#9db8e0;">
+                    <partial name="_CreditFooter" />
+                </div>
+            </div>
         </aside>
 
         <main class="se-auth__main">
             @RenderBody()
+            <div class="d-lg-none mt-4 d-flex justify-content-center se-muted">
+                <partial name="_CreditFooter" />
+            </div>
         </main>
     </div>
 

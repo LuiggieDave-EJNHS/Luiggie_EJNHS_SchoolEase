@@ -42,9 +42,14 @@
     </main>
 
     <footer class="border-top py-4 bg-white">
-        <div class="container d-flex flex-wrap justify-content-between gap-2 se-small se-muted">
-            <span>&copy; @DateTime.Now.Year @SchoolInfo.SchoolName. All rights reserved.</span>
-            <span>@SchoolInfo.Division &bull; @SchoolInfo.Region</span>
+        <div class="container">
+            <div class="d-flex flex-wrap justify-content-between gap-2 se-small se-muted">
+                <span>&copy; @DateTime.Now.Year @SchoolInfo.SchoolName. All rights reserved.</span>
+                <span>@SchoolInfo.Division &bull; @SchoolInfo.Region</span>
+            </div>
+            <div class="mt-3 pt-3 border-top se-muted">
+                <partial name="_CreditFooter" />
+            </div>
         </div>
     </footer>
 
