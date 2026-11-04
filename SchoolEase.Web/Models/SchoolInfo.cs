@@ -15,9 +15,9 @@ public static class SchoolInfo
 
     public const string SchoolAddress = "Quezon City, Philippines";
 
-    public const string SchoolYear = "2025-2026";
+    public const string SchoolYear = "2026-2027";
 
-    public const string Division = "Schools Division Office of Manila";
+    public const string Division = "Schools Division Office of Quezon City";
 
     public const string Region = "Region NCR - National Capital Region";
 }

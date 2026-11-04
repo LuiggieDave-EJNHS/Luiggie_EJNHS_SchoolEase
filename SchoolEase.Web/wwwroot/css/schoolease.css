@@ -627,7 +627,7 @@ h1, h2, h3, h4, h5, h6 { color: var(--se-ink); font-weight: 650; letter-spacing:
     animation: se-fade-in 1.5s ease-out;
 }
 .se-auth__brand { display: flex; align-items: center; gap: .8rem; font-size: 1.35rem; font-weight: 700; }
-.se-auth__headline { font-size: 2.1rem; font-weight: 700; line-height: 1.2; margin-bottom: .8rem; letter-spacing: -.02em; animation: se-slide-up 0.7s ease-out; }
+.se-auth__headline { color: #f5c451; font-size: 2.1rem; font-weight: 700; line-height: 1.2; margin-bottom: .8rem; letter-spacing: -.02em; animation: se-slide-up 0.7s ease-out; }
 .se-auth__sub { color: #c9dcff; font-size: .98rem; max-width: 30rem; animation: se-slide-up 0.8s ease-out; }
 .se-auth__features { list-style: none; padding: 0; margin: 1.6rem 0 0; display: grid; gap: .6rem; animation: se-slide-up 0.9s ease-out; }
 .se-auth__features li { display: flex; gap: .6rem; align-items: center; font-size: .9rem; color: #dbe8ff; }
