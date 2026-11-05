@@ -13,6 +13,9 @@ using SchoolEase.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Security: Hide the Server header from Kestrel
+builder.WebHost.ConfigureKestrel(options => options.AddServerHeader = false);
+
 // Fix for Npgsql 6.0+ DateTime issue when using DateTime.Today/Now with timestamp with time zone
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
@@ -54,6 +57,7 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.AccessDeniedPath = "/Account/AccessDenied";
     options.Cookie.Name = "SchoolEase.Auth";
     options.Cookie.HttpOnly = true;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
     options.Cookie.SameSite = SameSiteMode.Lax;
     options.ExpireTimeSpan = TimeSpan.FromHours(8);
     options.SlidingExpiration = true;
@@ -110,6 +114,13 @@ builder.Services.AddControllersWithViews(options =>
 
 builder.Services.AddRazorPages();
 
+builder.Services.AddHsts(options =>
+{
+    options.Preload = true;
+    options.IncludeSubDomains = true;
+    options.MaxAge = TimeSpan.FromDays(365);
+});
+
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromHours(8);
@@ -131,6 +142,41 @@ var forwardedHeaders = new ForwardedHeadersOptions
 forwardedHeaders.KnownNetworks.Clear();
 forwardedHeaders.KnownProxies.Clear();
 app.UseForwardedHeaders(forwardedHeaders);
+
+// ---------------------------------------------------------------------------
+// Security Headers (Improves grade on securityheaders.com)
+// ---------------------------------------------------------------------------
+app.Use(async (context, next) =>
+{
+    // Prevent MIME-type sniffing
+    context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
+    
+    // Prevent the site from being embedded in an iframe (Clickjacking)
+    context.Response.Headers.Append("X-Frame-Options", "DENY");
+    
+    // Control how much info is sent in the Referer header
+    context.Response.Headers.Append("Referrer-Policy", "strict-origin-when-cross-origin");
+    
+    // Disable unused browser features
+    context.Response.Headers.Append("Permissions-Policy", "camera=(), microphone=(), geolocation=(), interest-cohort=()");
+    
+    // Content Security Policy (CSP)
+    // - default-src 'self': Only allow content from our own origin by default
+    // - script-src 'self' 'unsafe-inline': Allow our own scripts and inline chart scripts
+    // - style-src 'self' 'unsafe-inline': Allow our own styles and inline styles
+    // - img-src 'self' data: https:: Allow images from self, data URIs, and external HTTPS (Trae API)
+    context.Response.Headers.Append("Content-Security-Policy", 
+        "default-src 'self'; " +
+        "script-src 'self' 'unsafe-inline'; " +
+        "style-src 'self' 'unsafe-inline'; " +
+        "img-src 'self' data: https:; " +
+        "font-src 'self' data:; " +
+        "frame-ancestors 'none'; " +
+        "form-action 'self'; " +
+        "upgrade-insecure-requests;");
+        
+    await next();
+});
 
 // ---------------------------------------------------------------------------
 // Database migration + seeding
@@ -172,6 +218,7 @@ using (var scope = app.Services.CreateScope())
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
+    // Strictly enforce HTTPS with a 1-year max age, including subdomains and preload.
     app.UseHsts();
 }
 
