@@ -67,6 +67,10 @@ public class RegisterViewModel
     [Required(ErrorMessage = "Please select your status.")]
     [Display(Name = "I am a...")]
     public string RegistrationRole { get; set; } = Roles.FormerStudent;
+
+    [Required(ErrorMessage = "Please select your sex.")]
+    [Display(Name = "Sex")]
+    public Gender? Gender { get; set; }
 }
 
 public class SearchViewModel

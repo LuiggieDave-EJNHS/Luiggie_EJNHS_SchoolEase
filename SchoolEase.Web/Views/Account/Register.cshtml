@@ -34,16 +34,30 @@
             <span asp-validation-for="Email" class="text-danger se-small"></span>
         </div>
 
-        <div class="mb-3">
-            <label asp-for="RegistrationRole" class="form-label"></label>
-            <div class="input-group">
-                <span class="input-group-text bg-white"><i class="bi bi-person-badge se-muted"></i></span>
-                <select asp-for="RegistrationRole" class="form-select">
-                    <option value="@Roles.FormerStudent">Former Student</option>
-                    <option value="@Roles.Student">Current Student</option>
-                </select>
+        <div class="row g-2 mb-3">
+            <div class="col-md-6">
+                <label asp-for="RegistrationRole" class="form-label"></label>
+                <div class="input-group">
+                    <span class="input-group-text bg-white"><i class="bi bi-person-badge se-muted"></i></span>
+                    <select asp-for="RegistrationRole" class="form-select">
+                        <option value="@Roles.FormerStudent">Former Student</option>
+                        <option value="@Roles.Student">Current Student</option>
+                    </select>
+                </div>
+                <span asp-validation-for="RegistrationRole" class="text-danger se-small"></span>
             </div>
-            <span asp-validation-for="RegistrationRole" class="text-danger se-small"></span>
+            <div class="col-md-6">
+                <label asp-for="Gender" class="form-label"></label>
+                <div class="input-group">
+                    <span class="input-group-text bg-white"><i class="bi bi-gender-ambiguous se-muted"></i></span>
+                    <select asp-for="Gender" class="form-select">
+                        <option value="">Select sex</option>
+                        <option value="@((int)Gender.Male)">Male</option>
+                        <option value="@((int)Gender.Female)">Female</option>
+                    </select>
+                </div>
+                <span asp-validation-for="Gender" class="text-danger se-small"></span>
+            </div>
         </div>
 
         <div class="row g-2 mb-3">

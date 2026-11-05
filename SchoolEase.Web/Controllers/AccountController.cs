@@ -250,6 +250,7 @@ public class AccountController : Controller
                     FirstName = firstName,
                     LastName = lastName,
                     Email = user.Email,
+                    Gender = model.Gender ?? Gender.Male,
                     EnrollmentStatus = EnrollmentStatus.Graduated,
                     IsActive = true,
                     StudentNumber = $"ALM-{DateTime.UtcNow:yyyyMMddHHmmss}"
