@@ -135,6 +135,12 @@ public class SettingsIndexViewModel
     public List<SystemSetting> Settings { get; set; } = new();
     public SystemSummaryViewModel Summary { get; set; } = new();
 
+    /// <summary>True when the signed-in Super Administrator has an active recovery code.</summary>
+    public bool HasRecoveryCode { get; set; }
+
+    /// <summary>When the current recovery code was generated, if any.</summary>
+    public string? RecoveryCodeCreatedAt { get; set; }
+
     /// <summary>Settings grouped by their <see cref="SystemSetting.Group"/> value.</summary>
     public IEnumerable<IGrouping<string, SystemSetting>> Groups =>
         Settings.GroupBy(s => s.Group);
@@ -153,6 +159,7 @@ public class AuditLogIndexViewModel
     public int Total { get; set; }
     public int Today { get; set; }
     public int LoginsToday { get; set; }
+    public int FailedLoginsToday { get; set; }
     public int DeletionsToday { get; set; }
     public List<string> Actions { get; set; } = new();
     public List<string> Modules { get; set; } = new();

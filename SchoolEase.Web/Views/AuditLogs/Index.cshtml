@@ -7,6 +7,7 @@
         new() { Label = "Total Entries", Value = Model.Total.ToString("N0"), Icon = "bi-shield-check", Tone = "primary" },
         new() { Label = "Entries Today", Value = Model.Today.ToString("N0"), Icon = "bi-calendar-day", Tone = "info" },
         new() { Label = "Logins Today", Value = Model.LoginsToday.ToString("N0"), Icon = "bi-box-arrow-in-right", Tone = "success" },
+        new() { Label = "Failed Logins Today", Value = Model.FailedLoginsToday.ToString("N0"), Icon = "bi-shield-exclamation", Tone = "danger" },
         new() { Label = "Deletions Today", Value = Model.DeletionsToday.ToString("N0"), Icon = "bi-trash", Tone = "danger" }
     };
 

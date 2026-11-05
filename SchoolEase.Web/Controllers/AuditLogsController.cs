@@ -47,7 +47,9 @@ public class AuditLogsController : Controller
             EntityName = entityName,
             Total = await _db.AuditLogs.CountAsync(),
             Today = await _db.AuditLogs.CountAsync(a => a.CreatedAt >= today && a.CreatedAt < tomorrow),
-            LoginsToday = await _db.AuditLogs.CountAsync(a => a.CreatedAt >= today && a.CreatedAt < tomorrow && a.Action.Contains("Login")),
+            LoginsToday = await _db.AuditLogs.CountAsync(a => a.CreatedAt >= today && a.CreatedAt < tomorrow && a.Action == "User Login"),
+            FailedLoginsToday = await _db.AuditLogs.CountAsync(a => a.CreatedAt >= today && a.CreatedAt < tomorrow
+                && (a.Action == "Failed Login" || a.Action == "Account Locked Out")),
             DeletionsToday = await _db.AuditLogs.CountAsync(a => a.CreatedAt >= today && a.CreatedAt < tomorrow && a.Action.Contains("Delete")),
             Actions = await _db.AuditLogs.Select(a => a.Action).Distinct().OrderBy(a => a).ToListAsync(),
             Modules = await _db.AuditLogs

@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SchoolEase.Web.Data;
 using SchoolEase.Web.Infrastructure;
 using SchoolEase.Web.Models;
+using SchoolEase.Web.Models.Entities;
 using SchoolEase.Web.Models.ViewModels;
 using SchoolEase.Web.Services;
 
@@ -16,21 +18,26 @@ public class SettingsController : Controller
     private readonly IConfiguration _configuration;
     private readonly ICurrentUserService _currentUser;
     private readonly IAuditService _audit;
+    private readonly UserManager<AppUser> _userManager;
 
     public SettingsController(
         ApplicationDbContext db,
         IConfiguration configuration,
         ICurrentUserService currentUser,
-        IAuditService audit)
+        IAuditService audit,
+        UserManager<AppUser> userManager)
     {
         _db = db;
         _configuration = configuration;
         _currentUser = currentUser;
         _audit = audit;
+        _userManager = userManager;
     }
 
     public async Task<IActionResult> Index()
     {
+        var account = await _userManager.GetUserAsync(User);
+
         var vm = new SettingsIndexViewModel
         {
             Settings = await _db.SystemSettings
@@ -49,6 +56,12 @@ public class SettingsController : Controller
                 Users = await _db.Users.CountAsync()
             }
         };
+
+        if (account is not null)
+        {
+            vm.HasRecoveryCode = !string.IsNullOrEmpty(await RecoveryCodes.GetHashAsync(_userManager, account));
+            vm.RecoveryCodeCreatedAt = await RecoveryCodes.GetCreatedAtAsync(_userManager, account);
+        }
 
         ViewData["Title"] = "System Settings";
         return View(vm);
@@ -85,6 +98,49 @@ public class SettingsController : Controller
             changed.Count == 0 ? "No settings changed." : $"Updated: {string.Join(", ", changed)}");
 
         TempData["Success"] = "System settings saved.";
+        return RedirectToAction(nameof(Index));
+    }
+
+    /// <summary>
+    /// Issues a fresh single-use recovery code for the signed-in Super Administrator.
+    /// The plain text is shown once (via TempData) and only its hash is stored.
+    /// </summary>
+    [HttpPost]
+    [Authorize(Policy = Policies.SuperAdminOnly)]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> GenerateRecoveryCode()
+    {
+        var account = await _userManager.GetUserAsync(User);
+        if (account is null) return Forbid();
+
+        var code = RecoveryCodes.Generate();
+        await RecoveryCodes.StoreAsync(_userManager, account, code);
+
+        await _audit.LogAsync("Generate Recovery Code", "Account", account.Id,
+            $"{account.FullName} generated a new Super Administrator recovery code.",
+            userName: account.FullName, userId: account.Id);
+
+        // Surfaced once, then discarded — we never store the plain text.
+        TempData["NewRecoveryCode"] = code;
+        return RedirectToAction(nameof(Index));
+    }
+
+    /// <summary>Revokes the stored recovery code so it can no longer unlock the account.</summary>
+    [HttpPost]
+    [Authorize(Policy = Policies.SuperAdminOnly)]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ClearRecoveryCode()
+    {
+        var account = await _userManager.GetUserAsync(User);
+        if (account is null) return Forbid();
+
+        await RecoveryCodes.ClearAsync(_userManager, account);
+
+        await _audit.LogAsync("Revoke Recovery Code", "Account", account.Id,
+            $"{account.FullName} revoked the Super Administrator recovery code.",
+            userName: account.FullName, userId: account.Id);
+
+        TempData["Success"] = "Recovery code revoked.";
         return RedirectToAction(nameof(Index));
     }
 }

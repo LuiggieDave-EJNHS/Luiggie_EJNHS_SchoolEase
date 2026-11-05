@@ -108,6 +108,68 @@
                     </p>
                 </div>
             </div>
+
+            @if (User.IsInRole(Roles.SuperAdministrator))
+            {
+                <div class="se-card mt-3">
+                    <div class="se-card__head">
+                        <h3><i class="bi bi-shield-lock me-1"></i>Account recovery code</h3>
+                        @if (Model.HasRecoveryCode)
+                        {
+                            <span class="se-pill"><i class="bi bi-check2-circle"></i>Active</span>
+                        }
+                        else
+                        {
+                            <span class="se-pill"><i class="bi bi-dash-circle"></i>Not set</span>
+                        }
+                    </div>
+                    <div class="se-card__body">
+                        @if (TempData["NewRecoveryCode"] is string newCode)
+                        {
+                            <div class="alert alert-warning py-2 se-small">
+                                <strong><i class="bi bi-exclamation-triangle me-1"></i>Save this code now — it will never be shown again.</strong>
+                                <div class="se-mono fw-bold text-center my-2 py-2"
+                                     style="background:#fff;border:1px dashed #c9a227;border-radius:8px;letter-spacing:2px;">
+                                    @newCode
+                                </div>
+                                <span class="se-tiny">Keep it private. Anyone with this code can unlock your administrator account.</span>
+                            </div>
+                        }
+
+                        <p class="se-small mb-2">
+                            A private, single-use backup for unlocking your own account after
+                            <strong>too many failed sign-in attempts</strong>. Only a Super Administrator sees this.
+                        </p>
+
+                        @if (Model.HasRecoveryCode)
+                        {
+                            <p class="se-tiny se-muted">Last generated @Model.RecoveryCodeCreatedAt.</p>
+                        }
+
+                        <div class="d-flex gap-2 flex-wrap">
+                            <button type="submit" form="recoveryForm" formaction="@Url.Action("GenerateRecoveryCode")"
+                                    class="btn btn-primary">
+                                <i class="bi bi-arrow-repeat me-1"></i>@(Model.HasRecoveryCode ? "Regenerate code" : "Generate code")
+                            </button>
+                            @if (Model.HasRecoveryCode)
+                            {
+                                <button type="submit" form="recoveryForm" formaction="@Url.Action("ClearRecoveryCode")"
+                                        class="btn btn-light">
+                                    <i class="bi bi-x-circle me-1"></i>Revoke
+                                </button>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
         </div>
     </div>
 </form>
+
+@if (User.IsInRole(Roles.SuperAdministrator))
+{
+    @* Sits outside the settings form so the recovery buttons never submit the settings. *@
+    <form id="recoveryForm" method="post" class="d-none" data-se-no-loading="1">
+        @Html.AntiForgeryToken()
+    </form>
+}

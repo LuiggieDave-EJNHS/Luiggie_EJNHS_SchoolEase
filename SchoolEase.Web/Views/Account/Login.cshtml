@@ -18,6 +18,15 @@
 
         <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 se-small @(ViewData.ModelState.ErrorCount > 0 ? "" : "d-none")"></div>
 
+        @if (ViewData["ShowRecoveryLink"] as bool? == true)
+        {
+            <div class="alert alert-warning py-2 se-small">
+                <i class="bi bi-shield-lock me-1"></i>
+                Account locked out?
+                <a asp-action="Recover" class="fw-bold alert-link">Verify with a recovery code</a>.
+            </div>
+        }
+
         <div class="mb-3">
             <label asp-for="Email" class="form-label"></label>
             <div class="input-group">

@@ -1,0 +1,45 @@
+@model RecoverViewModel
+@{
+    Layout = "_AuthLayout";
+    ViewData["Title"] = "Recover access";
+}
+
+<div class="se-auth__card">
+    <div class="text-center mb-4">
+        <div class="se-auth__logo-large">
+            @await Html.PartialAsync("_Logo")
+        </div>
+        <h1 class="h3 mb-1 fw-bold">Recover access</h1>
+        <p class="se-muted se-small mb-0">Use your saved recovery code to unlock a locked-out administrator account.</p>
+    </div>
+
+    <form asp-action="Recover" method="post" novalidate>
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 se-small @(ViewData.ModelState.ErrorCount > 0 ? "" : "d-none")"></div>
+
+        <div class="mb-3">
+            <label asp-for="Email" class="form-label"></label>
+            <div class="input-group">
+                <span class="input-group-text bg-white"><i class="bi bi-envelope se-muted"></i></span>
+                <input asp-for="Email" class="form-control" autocomplete="username" placeholder="you@schoolease.ph" autofocus />
+            </div>
+            <span asp-validation-for="Email" class="text-danger se-small"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Code" class="form-label"></label>
+            <div class="input-group">
+                <span class="input-group-text bg-white"><i class="bi bi-shield-lock se-muted"></i></span>
+                <input asp-for="Code" class="form-control se-mono" autocomplete="off" placeholder="XXXX-XXXX-XXXX-XXXX-XXXX" />
+            </div>
+            <span asp-validation-for="Code" class="text-danger se-small"></span>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100 py-2 mb-3">
+            <i class="bi bi-shield-check me-1"></i>Verify and sign in
+        </button>
+
+        <div class="text-center se-small">
+            <a asp-action="Login" class="fw-bold">Back to sign in</a>
+        </div>
+    </form>
+</div>

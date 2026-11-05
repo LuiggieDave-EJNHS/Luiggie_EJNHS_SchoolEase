@@ -25,6 +25,22 @@ public class AccessDeniedViewModel
     public string? ReturnUrl { get; set; }
 }
 
+/// <summary>
+/// Entered on the recovery page once the Super Administrator account is locked
+/// out, in place of a password.
+/// </summary>
+public class RecoverViewModel
+{
+    [Required(ErrorMessage = "Please enter the account email address.")]
+    [EmailAddress(ErrorMessage = "That does not look like a valid email address.")]
+    [Display(Name = "Account email")]
+    public string Email { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Please enter your recovery code.")]
+    [Display(Name = "Recovery code")]
+    public string Code { get; set; } = string.Empty;
+}
+
 public class RegisterViewModel
 {
     [Required(ErrorMessage = "Please enter your full name.")]
