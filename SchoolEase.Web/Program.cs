@@ -162,15 +162,16 @@ app.Use(async (context, next) =>
     
     // Content Security Policy (CSP)
     // - default-src 'self': Only allow content from our own origin by default
-    // - script-src 'self' 'unsafe-inline': Allow our own scripts and inline chart scripts
-    // - style-src 'self' 'unsafe-inline': Allow our own styles and inline styles
-    // - img-src 'self' data: https:: Allow images from self, data URIs, and external HTTPS (Trae API)
+    // - script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net: Allow our scripts, inline chart data, and Chart.js CDN
+    // - style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net: Allow our styles and Bootstrap Icons CDN
+    // - img-src 'self' data: https:; Allow images from self, data URIs, and external HTTPS (Trae API)
+    // - font-src 'self' data: https://cdn.jsdelivr.net; Allow fonts from self and Bootstrap Icons CDN
     context.Response.Headers.Append("Content-Security-Policy", 
         "default-src 'self'; " +
-        "script-src 'self' 'unsafe-inline'; " +
-        "style-src 'self' 'unsafe-inline'; " +
+        "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; " +
+        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; " +
         "img-src 'self' data: https:; " +
-        "font-src 'self' data:; " +
+        "font-src 'self' data: https://cdn.jsdelivr.net; " +
         "frame-ancestors 'none'; " +
         "form-action 'self'; " +
         "upgrade-insecure-requests;");
