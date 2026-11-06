@@ -46,12 +46,25 @@
             </select>
         </div>
         <div>
+            <label class="form-label se-small">Grade level</label>
+            <select class="form-select form-select-sm" name="gradeLevelId" id="gradeGradeLevel"
+                    data-se-autosubmit data-se-cascade="#gradeSubject">
+                <option value="">All grade levels</option>
+                @foreach (var g in Model.GradeLevels)
+                {
+                    <option value="@g.Value" selected="@(g.Selected ? "selected" : null)">@g.Text</option>
+                }
+            </select>
+        </div>
+        <div>
             <label class="form-label se-small">Subject</label>
-            <select class="form-select form-select-sm" name="subjectId" data-se-autosubmit>
+            <select class="form-select form-select-sm" name="subjectId" id="gradeSubject" data-se-autosubmit>
                 <option value="">All subjects</option>
                 @foreach (var s in Model.Subjects)
                 {
-                    <option value="@s.Value" selected="@(s.Selected ? "selected" : null)">@s.Text</option>
+                    <option value="@s.Id"
+                            data-se-group="@(s.GradeLevelId?.ToString() ?? string.Empty)"
+                            selected="@(Model.SubjectId == s.Id ? "selected" : null)">@s.Label</option>
                 }
             </select>
         </div>
@@ -62,16 +75,6 @@
                 @foreach (var q in SelectLists.Terms())
                 {
                     <option value="@q.Value" selected="@(Model.Term?.ToString() == q.Value)">@q.Text</option>
-                }
-            </select>
-        </div>
-        <div>
-            <label class="form-label se-small">Grade level</label>
-            <select class="form-select form-select-sm" name="gradeLevelId" data-se-autosubmit>
-                <option value="">All grade levels</option>
-                @foreach (var g in Model.GradeLevels)
-                {
-                    <option value="@g.Value" selected="@(g.Selected ? "selected" : null)">@g.Text</option>
                 }
             </select>
         </div>

@@ -44,15 +44,22 @@
                    placeholder="Title, competency or MELC code" />
         </div>
         <div>
-            <label class="form-label se-small">Subject</label>
-            <select name="subjectId" asp-items="Model.Subjects" class="form-select" data-se-autosubmit>
-                <option value="">All subjects</option>
+            <label class="form-label se-small">Grade Level</label>
+            <select name="gradeLevelId" id="lasGradeLevel" asp-items="Model.GradeLevels" class="form-select"
+                    data-se-autosubmit data-se-cascade="#lasSubject">
+                <option value="">All grade levels</option>
             </select>
         </div>
         <div>
-            <label class="form-label se-small">Grade Level</label>
-            <select name="gradeLevelId" asp-items="Model.GradeLevels" class="form-select" data-se-autosubmit>
-                <option value="">All grade levels</option>
+            <label class="form-label se-small">Subject</label>
+            <select name="subjectId" id="lasSubject" class="form-select" data-se-autosubmit>
+                <option value="">All subjects</option>
+                @foreach (var subject in Model.Subjects)
+                {
+                    <option value="@subject.Id"
+                            data-se-group="@(subject.GradeLevelId?.ToString() ?? string.Empty)"
+                            selected="@(Model.SubjectId == subject.Id ? "selected" : null)">@subject.Label</option>
+                }
             </select>
         </div>
         <div>

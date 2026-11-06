@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using SchoolEase.Web.Data;
 using SchoolEase.Web.Helpers;
 using SchoolEase.Web.Models;
 using SchoolEase.Web.Models.Entities;
@@ -143,6 +144,9 @@ public class SettingsIndexViewModel
     /// <summary>When the current recovery code was generated, if any.</summary>
     public string? RecoveryCodeCreatedAt { get; set; }
 
+    /// <summary>Demo rows a cleanup would remove. Only populated for a Super Administrator.</summary>
+    public Data.DemoPurgeReport? DemoData { get; set; }
+
     /// <summary>Settings grouped by their <see cref="SystemSetting.Group"/> value.</summary>
     public IEnumerable<IGrouping<string, SystemSetting>> Groups =>
         Settings.GroupBy(s => s.Group);
@@ -273,7 +277,7 @@ public class ActivitySheetListViewModel
     public int? Term { get; set; }
     public string? Keyword { get; set; }
 
-    public List<SelectListItem> Subjects { get; set; } = new();
+    public List<SubjectOption> Subjects { get; set; } = new();
     public List<SelectListItem> GradeLevels { get; set; } = new();
 
     /// <summary>True when the signed-in user may upload and manage sheets (teachers).</summary>
@@ -334,6 +338,6 @@ public class ActivitySheetFormViewModel
     /// <summary>Size of the file already stored, shown while editing.</summary>
     public long ExistingFileSize { get; set; }
 
-    public List<SelectListItem> Subjects { get; set; } = new();
+    public List<SubjectOption> Subjects { get; set; } = new();
     public List<SelectListItem> GradeLevels { get; set; } = new();
 }

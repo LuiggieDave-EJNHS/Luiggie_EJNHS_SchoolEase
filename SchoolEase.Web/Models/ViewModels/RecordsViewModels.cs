@@ -89,7 +89,7 @@ public class GradeIndexViewModel
     public ChartData SubjectAverages { get; set; } = new() { Title = "Average Final Grade per Subject" };
 
     public List<SelectListItem> Sections { get; set; } = new();
-    public List<SelectListItem> Subjects { get; set; } = new();
+    public List<SubjectOption> Subjects { get; set; } = new();
     public List<SelectListItem> GradeLevels { get; set; } = new();
 }
 

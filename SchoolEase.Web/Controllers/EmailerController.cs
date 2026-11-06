@@ -1,3 +1,4 @@
+using System.Net;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -43,15 +44,15 @@ public class EmailerController : Controller
 
         try
         {
-            // Use the professional HTML shell for the custom message
-            // We can add a simpler template to EmailTemplates later if needed, 
-            // but for now we'll send the raw body wrapped in a basic structure.
-            var logoUrl = Url.Content("~/images/logo.jpg");
-            if (logoUrl.StartsWith("~")) logoUrl = logoUrl.Substring(1);
-            var fullLogoUrl = $"{Request.Scheme}://{Request.Host}{logoUrl}";
+            // The composer is a plain-text box but Brevo delivers HTML, so the
+            // body is escaped (never trust typed markup) and newlines become
+            // real line breaks once wrapped in a minimal shell.
+            var safeBody = WebUtility.HtmlEncode(model.Body)
+                .Replace("\r\n", "\n")
+                .Replace("\n", "<br />");
+            var html = $"<div style=\"font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;color:#16202c;\">{safeBody}</div>";
 
-            // For now, we'll just send the text. We could wrap it in a template if desired.
-            await _emailSender.SendEmailAsync(model.Recipient, model.Subject, model.Body);
+            await _emailSender.SendEmailAsync(model.Recipient, model.Subject, html);
 
             await _audit.LogAsync("Email Sent", "Emailer", null, $"Email sent to {model.Recipient} regarding '{model.Subject}'.");
             

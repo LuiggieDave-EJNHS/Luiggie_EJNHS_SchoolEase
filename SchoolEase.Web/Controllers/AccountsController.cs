@@ -214,6 +214,12 @@ public class AccountsController : Controller
             return View(model);
         }
 
+        if (!await CanManageTargetAsync(user))
+        {
+            TempData["Error"] = "Only a Super Administrator may modify a Super Administrator account.";
+            return RedirectToAction(nameof(Details), new { id = user.Id });
+        }
+
         user.FullName = model.FullName.Trim();
         user.Email = model.Email.Trim();
         user.UserName = model.Email.Trim();
@@ -260,6 +266,12 @@ public class AccountsController : Controller
         var user = await _userManager.FindByIdAsync(id);
         if (user is null) return NotFound();
 
+        if (!await CanManageTargetAsync(user))
+        {
+            TempData["Error"] = "Only a Super Administrator may reset a Super Administrator password.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
         if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < 8)
         {
             TempData["Error"] = "The new password must be at least 8 characters long.";
@@ -292,6 +304,12 @@ public class AccountsController : Controller
         if (user.Id == _currentUser.UserId)
         {
             TempData["Warning"] = "You cannot deactivate your own account.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        if (!await CanManageTargetAsync(user))
+        {
+            TempData["Error"] = "Only a Super Administrator may change a Super Administrator account.";
             return RedirectToAction(nameof(Details), new { id });
         }
 
@@ -340,6 +358,12 @@ public class AccountsController : Controller
         if (user.Id == _currentUser.UserId)
         {
             TempData["Error"] = "You cannot delete your own account.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        if (!await CanManageTargetAsync(user))
+        {
+            TempData["Error"] = "Only a Super Administrator may delete a Super Administrator account.";
             return RedirectToAction(nameof(Details), new { id });
         }
 
@@ -453,6 +477,15 @@ public class AccountsController : Controller
 
     private bool CanAssignRole(string role) =>
         role != Roles.SuperAdministrator || _currentUser.IsSuperAdministrator;
+
+    /// <summary>
+    /// A Super Administrator account can only be managed by another Super
+    /// Administrator; other administrators must never be able to reset,
+    /// deactivate, edit or delete it.
+    /// </summary>
+    private async Task<bool> CanManageTargetAsync(AppUser target) =>
+        _currentUser.IsSuperAdministrator
+        || !await _userManager.IsInRoleAsync(target, Roles.SuperAdministrator);
 
     private void AddErrors(IdentityResult result)
     {

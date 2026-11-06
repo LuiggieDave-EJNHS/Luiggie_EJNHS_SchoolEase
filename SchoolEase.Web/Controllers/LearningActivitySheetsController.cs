@@ -26,15 +26,18 @@ public class LearningActivitySheetsController : Controller
     private readonly ApplicationDbContext _db;
     private readonly ICurrentUserService _currentUser;
     private readonly IAuditService _audit;
+    private readonly IFileStorage _storage;
 
     public LearningActivitySheetsController(
         ApplicationDbContext db,
         ICurrentUserService currentUser,
-        IAuditService audit)
+        IAuditService audit,
+        IFileStorage storage)
     {
         _db = db;
         _currentUser = currentUser;
         _audit = audit;
+        _storage = storage;
     }
 
     /// <summary>Only teachers may upload and manage activity sheets.</summary>
@@ -47,9 +50,7 @@ public class LearningActivitySheetsController : Controller
     {
         if (_currentUser.IsFormerStudent) return Forbid();
 
-        var query = ApplyVisibility(_db.LearningActivitySheets
-            .Include(x => x.Subject)
-            .Include(x => x.GradeLevel));
+        var query = WithoutFileContent(ApplyVisibility(_db.LearningActivitySheets));
 
         if (subjectId is > 0) query = query.Where(x => x.SubjectId == subjectId);
         if (gradeLevelId is > 0) query = query.Where(x => x.GradeLevelId == gradeLevelId);
@@ -82,7 +83,7 @@ public class LearningActivitySheetsController : Controller
             Term = term,
             Keyword = keyword,
             Subjects = await SubjectOptionsAsync(),
-            GradeLevels = await GradeLevelOptionsAsync(),
+            GradeLevels = await GradeLevelOptionsAsync(gradeLevelId),
             CanUpload = CanUpload,
             IsFiltered = subjectId is > 0 || gradeLevelId is > 0 || term is > 0 || !string.IsNullOrWhiteSpace(keyword),
             TotalSheets = total,
@@ -117,9 +118,7 @@ public class LearningActivitySheetsController : Controller
     {
         if (_currentUser.IsFormerStudent) return Forbid();
 
-        var sheet = await _db.LearningActivitySheets
-            .Include(x => x.Subject)
-            .Include(x => x.GradeLevel)
+        var sheet = await WithoutFileContent(_db.LearningActivitySheets)
             .FirstOrDefaultAsync(x => x.Id == id);
 
         if (sheet is null) return NotFound();
@@ -139,10 +138,16 @@ public class LearningActivitySheetsController : Controller
         if (sheet is null) return NotFound();
         if (!sheet.IsPublished && !CanEdit(sheet)) return Forbid();
 
+        var bytes = sheet.StorageKey is not null && _storage.IsConfigured
+            ? await _storage.DownloadAsync(sheet.StorageKey)
+            : sheet.FileContent;
+
+        if (bytes.Length == 0) return NotFound();
+
         sheet.DownloadCount++;
         await _db.SaveChangesAsync();
 
-        return File(sheet.FileContent, sheet.ContentType, sheet.FileName);
+        return File(bytes, sheet.ContentType, sheet.FileName);
     }
 
     // ------------------------------------------------------------------
@@ -186,16 +191,14 @@ public class LearningActivitySheetsController : Controller
             WeekNumber = model.WeekNumber,
             MelcCode = model.MelcCode?.Trim(),
             Competency = model.Competency?.Trim(),
-            FileName = Path.GetFileName(file.FileName),
-            ContentType = "application/pdf",
-            FileSize = file.Length,
-            FileContent = await ReadFileAsync(file),
             IsPublished = model.IsPublished,
             SchoolYear = SchoolInfo.SchoolYear,
             UploaderName = _currentUser.FullName,
             UploadedByUserId = _currentUser.UserId,
             CreatedAt = DateTime.UtcNow
         };
+
+        await StoreFileAsync(sheet, file);
 
         _db.LearningActivitySheets.Add(sheet);
         await _db.SaveChangesAsync();
@@ -274,10 +277,13 @@ public class LearningActivitySheetsController : Controller
         // Replacing the file is optional: only overwrite when a new one is chosen.
         if (model.File is not null)
         {
-            sheet.FileName = Path.GetFileName(model.File.FileName);
-            sheet.ContentType = "application/pdf";
-            sheet.FileSize = model.File.Length;
-            sheet.FileContent = await ReadFileAsync(model.File);
+            var previousKey = sheet.StorageKey;
+            await StoreFileAsync(sheet, model.File);
+
+            if (previousKey is not null && previousKey != sheet.StorageKey)
+            {
+                await _storage.DeleteAsync(previousKey);
+            }
         }
 
         await _db.SaveChangesAsync();
@@ -314,8 +320,14 @@ public class LearningActivitySheetsController : Controller
         if (sheet is null) return NotFound();
         if (!CanEdit(sheet)) return Forbid();
 
+        var storageKey = sheet.StorageKey;
         _db.LearningActivitySheets.Remove(sheet);
         await _db.SaveChangesAsync();
+
+        if (storageKey is not null)
+        {
+            await _storage.DeleteAsync(storageKey);
+        }
 
         await _audit.LogAsync("Delete Activity Sheet", "LearningActivitySheet", id, $"Deleted \"{sheet.Title}\".");
         TempData["Success"] = "Activity sheet deleted.";
@@ -331,6 +343,60 @@ public class LearningActivitySheetsController : Controller
     {
         if (CanUpload) return query.Where(x => x.IsPublished || x.UploadedByUserId == _currentUser.UserId);
         return query.Where(x => x.IsPublished);
+    }
+
+    /// <summary>
+    /// Every column except the PDF bytes. Browsing the library must never pull
+    /// megabytes of file content out of the database.
+    /// </summary>
+    private static IQueryable<LearningActivitySheet> WithoutFileContent(IQueryable<LearningActivitySheet> query) =>
+        query.Select(x => new LearningActivitySheet
+        {
+            Id = x.Id,
+            Title = x.Title,
+            Description = x.Description,
+            SubjectId = x.SubjectId,
+            Subject = x.Subject,
+            GradeLevelId = x.GradeLevelId,
+            GradeLevel = x.GradeLevel,
+            Term = x.Term,
+            WeekNumber = x.WeekNumber,
+            MelcCode = x.MelcCode,
+            Competency = x.Competency,
+            FileName = x.FileName,
+            ContentType = x.ContentType,
+            FileSize = x.FileSize,
+            StorageKey = x.StorageKey,
+            IsPublished = x.IsPublished,
+            SchoolYear = x.SchoolYear,
+            UploaderName = x.UploaderName,
+            UploadedByUserId = x.UploadedByUserId,
+            DownloadCount = x.DownloadCount,
+            CreatedAt = x.CreatedAt,
+            UpdatedAt = x.UpdatedAt
+        });
+
+    /// <summary>
+    /// Puts the upload where it belongs: object storage when a bucket is
+    /// configured, otherwise in the row itself (which is what keeps the file
+    /// alive across redeploys on hosts with an ephemeral disk).
+    /// </summary>
+    private async Task StoreFileAsync(LearningActivitySheet sheet, IFormFile file)
+    {
+        sheet.FileName = Path.GetFileName(file.FileName);
+        sheet.ContentType = "application/pdf";
+        sheet.FileSize = file.Length;
+        sheet.StorageKey = null;
+        sheet.FileContent = Array.Empty<byte>();
+
+        if (_storage.IsConfigured)
+        {
+            await using var stream = file.OpenReadStream();
+            sheet.StorageKey = await _storage.UploadAsync(sheet.FileName, stream, sheet.ContentType);
+            return;
+        }
+
+        sheet.FileContent = await ReadFileAsync(file);
     }
 
     /// <summary>Only the teacher who uploaded a sheet may edit, publish or delete it.</summary>
@@ -367,9 +433,24 @@ public class LearningActivitySheetsController : Controller
 
     private async Task ValidateSubjectAsync(ActivitySheetFormViewModel model)
     {
-        if (model.SubjectId > 0 && !await _db.Subjects.AnyAsync(s => s.Id == model.SubjectId))
+        if (model.SubjectId <= 0) return;
+
+        var subject = await _db.Subjects
+            .Where(s => s.Id == model.SubjectId)
+            .Select(s => new { s.Id, s.GradeLevelId })
+            .FirstOrDefaultAsync();
+
+        if (subject is null)
         {
             ModelState.AddModelError(nameof(ActivitySheetFormViewModel.SubjectId), "Please choose a valid subject.");
+            return;
+        }
+
+        // Keep the grade level and subject consistent even if the request is crafted by hand.
+        if (model.GradeLevelId is > 0 && subject.GradeLevelId is int gradeId && gradeId != model.GradeLevelId)
+        {
+            ModelState.AddModelError(nameof(ActivitySheetFormViewModel.SubjectId),
+                "The selected subject does not belong to the chosen grade level.");
         }
     }
 
@@ -379,16 +460,21 @@ public class LearningActivitySheetsController : Controller
         model.GradeLevels = await GradeLevelOptionsAsync();
     }
 
-    private async Task<List<SelectListItem>> SubjectOptionsAsync() =>
+    private async Task<List<SubjectOption>> SubjectOptionsAsync() =>
         await _db.Subjects
             .OrderBy(s => s.Code)
-            .Select(s => new SelectListItem($"{s.Code} - {s.Title}", s.Id.ToString()))
+            .Select(s => new SubjectOption
+            {
+                Id = s.Id,
+                Label = s.Code + " - " + s.Title,
+                GradeLevelId = s.GradeLevelId
+            })
             .ToListAsync();
 
-    private async Task<List<SelectListItem>> GradeLevelOptionsAsync() =>
+    private async Task<List<SelectListItem>> GradeLevelOptionsAsync(int? selected = null) =>
         await _db.GradeLevels
             .OrderBy(g => g.OrderIndex)
-            .Select(g => new SelectListItem(g.Name, g.Id.ToString()))
+            .Select(g => new SelectListItem(g.Name, g.Id.ToString(), selected.HasValue && selected.Value == g.Id))
             .ToListAsync();
 
     private static async Task<byte[]> ReadFileAsync(IFormFile file)

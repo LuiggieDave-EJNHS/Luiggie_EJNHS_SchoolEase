@@ -103,13 +103,6 @@ public class AttendanceController : Controller
             }
         };
 
-        var sectionLabel = sectionId?.ToString() ?? "all";
-        var gradeLabel = gradeLevelId?.ToString() ?? "all";
-        var dateLabel = date?.ToString("yyyy-MM-dd") ?? "all";
-        var statusLabel = status.HasValue ? status.Value.DisplayName() : "all";
-        await _audit.LogAsync("Viewed attendance register", "AttendanceRecord", null,
-            $"Filters: section={sectionLabel}, gradeLevel={gradeLabel}, date={dateLabel}, status={statusLabel}");
-
         return View(vm);
     }
 
@@ -122,14 +115,21 @@ public class AttendanceController : Controller
         var day = (date ?? DateTime.Today).Date;
         var sections = await AllowedSectionsAsync();
 
-        if (sectionId <= 0 && sections.Count > 0)
+        if (sectionId <= 0 && sections.Count > 0 && int.TryParse(sections[0].Value, out var firstSection))
         {
-            sectionId = int.Parse(sections[0].Value);
+            sectionId = firstSection;
         }
 
         var section = sectionId > 0
             ? await _db.Sections.Include(s => s.GradeLevel).FirstOrDefaultAsync(s => s.Id == sectionId)
             : null;
+
+        // A teacher may only open the register of a section they advise or teach;
+        // without this check the roster of any section could be read by URL.
+        if (section is not null && !await CanMarkSectionAsync(section.Id))
+        {
+            return Forbid();
+        }
 
         var vm = new AttendanceMarkViewModel
         {
@@ -165,8 +165,6 @@ public class AttendanceController : Controller
         }
 
         ViewData["Title"] = "Mark Attendance";
-        await _audit.LogAsync("Viewed attendance marking sheet", "Section", sectionId,
-            $"Section {sectionId} on {day:yyyy-MM-dd}");
         return View(vm);
     }
 
@@ -180,13 +178,27 @@ public class AttendanceController : Controller
         }
 
         var day = date.Date;
+
+        // The posted rows are client data: only learners who are actually
+        // enrolled in this section may be marked, and each one only once.
+        var sectionStudentIds = await _db.Students
+            .Where(s => s.SectionId == sectionId)
+            .Select(s => s.Id)
+            .ToListAsync();
+        var enrolled = sectionStudentIds.ToHashSet();
+
         var existing = await _db.AttendanceRecords
             .Where(a => a.SectionId == sectionId && a.Date >= day && a.Date < day.AddDays(1))
             .ToListAsync();
 
         var count = 0;
+        var absentIds = new List<int>();
+        var handled = new HashSet<int>();
+
         foreach (var row in rows ?? new List<AttendanceRowInput>())
         {
+            if (!enrolled.Contains(row.StudentId) || !handled.Add(row.StudentId)) continue;
+
             var record = existing.FirstOrDefault(a => a.StudentId == row.StudentId);
             if (record is null)
             {
@@ -205,17 +217,13 @@ public class AttendanceController : Controller
             record.RecordedAt = DateTime.UtcNow;
             record.UpdatedAt = DateTime.UtcNow;
             count++;
+
+            if (row.Status == AttendanceStatus.Absent) absentIds.Add(row.StudentId);
         }
 
         await _db.SaveChangesAsync();
 
         // One summary notification per save when learners were marked absent.
-        var absentIds = (rows ?? new List<AttendanceRowInput>())
-            .Where(r => r.Status == AttendanceStatus.Absent)
-            .Select(r => r.StudentId)
-            .Distinct()
-            .ToList();
-
         if (absentIds.Count > 0)
         {
             var absentStudents = await _db.Students.Where(s => absentIds.Contains(s.Id)).ToListAsync();

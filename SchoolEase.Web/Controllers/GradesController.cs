@@ -78,7 +78,7 @@ public class GradesController : Controller
             PassedCount = passed,
             FailedCount = failed,
             Sections = await SectionOptionsAsync(sectionId),
-            Subjects = await SubjectOptionsAsync(subjectId),
+            Subjects = await SubjectOptionsAsync(),
             GradeLevels = await GradeLevelOptionsAsync(gradeLevelId),
             SubjectAverages = await BuildSubjectAveragesAsync(query)
         };
@@ -115,6 +115,8 @@ public class GradesController : Controller
     // -----------------------------------------------------------------------
     public async Task<IActionResult> Encode(int sectionId, int subjectId, int term = 1)
     {
+        if (!await CanAccessSectionAsync(sectionId)) return Forbid();
+
         var vm = await BuildEncodeViewModelAsync(sectionId, subjectId, term);
         if (vm is null)
         {
@@ -131,6 +133,8 @@ public class GradesController : Controller
     [HttpPost]
     public async Task<IActionResult> Save(int sectionId, int subjectId, int term, List<GradeRowInput> rows)
     {
+        if (!await CanAccessSectionAsync(sectionId)) return Forbid();
+
         var subject = await _db.Subjects.FirstOrDefaultAsync(s => s.Id == subjectId);
         if (subject is null)
         {
@@ -216,6 +220,14 @@ public class GradesController : Controller
             return NotFound();
         }
 
+        // A teacher may only open the academic record of a learner in a section
+        // they teach or advise; administrators and oversight keep school-wide access.
+        if (!_currentUser.HasSchoolWideAccess
+            && (student.SectionId is not int sid || !await CanAccessSectionAsync(sid)))
+        {
+            return Forbid();
+        }
+
         var grades = await _db.GradeRecords
             .Include(g => g.Subject)
             .Where(g => g.StudentId == studentId)
@@ -258,6 +270,8 @@ public class GradesController : Controller
 
     public async Task<IActionResult> Print(int sectionId, int subjectId, int term)
     {
+        if (!await CanAccessSectionAsync(sectionId)) return Forbid();
+
         var section = await _db.Sections.Include(s => s.GradeLevel).FirstOrDefaultAsync(s => s.Id == sectionId);
         var subject = await _db.Subjects.FirstOrDefaultAsync(s => s.Id == subjectId);
         if (section is null || subject is null)
@@ -353,7 +367,7 @@ public class GradesController : Controller
                 };
             }).ToList(),
             Sections = await SectionOptionsAsync(sectionId),
-            Subjects = await SubjectOptionsAsync(subjectId)
+            Subjects = await SubjectSelectListAsync(subjectId)
         };
     }
 
@@ -383,6 +397,25 @@ public class GradesController : Controller
         return teacher?.Id;
     }
 
+    /// <summary>
+    /// True when the signed-in user may work on the given section: administrators and
+    /// oversight see the whole school, while a teacher is limited to the sections they
+    /// advise or are assigned to teach.
+    /// </summary>
+    private async Task<bool> CanAccessSectionAsync(int sectionId)
+    {
+        if (_currentUser.HasSchoolWideAccess) return true;
+        if (!_currentUser.IsTeacher) return false;
+
+        var teacher = await _db.Teachers.FirstOrDefaultAsync(t => t.UserId == _currentUser.UserId);
+        if (teacher is null) return false;
+
+        if (await _db.Sections.AnyAsync(s => s.Id == sectionId && s.AdviserId == teacher.Id)) return true;
+
+        return await _db.TeacherSubjectAssignments
+            .AnyAsync(a => a.SectionId == sectionId && a.TeacherId == teacher.Id);
+    }
+
     private async Task<List<SelectListItem>> SectionOptionsAsync(int? selected)
     {
         var sections = await _db.Sections
@@ -395,7 +428,24 @@ public class GradesController : Controller
             .ToList();
     }
 
-    private async Task<List<SelectListItem>> SubjectOptionsAsync(int? selected)
+    private async Task<List<SubjectOption>> SubjectOptionsAsync()
+    {
+        var subjects = await _db.Subjects
+            .OrderBy(s => s.Code)
+            .ToListAsync();
+
+        return subjects
+            .Select(s => new SubjectOption
+            {
+                Id = s.Id,
+                Label = s.DisplayName,
+                GradeLevelId = s.GradeLevelId
+            })
+            .ToList();
+    }
+
+    /// <summary>Plain subject list for the encoding sheet, which does not cascade.</summary>
+    private async Task<List<SelectListItem>> SubjectSelectListAsync(int? selected)
     {
         var subjects = await _db.Subjects
             .OrderBy(s => s.Code)

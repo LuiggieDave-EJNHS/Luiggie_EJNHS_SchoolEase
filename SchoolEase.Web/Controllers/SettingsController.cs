@@ -63,6 +63,12 @@ public class SettingsController : Controller
             vm.RecoveryCodeCreatedAt = await RecoveryCodes.GetCreatedAtAsync(_userManager, account);
         }
 
+        // Only a Super Administrator sees (and can run) the demo-data cleanup.
+        if (User.IsInRole(Roles.SuperAdministrator))
+        {
+            vm.DemoData = await DemoDataPurge.ScanAsync(_db);
+        }
+
         ViewData["Title"] = "System Settings";
         return View(vm);
     }
@@ -141,6 +147,59 @@ public class SettingsController : Controller
             userName: account.FullName, userId: account.Id);
 
         TempData["Success"] = "Recovery code revoked.";
+        return RedirectToAction(nameof(Index));
+    }
+
+    /// <summary>
+    /// Deletes every row the demo seeders created (sample learners, personnel,
+    /// sections, timetable, records and announcements) while leaving real data and
+    /// all lookups untouched. The operator has to type the confirmation phrase and
+    /// the signed-in account is never removed, so a Super Administrator can never
+    /// lock themselves out with this.
+    /// </summary>
+    [HttpPost]
+    [Authorize(Policy = Policies.SuperAdminOnly)]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> PurgeDemoData(string? confirmation)
+    {
+        if (!string.Equals(confirmation?.Trim(), "REMOVE DEMO DATA", StringComparison.OrdinalIgnoreCase))
+        {
+            TempData["Error"] = "Nothing was deleted. Type REMOVE DEMO DATA exactly to confirm.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        var account = await _userManager.GetUserAsync(User);
+        if (account is null) return Forbid();
+
+        var report = await DemoDataPurge.PurgeAsync(_db, account.Id);
+
+        // Identity rows are removed through UserManager so the role, claim and
+        // login tables stay consistent. The signed-in account is skipped.
+        var removedAccounts = 0;
+        foreach (var email in DemoDataPurge.DemoUserEmails)
+        {
+            var demoUser = await _userManager.FindByEmailAsync(email);
+            if (demoUser is null || demoUser.Id == account.Id) continue;
+
+            var result = await _userManager.DeleteAsync(demoUser);
+            if (result.Succeeded) removedAccounts++;
+        }
+
+        report.Users = removedAccounts;
+
+        await _audit.LogAsync("Purge Demo Data", "Database", null,
+            report.IsEmpty
+                ? "No demo rows were found."
+                : $"Removed {report.Total} demo row(s) including {report.Students} learner(s), " +
+                  $"{report.Teachers + report.Staff} personnel record(s), {report.Sections} section(s) " +
+                  $"and {report.AttendanceRecords + report.GradeRecords} academic record(s).",
+            userName: account.FullName, userId: account.Id);
+
+        TempData["Success"] = report.IsEmpty
+            ? "No demo data was found — the database is already clean."
+            : $"Demo data removed: {report.Users} account(s), {report.Students} learner(s), " +
+              $"{report.Teachers + report.Staff} personnel, {report.Sections} section(s) and " +
+              $"{report.AttendanceRecords + report.GradeRecords} academic record(s).";
         return RedirectToAction(nameof(Index));
     }
 }

@@ -21,6 +21,7 @@ AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
 // Configuration
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("Mail"));
+builder.Services.Configure<StorageSettings>(builder.Configuration.GetSection("Storage"));
 
 // ---------------------------------------------------------------------------
 // Database (SQLite by default, MySQL / SQL Server selectable from appsettings)
@@ -105,6 +106,10 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddTransient<IEmailSender, EmailSender>();
+
+// Optional S3-compatible object storage (Cloudflare R2). When the credentials are
+// blank, IsConfigured is false and uploaded files are kept in the database instead.
+builder.Services.AddSingleton<IFileStorage, R2FileStorage>();
 
 builder.Services.AddControllersWithViews(options =>
 {

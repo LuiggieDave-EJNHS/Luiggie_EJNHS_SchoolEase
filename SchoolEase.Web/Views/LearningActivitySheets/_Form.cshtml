@@ -22,19 +22,27 @@
     <div class="se-form-section"><h3>Placement</h3></div>
 
     <div>
-        <label class="se-form-label" asp-for="SubjectId">Subject <span class="req">*</span></label>
-        <select asp-for="SubjectId" asp-items="Model.Subjects" class="form-select">
-            <option value="">Select subject</option>
-        </select>
-        <span asp-validation-for="SubjectId" class="text-danger se-small"></span>
-    </div>
-
-    <div>
         <label class="se-form-label" asp-for="GradeLevelId">Grade Level</label>
-        <select asp-for="GradeLevelId" asp-items="Model.GradeLevels" class="form-select">
+        <select asp-for="GradeLevelId" asp-items="Model.GradeLevels" class="form-select"
+                data-se-cascade="#SubjectId">
             <option value="">Any grade level</option>
         </select>
         <span asp-validation-for="GradeLevelId" class="text-danger se-small"></span>
+    </div>
+
+    <div>
+        <label class="se-form-label" asp-for="SubjectId">Subject <span class="req">*</span></label>
+        <select asp-for="SubjectId" class="form-select">
+            <option value="">Select subject</option>
+            @foreach (var subject in Model.Subjects)
+            {
+                <option value="@subject.Id"
+                        data-se-group="@(subject.GradeLevelId?.ToString() ?? string.Empty)"
+                        selected="@(Model.SubjectId == subject.Id ? "selected" : null)">@subject.Label</option>
+            }
+        </select>
+        <span asp-validation-for="SubjectId" class="text-danger se-small"></span>
+        <span class="se-tiny se-muted d-block">Pick a grade level to narrow the subject list.</span>
     </div>
 
     <div>

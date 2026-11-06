@@ -244,6 +244,21 @@ public class SectionsController : Controller
             return RedirectToAction(nameof(Index));
         }
 
+        // Attendance and grade records keep a hard reference to their section,
+        // so the section cannot be removed while any exist. Ask the user to
+        // archive it (mark inactive) instead of crashing on the foreign key.
+        if (await _db.AttendanceRecords.AnyAsync(a => a.SectionId == id))
+        {
+            TempData["Error"] = "This section has attendance records and cannot be deleted. Mark it inactive to archive it instead.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        if (await _db.GradeRecords.AnyAsync(g => g.SectionId == id))
+        {
+            TempData["Error"] = "This section has grade records and cannot be deleted. Mark it inactive to archive it instead.";
+            return RedirectToAction(nameof(Index));
+        }
+
         _db.Sections.Remove(section);
         await _db.SaveChangesAsync();
         await _audit.LogAsync("Delete Section", "Section", section.Id, section.DisplayName);

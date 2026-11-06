@@ -5,8 +5,9 @@ namespace SchoolEase.Web.Models.Entities;
 
 /// <summary>
 /// A Learning Activity Sheet (LAS) published to the school library.
-/// The file itself is stored in the database so it survives hosting redeploys
-/// (free hosting tiers use an ephemeral disk).
+/// The file lives in object storage when a bucket is configured; otherwise it is
+/// kept in the database, so the module works without any external service and
+/// survives hosting redeploys either way.
 /// </summary>
 public class LearningActivitySheet
 {
@@ -53,7 +54,15 @@ public class LearningActivitySheet
     [Display(Name = "File Size")]
     public long FileSize { get; set; }
 
+    /// <summary>
+    /// The file bytes. Kept empty when <see cref="StorageKey"/> points at an
+    /// object-storage copy, so the column stays non-nullable on every provider.
+    /// </summary>
     public byte[] FileContent { get; set; } = Array.Empty<byte>();
+
+    /// <summary>Object key inside the configured bucket; null when the bytes are in the database.</summary>
+    [StringLength(400)]
+    public string? StorageKey { get; set; }
 
     [Display(Name = "Published")]
     public bool IsPublished { get; set; } = true;

@@ -43,6 +43,16 @@ public class AnnouncementsController : Controller
             .Include(a => a.Author)
             .Where(a => audiences.Contains(a.Audience));
 
+        // Drafts, scheduled and expired bulletins stay hidden from readers; only
+        // the administrators who manage the board see everything.
+        if (!_currentUser.IsAdministrator)
+        {
+            var now = DateTime.Now;
+            query = query.Where(a => a.IsPublished
+                && a.PublishDate <= now
+                && (a.ExpireDate == null || a.ExpireDate >= now));
+        }
+
         if (priority.HasValue) query = query.Where(a => a.Priority == priority);
         if (audience.HasValue) query = query.Where(a => a.Audience == audience);
         if (!string.IsNullOrWhiteSpace(keyword))
@@ -92,6 +102,9 @@ public class AnnouncementsController : Controller
         if (announcement is null) return NotFound();
         if (!VisibleAudiences().Contains(announcement.Audience)) return Forbid();
 
+        // A draft, scheduled or expired notice is not readable by the audience.
+        if (!announcement.IsLive && !_currentUser.IsAdministrator) return NotFound();
+
         ViewData["Title"] = announcement.Title;
         ViewData["CanManage"] = _currentUser.IsAdministrator;
         return View(announcement);
@@ -118,6 +131,8 @@ public class AnnouncementsController : Controller
             return View(model);
         }
 
+        // Never trust a client-supplied key: the store assigns the identifier.
+        model.Id = 0;
         model.AuthorUserId = _currentUser.UserId;
         model.AuthorName = _currentUser.FullName;
         model.CreatedAt = DateTime.UtcNow;
@@ -160,6 +175,10 @@ public class AnnouncementsController : Controller
             return View(model);
         }
 
+        // Only a notice that goes from hidden to live is worth notifying about;
+        // re-saving a live post (a typo fix) must not spam the audience again.
+        var wasLive = announcement.IsLive;
+
         announcement.Title = model.Title;
         announcement.Content = model.Content;
         announcement.Priority = model.Priority;
@@ -171,7 +190,7 @@ public class AnnouncementsController : Controller
 
         await _db.SaveChangesAsync();
 
-        if (announcement.IsPublished) await NotifyAudienceAsync(announcement);
+        if (!wasLive && announcement.IsLive) await NotifyAudienceAsync(announcement);
 
         await _audit.LogAsync("Update Announcement", "Announcement", announcement.Id, $"Updated \"{announcement.Title}\".");
         TempData["Success"] = "Announcement updated.";

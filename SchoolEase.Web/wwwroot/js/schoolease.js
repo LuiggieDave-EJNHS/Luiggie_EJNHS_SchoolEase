@@ -238,6 +238,38 @@
         });
     }
 
+    /* -------------------------------------------------- Cascading selects */
+    // <select data-se-cascade="#subjectSelect"> narrows the target select to the
+    // options whose data-se-group matches the parent's value. Options without a
+    // group — and any option while the parent has no value — stay visible.
+    function applyCascade(parent) {
+        const target = SE.qs(parent.dataset.seCascade);
+        if (!target) return;
+
+        const parentGroup = parent.value || "";
+        let resetSelection = false;
+
+        Array.from(target.options).forEach(option => {
+            if (option.value === "") return;                // keep the placeholder
+            const group = option.dataset.seGroup || "";
+            const visible = !parentGroup || !group || group === parentGroup;
+            option.hidden = !visible;
+            option.disabled = !visible;
+            if (!visible && option.selected) resetSelection = true;
+        });
+
+        // A previously chosen value that no longer applies is cleared so it is
+        // never submitted against the wrong grade level.
+        if (resetSelection) target.value = "";
+    }
+
+    function initCascades() {
+        SE.qsa("select[data-se-cascade]").forEach(parent => {
+            applyCascade(parent);
+            parent.addEventListener("change", () => applyCascade(parent));
+        });
+    }
+
     /* ----------------------------------------------------------------- Tables */
     function initTables() {
         // Client side quick search: <input data-se-table-filter="#tableId">
@@ -390,6 +422,7 @@
         initConfirm();
         initForms();
         initFilters();
+        initCascades();
         initTables();
         initNotifications();
         SE.renderCharts();

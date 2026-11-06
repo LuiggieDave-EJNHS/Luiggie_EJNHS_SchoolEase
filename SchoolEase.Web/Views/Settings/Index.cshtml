@@ -163,13 +163,117 @@
                 </div>
             }
         </div>
+
+        @if (User.IsInRole(Roles.SuperAdministrator))
+        {
+            var demo = Model.DemoData;
+            var clean = demo is null || demo.IsEmpty;
+            <div class="se-card mt-3">
+                <div class="se-card__head">
+                    <h3><i class="bi bi-eraser me-1"></i>Demo data cleanup</h3>
+                    @if (clean)
+                    {
+                        <span class="se-pill"><i class="bi bi-check2-circle"></i>Clean</span>
+                    }
+                    else
+                    {
+                        <span class="se-pill"><i class="bi bi-exclamation-triangle"></i>@demo!.Total row(s)</span>
+                    }
+                </div>
+                <div class="se-card__body">
+                    <p class="se-small mb-2">
+                        Removes only the sample records the demo seeder created. Real data — plus the grade
+                        levels, subjects, document types and system settings — is never touched. Safe to run
+                        more than once.
+                    </p>
+
+                    @if (clean)
+                    {
+                        <p class="se-small se-muted mb-0">
+                            <i class="bi bi-check2 me-1"></i>No demo records were found. The database holds real data only.
+                        </p>
+                    }
+                    else
+                    {
+                        <dl class="row se-small mb-3">
+                            @if (demo!.Users > 0)
+                            {
+                                <dt class="col-7 se-muted">Demo accounts</dt><dd class="col-5 text-end">@demo.Users</dd>
+                            }
+                            @if (demo.Students > 0)
+                            {
+                                <dt class="col-7 se-muted">Learners</dt><dd class="col-5 text-end">@demo.Students</dd>
+                            }
+                            @if (demo.Guardians > 0)
+                            {
+                                <dt class="col-7 se-muted">Guardians</dt><dd class="col-5 text-end">@demo.Guardians</dd>
+                            }
+                            @if (demo.Teachers + demo.Staff > 0)
+                            {
+                                <dt class="col-7 se-muted">Personnel</dt><dd class="col-5 text-end">@(demo.Teachers + demo.Staff)</dd>
+                            }
+                            @if (demo.Sections > 0)
+                            {
+                                <dt class="col-7 se-muted">Sections</dt><dd class="col-5 text-end">@demo.Sections</dd>
+                            }
+                            @if (demo.TeacherSubjectAssignments + demo.ClassSchedules > 0)
+                            {
+                                <dt class="col-7 se-muted">Teaching loads &amp; timetable</dt><dd class="col-5 text-end">@(demo.TeacherSubjectAssignments + demo.ClassSchedules)</dd>
+                            }
+                            @if (demo.AttendanceRecords + demo.GradeRecords > 0)
+                            {
+                                <dt class="col-7 se-muted">Attendance &amp; grade records</dt><dd class="col-5 text-end">@(demo.AttendanceRecords + demo.GradeRecords)</dd>
+                            }
+                            @if (demo.DocumentRequests > 0)
+                            {
+                                <dt class="col-7 se-muted">Document requests</dt><dd class="col-5 text-end">@demo.DocumentRequests</dd>
+                            }
+                            @if (demo.Enrollments > 0)
+                            {
+                                <dt class="col-7 se-muted">Enrolments</dt><dd class="col-5 text-end">@demo.Enrollments</dd>
+                            }
+                            @if (demo.Notifications + demo.Announcements > 0)
+                            {
+                                <dt class="col-7 se-muted">Notifications &amp; announcements</dt><dd class="col-5 text-end">@(demo.Notifications + demo.Announcements)</dd>
+                            }
+                            @if (demo.SchoolEvents > 0)
+                            {
+                                <dt class="col-7 se-muted">Calendar entries</dt><dd class="col-5 text-end">@demo.SchoolEvents</dd>
+                            }
+                        </dl>
+
+                        @if (demo.SkippedSections > 0)
+                        {
+                            <p class="se-tiny se-muted">
+                                <i class="bi bi-info-circle me-1"></i>@demo.SkippedSections section(s) are kept because
+                                real learners are still enrolled in them.
+                            </p>
+                        }
+
+                        <div class="mb-2">
+                            <label class="se-form-label" for="purgeConfirmation">Type <code>REMOVE DEMO DATA</code> to confirm</label>
+                            <input id="purgeConfirmation" name="confirmation" form="demoPurgeForm"
+                                   class="form-control" placeholder="REMOVE DEMO DATA" autocomplete="off" />
+                        </div>
+                        <button type="submit" form="demoPurgeForm" class="btn btn-danger w-100">
+                            <i class="bi bi-trash3 me-1"></i>Remove demo data
+                        </button>
+                    }
+                </div>
+            </div>
+        }
     </div>
 </form>
 
 @if (User.IsInRole(Roles.SuperAdministrator))
 {
-    @* Sits outside the settings form so the recovery buttons never submit the settings. *@
+    @* Sits outside the settings form so the recovery and cleanup buttons never submit the settings. *@
     <form id="recoveryForm" method="post" class="d-none" data-se-no-loading="1">
+        @Html.AntiForgeryToken()
+    </form>
+    <form id="demoPurgeForm" method="post" action="@Url.Action("PurgeDemoData")" class="d-none"
+          data-se-no-loading="1"
+          data-se-confirm="Permanently delete the demo records listed above? This cannot be undone.">
         @Html.AntiForgeryToken()
     </form>
 }

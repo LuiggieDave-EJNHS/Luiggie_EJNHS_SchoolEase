@@ -117,6 +117,19 @@ public static class SelectLists
         };
 }
 
+/// <summary>
+/// A subject choice that knows which grade level it belongs to. Used to drive
+/// cascading Grade Level → Subject dropdowns on the client.
+/// </summary>
+public class SubjectOption
+{
+    public int Id { get; set; }
+    public string Label { get; set; } = string.Empty;
+
+    /// <summary>Owning grade level, or null when the subject applies to any level.</summary>
+    public int? GradeLevelId { get; set; }
+}
+
 /// <summary>Small payload used by the dashboard "quick actions" grid.</summary>
 public class QuickAction
 {

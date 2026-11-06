@@ -287,13 +287,18 @@ public class SchedulesController : Controller
     /// <summary>Detects a clash on the same day for the same teacher, section or room.</summary>
     private async Task<string?> FindConflictAsync(ScheduleFormViewModel model, int? excludeId)
     {
-        // Filter by day in SQL, then compare the time ranges in memory so the check
-        // behaves identically on every supported database provider.
+        // Clashes only matter within the same school year: last year's timetable
+        // must never block a fresh schedule.
+        var schoolYear = model.SchoolYear?.Trim() ?? string.Empty;
+
+        // Filter by school year and day in SQL, then compare the time ranges in
+        // memory so the check behaves identically on every supported provider.
         var sameDay = await _db.ClassSchedules
             .Include(c => c.Teacher)
             .Include(c => c.Section)
             .Include(c => c.Subject)
-            .Where(c => c.DayOfWeek == model.DayOfWeek && (excludeId == null || c.Id != excludeId))
+            .Where(c => c.SchoolYear == schoolYear && c.DayOfWeek == model.DayOfWeek
+                && (excludeId == null || c.Id != excludeId))
             .ToListAsync();
 
         foreach (var existing in sameDay)
@@ -340,6 +345,7 @@ public class SchedulesController : Controller
                 var b = items[j];
 
                 if (a.DayOfWeek != b.DayOfWeek) continue;
+                if (!string.Equals(a.SchoolYear, b.SchoolYear, StringComparison.OrdinalIgnoreCase)) continue;
                 if (!(a.StartTime < b.EndTime && b.StartTime < a.EndTime)) continue;
 
                 var reasons = new List<string>();

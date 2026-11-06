@@ -237,6 +237,15 @@ public class TeachersController : Controller
         if (teacher is null) return NotFound();
 
         var name = teacher.FullName;
+
+        // Class schedules keep a hard reference to their teacher, so the row
+        // cannot be removed while any remain.
+        if (await _db.ClassSchedules.AnyAsync(c => c.TeacherId == id))
+        {
+            TempData["Error"] = $"{name} still has classes in the timetable. Reassign or remove those schedules before deleting.";
+            return RedirectToAction(nameof(Index));
+        }
+
         _db.Teachers.Remove(teacher);
         await _db.SaveChangesAsync();
 

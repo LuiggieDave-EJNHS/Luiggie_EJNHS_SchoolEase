@@ -45,6 +45,8 @@ public static class DbSeeder
 
         await SeedDocumentTypesAsync(db);
 
+        await SeedAcademicLookupsAsync(db, logger);
+
         // The first administrator is created from configuration, so a fresh
         // install always has a way in without shipping any known credentials.
         await SeedAdministratorAsync(userManager, config, logger);
@@ -118,6 +120,7 @@ public static class DbSeeder
                     "ContentType" character varying(120) NOT NULL,
                     "FileSize" bigint NOT NULL,
                     "FileContent" bytea NOT NULL,
+                    "StorageKey" character varying(400),
                     "IsPublished" boolean NOT NULL,
                     "SchoolYear" character varying(20) NOT NULL,
                     "UploaderName" character varying(120) NOT NULL,
@@ -138,6 +141,11 @@ public static class DbSeeder
                 "CREATE INDEX IF NOT EXISTS \"IX_LearningActivitySheets_GradeLevelId\" ON \"LearningActivitySheets\" (\"GradeLevelId\");");
             await db.Database.ExecuteSqlRawAsync(
                 "CREATE INDEX IF NOT EXISTS \"IX_LearningActivitySheets_IsPublished\" ON \"LearningActivitySheets\" (\"IsPublished\");");
+
+            // Databases created before object storage existed have no StorageKey
+            // column. Idempotent, so it is safe to run on every start.
+            await db.Database.ExecuteSqlRawAsync(
+                "ALTER TABLE \"LearningActivitySheets\" ADD COLUMN IF NOT EXISTS \"StorageKey\" character varying(400);");
         }
         else if (provider.Contains("Sqlite", StringComparison.OrdinalIgnoreCase))
         {
@@ -156,6 +164,7 @@ public static class DbSeeder
                     "ContentType" TEXT NOT NULL,
                     "FileSize" INTEGER NOT NULL,
                     "FileContent" BLOB NOT NULL,
+                    "StorageKey" TEXT,
                     "IsPublished" INTEGER NOT NULL,
                     "SchoolYear" TEXT NOT NULL,
                     "UploaderName" TEXT NOT NULL,
@@ -176,6 +185,43 @@ public static class DbSeeder
                 "CREATE INDEX IF NOT EXISTS \"IX_LearningActivitySheets_GradeLevelId\" ON \"LearningActivitySheets\" (\"GradeLevelId\");");
             await db.Database.ExecuteSqlRawAsync(
                 "CREATE INDEX IF NOT EXISTS \"IX_LearningActivitySheets_IsPublished\" ON \"LearningActivitySheets\" (\"IsPublished\");");
+
+            // SQLite has no ADD COLUMN IF NOT EXISTS, so check first.
+            if (!await SqliteColumnExistsAsync(db, "LearningActivitySheets", "StorageKey"))
+            {
+                await db.Database.ExecuteSqlRawAsync(
+                    "ALTER TABLE \"LearningActivitySheets\" ADD COLUMN \"StorageKey\" TEXT;");
+            }
+        }
+    }
+
+    /// <summary>True when a SQLite table already has the given column.</summary>
+    private static async Task<bool> SqliteColumnExistsAsync(ApplicationDbContext db, string table, string column)
+    {
+        var connection = db.Database.GetDbConnection();
+        var opened = false;
+
+        if (connection.State != System.Data.ConnectionState.Open)
+        {
+            await connection.OpenAsync();
+            opened = true;
+        }
+
+        try
+        {
+            await using var command = connection.CreateCommand();
+            command.CommandText = $"SELECT COUNT(*) FROM pragma_table_info('{table}') WHERE name = @name";
+            var parameter = command.CreateParameter();
+            parameter.ParameterName = "@name";
+            parameter.Value = column;
+            command.Parameters.Add(parameter);
+
+            var result = await command.ExecuteScalarAsync();
+            return Convert.ToInt64(result) > 0;
+        }
+        finally
+        {
+            if (opened) await connection.CloseAsync();
         }
     }
 
@@ -303,5 +349,104 @@ public static class DbSeeder
         );
 
         await db.SaveChangesAsync();
+    }
+
+    /// <summary>The full Grade 7 to Grade 12 ladder offered by the school.</summary>
+    private static readonly (string Code, string Name, int Order, string Description)[] DefaultGradeLevels =
+    {
+        ("G7", "Grade 7", 7, "Junior High School - Grade 7"),
+        ("G8", "Grade 8", 8, "Junior High School - Grade 8"),
+        ("G9", "Grade 9", 9, "Junior High School - Grade 9"),
+        ("G10", "Grade 10", 10, "Junior High School - Grade 10"),
+        ("G11", "Grade 11", 11, "Senior High School - Grade 11"),
+        ("G12", "Grade 12", 12, "Senior High School - Grade 12")
+    };
+
+    /// <summary>
+    /// The DepEd learning areas per grade level. Junior High (7-10) uses the eight
+    /// standard learning areas; Senior High (11-12) uses the core and applied subjects.
+    /// </summary>
+    private static IEnumerable<(string Code, string Title, double Units, string GradeCode, string TrackStrand)> DefaultSubjects()
+    {
+        for (var grade = 7; grade <= 10; grade++)
+        {
+            yield return ($"FIL{grade}", $"Filipino {grade}", 4, $"G{grade}", "Junior High School");
+            yield return ($"ENG{grade}", $"English {grade}", 4, $"G{grade}", "Junior High School");
+            yield return ($"MATH{grade}", $"Mathematics {grade}", 4, $"G{grade}", "Junior High School");
+            yield return ($"SCI{grade}", $"Science {grade}", 4, $"G{grade}", "Junior High School");
+            yield return ($"AP{grade}", $"Araling Panlipunan {grade}", 3, $"G{grade}", "Junior High School");
+            yield return ($"ESP{grade}", $"Edukasyon sa Pagpapakatao {grade}", 2, $"G{grade}", "Junior High School");
+            yield return ($"TLE{grade}", $"Technology and Livelihood Education {grade}", 4, $"G{grade}", "Junior High School");
+            yield return ($"MAPEH{grade}", $"MAPEH {grade}", 4, $"G{grade}", "Junior High School");
+        }
+
+        yield return ("ORALCOM", "Oral Communication", 3, "G11", "Core");
+        yield return ("GENMATH", "General Mathematics", 3, "G11", "Core");
+        yield return ("EARTHSCI", "Earth and Life Science", 3, "G11", "Core");
+        yield return ("EMPTECH", "Empowerment Technologies", 3, "G11", "Applied");
+        yield return ("PERDEV", "Personal Development", 3, "G11", "Core");
+        yield return ("KOMFIL", "Komunikasyon at Pananaliksik", 3, "G11", "Core");
+        yield return ("UCSP", "Understanding Culture, Society and Politics", 3, "G11", "Core");
+        yield return ("PE1", "Physical Education 1", 1, "G11", "Core");
+
+        yield return ("PR2", "Practical Research 2", 3, "G12", "Applied");
+        yield return ("MIL", "Media and Information Literacy", 3, "G12", "Core");
+        yield return ("PHYSCI", "Physical Science", 3, "G12", "Core");
+        yield return ("ENTREP", "Entrepreneurship", 3, "G12", "Applied");
+        yield return ("RWS", "Reading and Writing Skills", 3, "G12", "Core");
+        yield return ("PE3", "Physical Education 3", 1, "G12", "Core");
+        yield return ("STATPROB", "Statistics and Probability", 3, "G12", "Core");
+    }
+
+    /// <summary>
+    /// Ensures the grade-level and subject lookups exist. Additive and idempotent:
+    /// it only inserts entries whose code is missing, so it repairs a fresh (or
+    /// earlier, empty) database without duplicating anything already present.
+    /// </summary>
+    private static async Task SeedAcademicLookupsAsync(ApplicationDbContext db, ILogger logger)
+    {
+        // 1. Grade Levels (Grades 7-12).
+        var existingGradeCodes = await db.GradeLevels.Select(g => g.Code).ToListAsync();
+        var newGrades = DefaultGradeLevels
+            .Where(g => !existingGradeCodes.Contains(g.Code))
+            .Select(g => new GradeLevel
+            {
+                Name = g.Name,
+                Code = g.Code,
+                OrderIndex = g.Order,
+                Description = g.Description,
+                IsActive = true
+            })
+            .ToList();
+
+        if (newGrades.Count > 0)
+        {
+            logger.LogInformation("Seeding {Count} grade level(s)...", newGrades.Count);
+            db.GradeLevels.AddRange(newGrades);
+            await db.SaveChangesAsync();
+        }
+
+        // 2. Subjects, matched by unique subject code.
+        var gradeIds = await db.GradeLevels.ToDictionaryAsync(g => g.Code, g => g.Id);
+        var existingSubjectCodes = await db.Subjects.Select(s => s.Code).ToListAsync();
+        var newSubjects = DefaultSubjects()
+            .Where(s => !existingSubjectCodes.Contains(s.Code))
+            .Select(s => new Subject
+            {
+                Code = s.Code,
+                Title = s.Title,
+                Units = s.Units,
+                GradeLevelId = gradeIds.TryGetValue(s.GradeCode, out var gradeId) ? gradeId : null,
+                TrackStrand = s.TrackStrand,
+                IsActive = true
+            })
+            .ToList();
+
+        if (newSubjects.Count > 0)
+        {
+            logger.LogInformation("Seeding {Count} subject(s)...", newSubjects.Count);
+            db.Subjects.AddRange(newSubjects);
+            await db.SaveChangesAsync();
+        }
     }
 }
