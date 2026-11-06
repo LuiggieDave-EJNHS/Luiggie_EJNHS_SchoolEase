@@ -17,7 +17,7 @@ public class DocumentRequestsController : Controller
 
     private static readonly string[] Palette =
     {
-        "#f2a93b", "#17a2b8", "#2f6fed", "#1aa179", "#dc3545"
+        "#f2a93b", "#17a2b8", "#800000", "#1aa179", "#dc3545"
     };
 
     private readonly ApplicationDbContext _db;

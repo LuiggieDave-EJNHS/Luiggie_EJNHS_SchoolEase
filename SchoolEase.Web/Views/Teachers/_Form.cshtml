@@ -48,7 +48,7 @@
 
     <div>
         <label class="form-label" asp-for="ContactNumber"></label>
-        <input asp-for="ContactNumber" class="form-control" />
+        <input asp-for="ContactNumber" type="tel" inputmode="tel" class="form-control" placeholder="e.g. 0917 123 4567" />
         <span asp-validation-for="ContactNumber" class="text-danger se-small"></span>
     </div>
     <div>

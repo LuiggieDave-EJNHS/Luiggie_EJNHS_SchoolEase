@@ -178,7 +178,7 @@ public class StudentController : Controller
             Labels = dates.Select(d => d.ToString("MMM d")).ToList(),
             Values = dates.Select(d => (double)recent.Count(a =>
                 a.Date.Date == d && a.Status is AttendanceStatus.Present or AttendanceStatus.Late)).ToList(),
-            Colors = dates.Select(_ => "#2f6fed").ToList()
+            Colors = dates.Select(_ => "#800000").ToList()
         };
 
         ViewData["Title"] = "My Attendance";

@@ -55,6 +55,7 @@ public class RegisterViewModel
 
     [Required(ErrorMessage = "Please enter a password.")]
     [StringLength(100, MinimumLength = 8, ErrorMessage = "Password must be at least 8 characters long.")]
+    [RegularExpression(@"^(?=.*[^a-zA-Z0-9]).*$", ErrorMessage = "Password must include at least one special character (for example !, @, # or $).")]
     [DataType(DataType.Password)]
     [Display(Name = "Password")]
     public string Password { get; set; } = string.Empty;

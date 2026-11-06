@@ -14,9 +14,9 @@ public static class EmailTemplates
     private const string Font = "-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
 
     // Brand palette, kept in sync with wwwroot/css/schoolease.css
-    private const string Primary = "#2f6fed";
-    private const string Navy = "#102a4c";
-    private const string NavyText = "#c3d0e4";
+    private const string Primary = "#800000";
+    private const string Navy = "#26060a";
+    private const string NavyText = "#e0cfc9";
     private const string Ink = "#16202c";
     private const string InkSoft = "#3b4855";
     private const string Muted = "#6b7a90";

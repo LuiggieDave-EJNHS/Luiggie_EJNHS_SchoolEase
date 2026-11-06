@@ -208,6 +208,7 @@ public class AccountCreateViewModel
     public string Email { get; set; } = string.Empty;
 
     [Required, StringLength(100, MinimumLength = 8, ErrorMessage = "Password must be at least 8 characters.")]
+    [RegularExpression(@"^(?=.*[^a-zA-Z0-9]).*$", ErrorMessage = "Password must include at least one special character (for example !, @, # or $).")]
     [DataType(DataType.Password)]
     [Display(Name = "Password")]
     public string Password { get; set; } = string.Empty;
@@ -252,6 +253,7 @@ public class AccountResetPasswordViewModel
     public string Id { get; set; } = string.Empty;
 
     [Required, StringLength(100, MinimumLength = 8, ErrorMessage = "The new password must be at least 8 characters.")]
+    [RegularExpression(@"^(?=.*[^a-zA-Z0-9]).*$", ErrorMessage = "The new password must include at least one special character.")]
     [DataType(DataType.Password)]
     [Display(Name = "New Password")]
     public string NewPassword { get; set; } = string.Empty;

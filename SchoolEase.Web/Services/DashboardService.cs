@@ -19,7 +19,7 @@ public class DashboardService : IDashboardService
 {
     private static readonly string[] Palette =
     {
-        "#2f6fed", "#1aa179", "#f2a93b", "#dc3545", "#6f42c1", "#17a2b8", "#d63384", "#5b6b7c"
+        "#800000", "#1aa179", "#f2a93b", "#dc3545", "#6f42c1", "#17a2b8", "#d63384", "#5b6b7c"
     };
 
     private readonly ApplicationDbContext _db;
@@ -164,7 +164,7 @@ public class DashboardService : IDashboardService
             Values = trendDates.Select(d => (double)(perDate.TryGetValue(d, out var marks)
                 ? marks.Count(m => m.Status is AttendanceStatus.Present or AttendanceStatus.Late)
                 : 0)).ToList(),
-            Colors = trendDates.Select(_ => "#2f6fed").ToList()
+            Colors = trendDates.Select(_ => "#800000").ToList()
         };
 
         var requestGroups = await _db.DocumentRequests
@@ -184,7 +184,7 @@ public class DashboardService : IDashboardService
             Title = "Document Requests by Status",
             Labels = requestStatuses.Select(s => s.DisplayName()).ToList(),
             Values = requestStatuses.Select(s => (double)(requestGroups.FirstOrDefault(g => g.Status == s)?.Count ?? 0)).ToList(),
-            Colors = new List<string> { "#f2a93b", "#17a2b8", "#2f6fed", "#1aa179", "#dc3545" }
+            Colors = new List<string> { "#f2a93b", "#17a2b8", "#800000", "#1aa179", "#dc3545" }
         };
 
         var enrollmentGroups = await _db.Students
@@ -420,7 +420,7 @@ public class DashboardService : IDashboardService
             Labels = dates.Select(d => d.ToString("MMM d")).ToList(),
             Values = dates.Select(d => (double)recent.Count(a => a.Date.Date == d &&
                 a.Status is AttendanceStatus.Present or AttendanceStatus.Late)).ToList(),
-            Colors = dates.Select(_ => "#2f6fed").ToList()
+            Colors = dates.Select(_ => "#800000").ToList()
         };
 
         return vm;

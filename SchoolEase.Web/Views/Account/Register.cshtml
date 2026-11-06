@@ -68,6 +68,7 @@
                     <input asp-for="Password" class="form-control" autocomplete="new-password" placeholder="Password" id="sePassword" />
                 </div>
                 <span asp-validation-for="Password" class="text-danger se-small"></span>
+                <span class="se-tiny se-muted d-block">At least 8 characters, with an uppercase letter, a lowercase letter, a number and a special character.</span>
             </div>
             <div class="col-md-6">
                 <label asp-for="ConfirmPassword" class="form-label"></label>

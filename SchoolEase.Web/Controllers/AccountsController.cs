@@ -166,6 +166,8 @@ public class AccountsController : Controller
         var roleResult = await _userManager.AddToRoleAsync(user, model.Role);
         if (!roleResult.Succeeded) AddErrors(roleResult);
 
+        await CreatePersonnelProfileAsync(user, model.Role);
+
         await _audit.LogAsync("Create Account", "Account", user.Id, $"Created {user.Email} as {model.Role}.");
         TempData["Success"] = $"Account for {user.FullName} created.";
         return RedirectToAction(nameof(Details), new { id = user.Id });
@@ -358,6 +360,97 @@ public class AccountsController : Controller
     // ------------------------------------------------------------------
     // Helpers
     // ------------------------------------------------------------------
+
+    /// <summary>Roles whose accounts also belong in the non-teaching staff register.</summary>
+    private static readonly string[] StaffRoles =
+    {
+        Roles.SchoolAdministrator, Roles.IctHeadCoordinator, Roles.Registrar
+    };
+
+    /// <summary>
+    /// Creating a Teacher or a staff-level account also files the matching
+    /// personnel record, so the personnel register and the teacher dashboard
+    /// are populated as soon as the account exists. The remaining profile
+    /// details are completed later from the Teachers or Staff section.
+    /// </summary>
+    private async Task CreatePersonnelProfileAsync(AppUser user, string role)
+    {
+        var (first, middle, last) = SplitName(user.FullName);
+        var middleName = string.IsNullOrWhiteSpace(middle) ? null : middle;
+
+        if (role == Roles.Teacher)
+        {
+            if (await _db.Teachers.AnyAsync(t => t.UserId == user.Id)) return;
+
+            _db.Teachers.Add(new Teacher
+            {
+                UserId = user.Id,
+                EmployeeNumber = await NextNumberAsync(_db.Teachers.Select(t => t.EmployeeNumber), "T-"),
+                FirstName = first,
+                MiddleName = middleName,
+                LastName = last,
+                Email = user.Email,
+                EmploymentStatus = EmploymentStatus.Permanent,
+                DateHired = DateTime.Today,
+                IsActive = user.IsActive,
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+        else if (StaffRoles.Contains(role))
+        {
+            if (await _db.StaffMembers.AnyAsync(s => s.UserId == user.Id)) return;
+
+            _db.StaffMembers.Add(new Staff
+            {
+                UserId = user.Id,
+                StaffNumber = await NextNumberAsync(_db.StaffMembers.Select(s => s.StaffNumber), "S-"),
+                FirstName = first,
+                MiddleName = middleName,
+                LastName = last,
+                Email = user.Email,
+                Position = role,
+                EmploymentStatus = EmploymentStatus.Permanent,
+                DateHired = DateTime.Today,
+                IsActive = user.IsActive,
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+        else
+        {
+            return;
+        }
+
+        await _db.SaveChangesAsync();
+    }
+
+    /// <summary>Splits a single "Full Name" field into the personnel name parts.</summary>
+    private static (string First, string Middle, string Last) SplitName(string fullName)
+    {
+        var parts = fullName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+        return parts.Length switch
+        {
+            0 => (string.Empty, string.Empty, string.Empty),
+            1 => (parts[0], string.Empty, string.Empty),
+            2 => (parts[0], string.Empty, parts[1]),
+            _ => (parts[0], string.Join(' ', parts[1..^1]), parts[^1])
+        };
+    }
+
+    /// <summary>Next free sequential number for the given prefix (e.g. T-001).</summary>
+    private static async Task<string> NextNumberAsync(IQueryable<string> numbers, string prefix)
+    {
+        var existing = await numbers.Where(n => n.StartsWith(prefix)).ToListAsync();
+
+        var max = 0;
+        foreach (var number in existing)
+        {
+            if (int.TryParse(number[prefix.Length..], out var value) && value > max) max = value;
+        }
+
+        return $"{prefix}{max + 1:D3}";
+    }
+
     private bool CanAssignRole(string role) =>
         role != Roles.SuperAdministrator || _currentUser.IsSuperAdministrator;
 

@@ -39,6 +39,7 @@ public class Staff
     public string? Address { get; set; }
 
     [StringLength(30)]
+    [RegularExpression(@"^[0-9+\-() ]*$", ErrorMessage = "Use numbers only (digits, plus sign, dashes and parentheses are allowed).")]
     [Display(Name = "Contact Number")]
     public string? ContactNumber { get; set; }
 

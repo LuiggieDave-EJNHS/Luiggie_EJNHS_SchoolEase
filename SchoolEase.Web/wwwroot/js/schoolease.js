@@ -301,20 +301,20 @@
 
             const palette = spec.colors && spec.colors.length
                 ? spec.colors
-                : ["#2f6fed", "#12a37a", "#e8930c", "#dc3545", "#6f42c1", "#0ea5c6", "#d63384", "#5b6b7c"];
+                : ["#800000", "#c9a227", "#12a37a", "#e8930c", "#dc3545", "#6f42c1", "#0ea5c6", "#5b6b7c"];
 
             const type = spec.type || "bar";
             const dataset = {
                 label: spec.datasetLabel || "Total",
                 data: spec.values || [],
-                backgroundColor: type === "line" ? "rgba(47,111,237,.14)" : palette,
-                borderColor: type === "line" ? "#2f6fed" : "#fff",
+                backgroundColor: type === "line" ? "rgba(128,0,0,.14)" : palette,
+                borderColor: type === "line" ? "#800000" : "#fff",
                 borderWidth: type === "line" ? 3 : 1,
                 borderRadius: type === "bar" ? 7 : 0,
                 maxBarThickness: 46,
                 fill: type === "line",
                 tension: .35,
-                pointBackgroundColor: "#2f6fed",
+                pointBackgroundColor: "#800000",
                 pointRadius: 4,
                 pointHoverRadius: 6
             };

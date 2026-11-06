@@ -30,13 +30,14 @@
 
                 <div>
                     <label class="se-form-label" asp-for="Email">Email address <span class="req">*</span></label>
-                    <input asp-for="Email" class="form-control" />
+                    <input asp-for="Email" type="email" class="form-control" />
                     <span asp-validation-for="Email" class="text-danger se-small"></span>
                 </div>
 
                 <div>
                     <label class="se-form-label" asp-for="Password">Password <span class="req">*</span></label>
                     <input asp-for="Password" class="form-control" />
+                    <span class="se-tiny se-muted d-block">At least 8 characters, with an uppercase letter, a lowercase letter, a number and a special character.</span>
                     <span asp-validation-for="Password" class="text-danger se-small"></span>
                 </div>
 
@@ -80,3 +81,7 @@
         </form>
     </div>
 </div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
