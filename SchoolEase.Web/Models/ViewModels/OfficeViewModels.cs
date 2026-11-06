@@ -1,4 +1,6 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using SchoolEase.Web.Helpers;
 using SchoolEase.Web.Models;
 using SchoolEase.Web.Models.Entities;
@@ -253,4 +255,83 @@ public class AccountResetPasswordViewModel
     [DataType(DataType.Password)]
     [Display(Name = "New Password")]
     public string NewPassword { get; set; } = string.Empty;
+}
+
+// ======================================================================
+// Learning Activity Sheets (LAS)
+// ======================================================================
+
+/// <summary>Filter state, summary tiles and the paged library listing.</summary>
+public class ActivitySheetListViewModel
+{
+    public PagedList<LearningActivitySheet> Sheets { get; set; } = new(new List<LearningActivitySheet>(), 0, 1, 12);
+
+    public int? SubjectId { get; set; }
+    public int? GradeLevelId { get; set; }
+    public int? Term { get; set; }
+    public string? Keyword { get; set; }
+
+    public List<SelectListItem> Subjects { get; set; } = new();
+    public List<SelectListItem> GradeLevels { get; set; } = new();
+
+    /// <summary>True when the signed-in user may upload and manage sheets (teachers).</summary>
+    public bool CanUpload { get; set; }
+    public bool IsFiltered { get; set; }
+
+    public int TotalSheets { get; set; }
+    public int PublishedSheets { get; set; }
+    public int DraftSheets { get; set; }
+    public int TotalDownloads { get; set; }
+}
+
+/// <summary>Backing model for uploading or editing an activity sheet.</summary>
+public class ActivitySheetFormViewModel
+{
+    public int Id { get; set; }
+
+    [Required, StringLength(160, MinimumLength = 3)]
+    [Display(Name = "Title")]
+    public string Title { get; set; } = string.Empty;
+
+    [StringLength(1000)]
+    [Display(Name = "Description")]
+    public string? Description { get; set; }
+
+    [Range(1, int.MaxValue, ErrorMessage = "Please choose a subject.")]
+    [Display(Name = "Subject")]
+    public int SubjectId { get; set; }
+
+    [Display(Name = "Grade Level")]
+    public int? GradeLevelId { get; set; }
+
+    [Range(1, 3, ErrorMessage = "Please choose a term.")]
+    [Display(Name = "Term")]
+    public int Term { get; set; } = 1;
+
+    [Range(1, 20, ErrorMessage = "Week must be between 1 and 20.")]
+    [Display(Name = "Week")]
+    public int? WeekNumber { get; set; }
+
+    [StringLength(40)]
+    [Display(Name = "MELC Code")]
+    public string? MelcCode { get; set; }
+
+    [StringLength(400)]
+    [Display(Name = "Competency")]
+    public string? Competency { get; set; }
+
+    [Display(Name = "Publish to the library")]
+    public bool IsPublished { get; set; } = true;
+
+    [Display(Name = "Activity sheet file")]
+    public IFormFile? File { get; set; }
+
+    /// <summary>Name of the file already stored, shown while editing.</summary>
+    public string? ExistingFileName { get; set; }
+
+    /// <summary>Size of the file already stored, shown while editing.</summary>
+    public long ExistingFileSize { get; set; }
+
+    public List<SelectListItem> Subjects { get; set; } = new();
+    public List<SelectListItem> GradeLevels { get; set; } = new();
 }

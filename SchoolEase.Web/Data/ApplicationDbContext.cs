@@ -26,6 +26,7 @@ public class ApplicationDbContext : IdentityDbContext<AppUser>
     public DbSet<Enrollment> Enrollments => Set<Enrollment>();
     public DbSet<AttendanceRecord> AttendanceRecords => Set<AttendanceRecord>();
     public DbSet<GradeRecord> GradeRecords => Set<GradeRecord>();
+    public DbSet<LearningActivitySheet> LearningActivitySheets => Set<LearningActivitySheet>();
     public DbSet<DocumentType> DocumentTypes => Set<DocumentType>();
     public DbSet<DocumentRequest> DocumentRequests => Set<DocumentRequest>();
     public DbSet<Announcement> Announcements => Set<Announcement>();
@@ -258,6 +259,26 @@ public class ApplicationDbContext : IdentityDbContext<AppUser>
             e.HasOne(g => g.EncodedBy)
                 .WithMany()
                 .HasForeignKey(g => g.EncodedByUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // ------------------------------------------------------------------
+        // Learning resources
+        // ------------------------------------------------------------------
+        builder.Entity<LearningActivitySheet>(e =>
+        {
+            e.HasIndex(x => x.SubjectId);
+            e.HasIndex(x => x.GradeLevelId);
+            e.HasIndex(x => x.IsPublished);
+
+            e.HasOne(x => x.Subject)
+                .WithMany()
+                .HasForeignKey(x => x.SubjectId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            e.HasOne(x => x.GradeLevel)
+                .WithMany()
+                .HasForeignKey(x => x.GradeLevelId)
                 .OnDelete(DeleteBehavior.SetNull);
         });
 

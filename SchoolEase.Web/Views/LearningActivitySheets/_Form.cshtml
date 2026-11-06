@@ -1,0 +1,91 @@
+@model ActivitySheetFormViewModel
+@{
+    var isEdit = Model.Id > 0;
+}
+
+<div class="se-form-grid">
+    <div class="se-form-section"><h3>Activity sheet</h3></div>
+
+    <div class="se-span-2">
+        <label class="se-form-label" asp-for="Title">Title <span class="req">*</span></label>
+        <input asp-for="Title" class="form-control" placeholder="e.g. LAS 1 — Reading and Writing Skills" />
+        <span asp-validation-for="Title" class="text-danger se-small"></span>
+    </div>
+
+    <div class="se-span-2">
+        <label class="se-form-label" asp-for="Description">Description</label>
+        <textarea asp-for="Description" rows="3" class="form-control"
+                  placeholder="Short summary of what this activity sheet covers."></textarea>
+        <span asp-validation-for="Description" class="text-danger se-small"></span>
+    </div>
+
+    <div class="se-form-section"><h3>Placement</h3></div>
+
+    <div>
+        <label class="se-form-label" asp-for="SubjectId">Subject <span class="req">*</span></label>
+        <select asp-for="SubjectId" asp-items="Model.Subjects" class="form-select">
+            <option value="">Select subject</option>
+        </select>
+        <span asp-validation-for="SubjectId" class="text-danger se-small"></span>
+    </div>
+
+    <div>
+        <label class="se-form-label" asp-for="GradeLevelId">Grade Level</label>
+        <select asp-for="GradeLevelId" asp-items="Model.GradeLevels" class="form-select">
+            <option value="">Any grade level</option>
+        </select>
+        <span asp-validation-for="GradeLevelId" class="text-danger se-small"></span>
+    </div>
+
+    <div>
+        <label class="se-form-label" asp-for="Term">Term <span class="req">*</span></label>
+        <select asp-for="Term" asp-items="SelectLists.Terms()" class="form-select"></select>
+        <span asp-validation-for="Term" class="text-danger se-small"></span>
+    </div>
+
+    <div>
+        <label class="se-form-label" asp-for="WeekNumber">Week</label>
+        <input asp-for="WeekNumber" type="number" min="1" max="20" class="form-control" placeholder="e.g. 3" />
+        <span asp-validation-for="WeekNumber" class="text-danger se-small"></span>
+    </div>
+
+    <div class="se-form-section"><h3>Competency</h3></div>
+
+    <div>
+        <label class="se-form-label" asp-for="MelcCode">MELC Code</label>
+        <input asp-for="MelcCode" class="form-control" placeholder="e.g. EN11/12RWS-IIIa-1" />
+        <span asp-validation-for="MelcCode" class="text-danger se-small"></span>
+    </div>
+
+    <div>
+        <label class="se-form-label" asp-for="Competency">Competency</label>
+        <input asp-for="Competency" class="form-control" placeholder="Learning competency covered" />
+        <span asp-validation-for="Competency" class="text-danger se-small"></span>
+    </div>
+
+    <div class="se-form-section"><h3>File</h3></div>
+
+    <div class="se-span-2">
+        <label class="se-form-label" asp-for="File">Activity sheet file@if (!isEdit)
+        {<span class="req">*</span>}</label>
+        <input asp-for="File" type="file" accept=".pdf,application/pdf" class="form-control" />
+        <span class="se-tiny se-muted d-block">PDF only. Up to 15 MB.</span>
+        <span asp-validation-for="File" class="text-danger se-small d-block"></span>
+        @if (isEdit && !string.IsNullOrWhiteSpace(Model.ExistingFileName))
+        {
+            <span class="se-tiny se-muted d-block mt-1">
+                <i class="bi bi-paperclip"></i>
+                Current file: @Model.ExistingFileName (@LearningActivitySheet.FileSizeLabelOf(Model.ExistingFileSize)) — upload a new file to replace it.
+            </span>
+        }
+    </div>
+
+    <div class="se-span-2">
+        <div class="form-check">
+            <input asp-for="IsPublished" class="form-check-input" />
+            <label class="form-check-label se-small" asp-for="IsPublished">
+                Publish to the library (visible to students and staff)
+            </label>
+        </div>
+    </div>
+</div>

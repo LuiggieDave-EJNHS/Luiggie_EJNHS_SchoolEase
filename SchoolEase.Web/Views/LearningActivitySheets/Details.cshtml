@@ -1,0 +1,131 @@
+@model LearningActivitySheet
+@{
+    ViewData["Title"] = Model.Title;
+    var canManage = ViewData["CanManage"] as bool? == true;
+
+    var actions = new List<PageAction>
+    {
+        new() { Text = "Download", Url = Url.Action("Download", new { id = Model.Id }), Icon = "bi-download" }
+    };
+
+    if (canManage)
+    {
+        actions.Add(new PageAction { Text = "Edit", Url = Url.Action("Edit", new { id = Model.Id }), Icon = "bi-pencil", Css = "btn btn-light" });
+    }
+
+    actions.Add(new PageAction { Text = "All Sheets", Url = Url.Action("Index"), Icon = "bi-arrow-left", Css = "btn btn-light" });
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = Model.Title,
+    Subtitle = $"{Model.Subject?.Title ?? "Unassigned subject"} • Term {Model.Term}",
+    Icon = "bi-journal-text",
+    Actions = actions
+})" />
+
+<div class="row g-3">
+    <div class="col-lg-8">
+        <div class="se-card h-100">
+            <div class="se-card__head">
+                <h3><i class="bi bi-info-circle me-1"></i>Details</h3>
+                @if (!Model.IsPublished)
+                {
+                    <span class="se-badge text-bg-dark"><i class="bi bi-eye-slash"></i>Draft</span>
+                }
+            </div>
+            <div class="se-card__body">
+                @if (!string.IsNullOrWhiteSpace(Model.Description))
+                {
+                    <p>@Model.Description</p>
+                }
+
+                <div class="se-table-wrap">
+                    <table class="se-table">
+                        <tbody>
+                            <tr>
+                                <th style="width:200px;">Subject</th>
+                                <td>@(Model.Subject is null ? "—" : $"{Model.Subject.Code} - {Model.Subject.Title}")</td>
+                            </tr>
+                            <tr>
+                                <th>Grade Level</th>
+                                <td>@(Model.GradeLevel?.Name ?? "Any grade level")</td>
+                            </tr>
+                            <tr>
+                                <th>Term &amp; Week</th>
+                                <td>Term @Model.Term • @Model.WeekLabel</td>
+                            </tr>
+                            <tr>
+                                <th>MELC Code</th>
+                                <td>@(string.IsNullOrWhiteSpace(Model.MelcCode) ? "—" : Model.MelcCode)</td>
+                            </tr>
+                            <tr>
+                                <th>Competency</th>
+                                <td>@(string.IsNullOrWhiteSpace(Model.Competency) ? "—" : Model.Competency)</td>
+                            </tr>
+                            <tr>
+                                <th>School Year</th>
+                                <td>@Model.SchoolYear</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="se-card h-100">
+            <div class="se-card__head">
+                <h3><i class="bi bi-paperclip me-1"></i>File</h3>
+            </div>
+            <div class="se-card__body">
+                <div class="se-empty__icon mb-2" style="background:#eef4ff;color:#1d4ed8;">
+                    <i class="bi bi-file-earmark-arrow-down"></i>
+                </div>
+                <p class="se-strong mb-1 text-break">@Model.FileName</p>
+                <p class="se-muted se-small">@Model.FileSizeLabel</p>
+
+                <a class="btn btn-primary w-100 mb-2" asp-action="Download" asp-route-id="@Model.Id">
+                    <i class="bi bi-download me-1"></i>Download sheet
+                </a>
+
+                <ul class="se-feed">
+                    <li>
+                        <span class="se-feed__icon bg-soft-primary"><i class="bi bi-person"></i></span>
+                        <span>
+                            <span class="se-feed__title d-block">@Model.UploaderName</span>
+                            <span class="se-feed__meta d-block">Uploaded @Model.CreatedAt.ToRelativeTime()</span>
+                        </span>
+                    </li>
+                    <li>
+                        <span class="se-feed__icon bg-soft-teal"><i class="bi bi-download"></i></span>
+                        <span>
+                            <span class="se-feed__title d-block">@Model.DownloadCount.ToString("N0") downloads</span>
+                            @if (Model.UpdatedAt.HasValue)
+                            {
+                                <span class="se-feed__meta d-block">Updated @Model.UpdatedAt.Value.ToRelativeTime()</span>
+                            }
+                        </span>
+                    </li>
+                </ul>
+
+                @if (canManage)
+                {
+                    <form asp-action="TogglePublish" asp-route-id="@Model.Id" method="post" class="mt-2">
+                        <button type="submit" class="btn btn-light w-100">
+                            <i class="bi @(Model.IsPublished ? "bi-eye-slash" : "bi-broadcast") me-1"></i>
+                            @(Model.IsPublished ? "Unpublish" : "Publish")
+                        </button>
+                    </form>
+                    <form asp-action="Delete" asp-route-id="@Model.Id" method="post"
+                          data-se-confirm="Delete this activity sheet? This cannot be undone.">
+                        <button type="submit" class="btn btn-light text-danger w-100 mt-2">
+                            <i class="bi bi-trash me-1"></i>Delete sheet
+                        </button>
+                    </form>
+                }
+            </div>
+        </div>
+    </div>
+</div>

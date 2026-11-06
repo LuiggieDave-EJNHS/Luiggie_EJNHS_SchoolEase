@@ -1,0 +1,169 @@
+@model ActivitySheetListViewModel
+@{
+    ViewData["Title"] = "Learning Activity Sheets";
+
+    var actions = new List<PageAction>();
+    if (Model.CanUpload)
+    {
+        actions.Add(new PageAction { Text = "Upload Activity Sheet", Url = Url.Action("Create"), Icon = "bi-plus-lg" });
+    }
+
+    bool CanManage(LearningActivitySheet sheet) => Model.CanUpload && sheet.UploadedByUserId == CurrentUser.UserId;
+
+    var stats = new List<StatCard>
+    {
+        new() { Label = "Activity Sheets", Value = Model.TotalSheets.ToString("N0"), Icon = "bi-journal-text", Tone = "primary", Meta = $"S.Y. {SchoolInfo.SchoolYear}" },
+        new() { Label = "Published", Value = Model.PublishedSheets.ToString("N0"), Icon = "bi-broadcast", Tone = "success", Meta = "Visible to the school" },
+        new() { Label = "Drafts", Value = Model.DraftSheets.ToString("N0"), Icon = "bi-eye-slash", Tone = "warning", Meta = "Not yet released" },
+        new() { Label = "Downloads", Value = Model.TotalDownloads.ToString("N0"), Icon = "bi-download", Tone = "teal", Meta = "Times downloaded" }
+    };
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = "Learning Activity Sheets",
+    Subtitle = "DepEd Learning Activity Sheets (LAS) shared across the school.",
+    Icon = "bi-journal-text",
+    Actions = actions
+})" />
+
+<div class="row g-3 mb-3">
+    @foreach (var card in stats)
+    {
+        <div class="col-6 col-xl-3">
+            <partial name="_StatCard" model="card" />
+        </div>
+    }
+</div>
+
+<div class="se-card">
+    <form method="get" asp-action="Index" class="se-filters">
+        <div class="se-filters__grow">
+            <label class="form-label se-small">Search</label>
+            <input type="search" name="keyword" value="@Model.Keyword" class="form-control"
+                   placeholder="Title, competency or MELC code" />
+        </div>
+        <div>
+            <label class="form-label se-small">Subject</label>
+            <select name="subjectId" asp-items="Model.Subjects" class="form-select" data-se-autosubmit>
+                <option value="">All subjects</option>
+            </select>
+        </div>
+        <div>
+            <label class="form-label se-small">Grade Level</label>
+            <select name="gradeLevelId" asp-items="Model.GradeLevels" class="form-select" data-se-autosubmit>
+                <option value="">All grade levels</option>
+            </select>
+        </div>
+        <div>
+            <label class="form-label se-small">Term</label>
+            <select name="term" class="form-select" data-se-autosubmit aria-label="Filter by term">
+                <option value="">All terms</option>
+                @foreach (var opt in SelectLists.Terms())
+                {
+                    <option value="@opt.Value" selected="@(Model.Term?.ToString() == opt.Value)">@opt.Text</option>
+                }
+            </select>
+        </div>
+        <div>
+            <button type="submit" class="btn btn-primary"><i class="bi bi-funnel me-1"></i>Apply</button>
+        </div>
+        <div>
+            <button type="button" class="btn btn-light" data-se-reset="@Url.Action("Index")">
+                <i class="bi bi-arrow-counterclockwise me-1"></i>Reset
+            </button>
+        </div>
+    </form>
+
+    @if (Model.Sheets.Count == 0)
+    {
+        <partial name="_EmptyState" model="@(new EmptyState
+        {
+            Icon = "bi-journal-text",
+            Title = Model.IsFiltered ? "No matching activity sheets" : "No activity sheets yet",
+            Message = Model.IsFiltered
+                ? "Try adjusting or clearing the filters to see more sheets."
+                : "Upload the first Learning Activity Sheet to start the library.",
+            ActionText = Model.CanUpload ? "Upload activity sheet" : null,
+            ActionUrl = Model.CanUpload ? Url.Action("Create") : null
+        })" />
+    }
+    else
+    {
+        <div class="se-table-wrap">
+            <table class="se-table">
+                <thead>
+                    <tr>
+                        <th>Activity Sheet</th>
+                        <th>Subject</th>
+                        <th>Grade &amp; Term</th>
+                        <th>Week / MELC</th>
+                        <th>File</th>
+                        <th>Downloads</th>
+                        <th>Uploaded</th>
+                        <th class="se-col-actions">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var sheet in Model.Sheets)
+                    {
+                        <tr>
+                            <td>
+                                <span class="se-strong d-block">
+                                    <a class="text-decoration-none text-reset" asp-action="Details" asp-route-id="@sheet.Id">@sheet.Title</a>
+                                </span>
+                                <span class="se-tiny se-muted">@(string.IsNullOrWhiteSpace(sheet.Competency) ? sheet.UploaderName : sheet.Competency)</span>
+                                @if (!sheet.IsPublished)
+                                {
+                                    <span class="se-badge text-bg-dark ms-1"><i class="bi bi-eye-slash"></i>Draft</span>
+                                }
+                            </td>
+                            <td>@(sheet.Subject?.Title ?? "—")</td>
+                            <td>@(sheet.GradeLevel?.Name ?? "Any")<span class="se-tiny se-muted d-block">Term @sheet.Term</span></td>
+                            <td>
+                                @sheet.WeekLabel
+                                @if (!string.IsNullOrWhiteSpace(sheet.MelcCode))
+                                {
+                                    <span class="se-tiny se-muted d-block">@sheet.MelcCode</span>
+                                }
+                            </td>
+                            <td>
+                                <span class="se-tiny d-block text-truncate" style="max-width:180px;">@sheet.FileName</span>
+                                <span class="se-tiny se-muted">@sheet.FileSizeLabel</span>
+                            </td>
+                            <td>@sheet.DownloadCount.ToString("N0")</td>
+                            <td>
+                                @sheet.CreatedAt.ToDateLabel()
+                                <span class="se-tiny se-muted d-block">@sheet.UploaderName</span>
+                            </td>
+                            <td class="se-col-actions">
+                                <div class="se-row-actions">
+                                    <a class="btn btn-sm btn-light" asp-action="Download" asp-route-id="@sheet.Id" title="Download">
+                                        <i class="bi bi-download"></i>
+                                    </a>
+                                    <a class="btn btn-sm btn-light" asp-action="Details" asp-route-id="@sheet.Id" title="Details">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    @if (CanManage(sheet))
+                                    {
+                                        <a class="btn btn-sm btn-light" asp-action="Edit" asp-route-id="@sheet.Id" title="Edit">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <form asp-action="Delete" asp-route-id="@sheet.Id" method="post" class="d-inline"
+                                              data-se-confirm="Delete this activity sheet? This cannot be undone.">
+                                            <button type="submit" class="btn btn-sm btn-light text-danger" title="Delete">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+<partial name="_Pagination" model="@(ViewData["Pagination"] as PaginationInfo ?? new PaginationInfo())" />

@@ -1,0 +1,30 @@
+@model ActivitySheetFormViewModel
+@{
+    ViewData["Title"] = "Upload Activity Sheet";
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = "Upload Activity Sheet",
+    Subtitle = "Share a Learning Activity Sheet with the school library.",
+    Icon = "bi-journal-text",
+    Actions = new List<PageAction>
+    {
+        new() { Text = "All Activity Sheets", Url = Url.Action("Index"), Icon = "bi-arrow-left", Css = "btn btn-light" }
+    }
+})" />
+
+<div class="se-card">
+    <div class="se-card__body">
+        <form asp-action="Create" method="post" enctype="multipart/form-data">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 se-small"></div>
+
+            <partial name="_Form" model="Model" />
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-cloud-arrow-up me-1"></i>Upload sheet</button>
+                <a class="btn btn-light" asp-action="Index">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
