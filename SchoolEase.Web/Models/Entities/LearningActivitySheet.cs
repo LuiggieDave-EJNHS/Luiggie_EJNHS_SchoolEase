@@ -80,6 +80,9 @@ public class LearningActivitySheet
     [Display(Name = "Downloads")]
     public int DownloadCount { get; set; }
 
+    /// <summary>Sections this sheet was sent to. Empty means it has no audience restriction.</summary>
+    public ICollection<ActivitySheetTarget> Targets { get; set; } = new List<ActivitySheetTarget>();
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
 

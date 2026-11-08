@@ -1,0 +1,142 @@
+@model ActivitySheetSendViewModel
+@{
+    ViewData["Title"] = "Send activity sheet";
+    var groups = Model.Sections.GroupBy(s => s.GradeLevelName).ToList();
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = "Send to sections",
+    Subtitle = Model.Title,
+    Icon = "bi-send",
+    Actions = new List<PageAction>
+    {
+        new() { Text = "Back to sheet", Url = Url.Action("Details", new { id = Model.Id }), Icon = "bi-arrow-left", Css = "btn btn-light" }
+    }
+})" />
+
+<div class="se-card mb-3">
+    <form method="get" asp-action="Send" class="se-filters">
+        <input type="hidden" name="id" value="@Model.Id" />
+        <div>
+            <label class="form-label se-small">Grade Level</label>
+            <select name="gradeLevelId" asp-items="Model.GradeLevels" class="form-select" data-se-autosubmit>
+                <option value="">All grade levels</option>
+            </select>
+        </div>
+        <div>
+            <button type="submit" class="btn btn-primary"><i class="bi bi-funnel me-1"></i>Apply</button>
+        </div>
+        <div>
+            <a class="btn btn-light" asp-action="Send" asp-route-id="@Model.Id">
+                <i class="bi bi-arrow-counterclockwise me-1"></i>Reset
+            </a>
+        </div>
+    </form>
+</div>
+
+<form asp-action="Send" asp-route-id="@Model.Id" method="post">
+    <div class="se-card">
+        <div class="se-card__head">
+            <h3><i class="bi bi-people me-1"></i>Choose sections</h3>
+            <div class="se-row-actions">
+                <button type="button" class="btn btn-sm btn-light" data-se-send-all="1">
+                    <i class="bi bi-check2-square me-1"></i>Select all
+                </button>
+                <button type="button" class="btn btn-sm btn-light" data-se-send-all="0">
+                    <i class="bi bi-square me-1"></i>Clear
+                </button>
+            </div>
+        </div>
+
+        @if (Model.Sections.Count == 0)
+        {
+            <partial name="_EmptyState" model="@(new EmptyState
+            {
+                Icon = "bi-people",
+                Title = "No sections to send to",
+                Message = "There are no sections for this grade level yet. Add sections first or pick another grade level.",
+                ActionText = "Back to sheet",
+                ActionUrl = Url.Action("Details", new { id = Model.Id }),
+                ActionIcon = "bi-arrow-left"
+            })" />
+        }
+        else
+        {
+            <div class="se-card__body">
+                <p class="se-small se-muted mb-3">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Only learners in the sections you tick will see this activity sheet. Leave everything
+                    unticked to make it visible to the <strong>whole school</strong>.
+                </p>
+
+                @foreach (var group in groups)
+                {
+                    <div class="se-send-group">
+                        <div class="se-send-group__head">
+                            <i class="bi bi-mortarboard me-1"></i>@group.Key
+                            <span class="se-badge text-bg-light ms-2">@group.Count() section@(group.Count() == 1 ? "" : "s")</span>
+                        </div>
+                        <div class="se-send-grid">
+                            @foreach (var item in group)
+                            {
+                                var inputId = $"sec-{item.Id}";
+                                <label class="se-send-option" for="@inputId">
+                                    <input class="form-check-input" type="checkbox" name="sectionIds" value="@item.Id"
+                                           id="@inputId" data-se-send-check checked="@item.IsSelected" />
+                                    <span class="se-send-option__body">
+                                        <span class="se-send-option__name">@item.Name</span>
+                                        <span class="se-send-option__meta">
+                                            @if (!string.IsNullOrWhiteSpace(item.TrackStrand))
+                                            {
+                                                <span>@item.TrackStrand</span>
+                                            }
+                                            <span>@item.StudentCount learner@(item.StudentCount == 1 ? "" : "s")</span>
+                                        </span>
+                                    </span>
+                                </label>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <div class="se-card__foot se-send-foot">
+                <span class="se-small">
+                    <i class="bi bi-send me-1"></i>
+                    <strong data-se-send-count>@Model.SelectedCount</strong> section(s) selected
+                </span>
+                <div class="se-row-actions">
+                    <a class="btn btn-light" asp-action="Details" asp-route-id="@Model.Id">Cancel</a>
+                    <button type="submit" class="btn btn-gold"><i class="bi bi-send me-1"></i>Send activity sheet</button>
+                </div>
+            </div>
+        }
+    </div>
+</form>
+
+@section Scripts {
+    <script>
+        (function () {
+            var boxes = document.querySelectorAll('[data-se-send-check]');
+            var counter = document.querySelector('[data-se-send-count]');
+            if (!boxes.length || !counter) { return; }
+
+            function refresh() {
+                var total = 0;
+                boxes.forEach(function (b) { if (b.checked) { total++; } });
+                counter.textContent = total;
+            }
+
+            boxes.forEach(function (b) { b.addEventListener('change', refresh); });
+
+            document.querySelectorAll('[data-se-send-all]').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    var on = btn.getAttribute('data-se-send-all') === '1';
+                    boxes.forEach(function (b) { b.checked = on; });
+                    refresh();
+                });
+            });
+        })();
+    </script>
+}

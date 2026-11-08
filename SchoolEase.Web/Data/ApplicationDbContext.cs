@@ -27,6 +27,7 @@ public class ApplicationDbContext : IdentityDbContext<AppUser>
     public DbSet<AttendanceRecord> AttendanceRecords => Set<AttendanceRecord>();
     public DbSet<GradeRecord> GradeRecords => Set<GradeRecord>();
     public DbSet<LearningActivitySheet> LearningActivitySheets => Set<LearningActivitySheet>();
+    public DbSet<ActivitySheetTarget> ActivitySheetTargets => Set<ActivitySheetTarget>();
     public DbSet<DocumentType> DocumentTypes => Set<DocumentType>();
     public DbSet<DocumentRequest> DocumentRequests => Set<DocumentRequest>();
     public DbSet<Announcement> Announcements => Set<Announcement>();
@@ -280,6 +281,22 @@ public class ApplicationDbContext : IdentityDbContext<AppUser>
                 .WithMany()
                 .HasForeignKey(x => x.GradeLevelId)
                 .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        builder.Entity<ActivitySheetTarget>(e =>
+        {
+            e.HasIndex(t => new { t.ActivitySheetId, t.SectionId }).IsUnique();
+            e.HasIndex(t => t.SectionId);
+
+            e.HasOne(t => t.ActivitySheet)
+                .WithMany(x => x.Targets)
+                .HasForeignKey(t => t.ActivitySheetId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne(t => t.Section)
+                .WithMany()
+                .HasForeignKey(t => t.SectionId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         // ------------------------------------------------------------------

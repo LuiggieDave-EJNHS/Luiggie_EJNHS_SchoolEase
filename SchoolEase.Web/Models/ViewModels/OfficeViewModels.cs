@@ -341,3 +341,35 @@ public class ActivitySheetFormViewModel
     public List<SubjectOption> Subjects { get; set; } = new();
     public List<SelectListItem> GradeLevels { get; set; } = new();
 }
+
+/// <summary>One section in the "send to sections" picker.</summary>
+public class SectionCheckOption
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string? Code { get; set; }
+    public string? TrackStrand { get; set; }
+    public int? GradeLevelId { get; set; }
+    public string GradeLevelName { get; set; } = string.Empty;
+    public int StudentCount { get; set; }
+    public bool IsSelected { get; set; }
+
+    /// <summary>"12-ICT-CCS • ICT" style label.</summary>
+    public string Label => string.IsNullOrWhiteSpace(TrackStrand) ? Name : $"{Name} • {TrackStrand}";
+}
+
+/// <summary>Backing model for sending an activity sheet to specific sections.</summary>
+public class ActivitySheetSendViewModel
+{
+    public int Id { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string? SubjectLabel { get; set; }
+
+    /// <summary>Grade level filter; also the default scope offered to the teacher.</summary>
+    public int? GradeLevelId { get; set; }
+
+    public List<SelectListItem> GradeLevels { get; set; } = new();
+    public List<SectionCheckOption> Sections { get; set; } = new();
+
+    public int SelectedCount => Sections.Count(s => s.IsSelected);
+}

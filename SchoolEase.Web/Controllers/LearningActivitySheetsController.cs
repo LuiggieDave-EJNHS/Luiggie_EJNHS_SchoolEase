@@ -50,7 +50,8 @@ public class LearningActivitySheetsController : Controller
     {
         if (_currentUser.IsFormerStudent) return Forbid();
 
-        var query = WithoutFileContent(ApplyVisibility(_db.LearningActivitySheets));
+        var studentSectionId = await CurrentStudentSectionAsync();
+        var query = WithoutFileContent(ApplyVisibility(_db.LearningActivitySheets, studentSectionId));
 
         if (subjectId is > 0) query = query.Where(x => x.SubjectId == subjectId);
         if (gradeLevelId is > 0) query = query.Where(x => x.GradeLevelId == gradeLevelId);
@@ -70,7 +71,7 @@ public class LearningActivitySheetsController : Controller
         var paged = await PagedList<LearningActivitySheet>.CreateAsync(
             query.OrderByDescending(x => x.CreatedAt).ThenByDescending(x => x.Id), page, PageSize);
 
-        var visible = ApplyVisibility(_db.LearningActivitySheets);
+        var visible = ApplyVisibility(_db.LearningActivitySheets, studentSectionId);
         var total = await visible.CountAsync();
         var published = await visible.CountAsync(x => x.IsPublished);
         var downloads = await visible.SumAsync(x => (int?)x.DownloadCount) ?? 0;
@@ -123,10 +124,16 @@ public class LearningActivitySheetsController : Controller
 
         if (sheet is null) return NotFound();
         if (!sheet.IsPublished && !CanEdit(sheet)) return Forbid();
+        if (!await CanStudentViewAsync(sheet)) return Forbid();
 
         ViewData["Title"] = sheet.Title;
         ViewData["Section"] = "Academics";
         ViewData["CanManage"] = CanEdit(sheet);
+        ViewData["SentTo"] = await _db.ActivitySheetTargets
+            .Where(t => t.ActivitySheetId == id)
+            .OrderBy(t => t.Section!.GradeLevel!.OrderIndex).ThenBy(t => t.Section!.Name)
+            .Select(t => t.Section!.GradeLevel!.Name + " - " + t.Section!.Name)
+            .ToListAsync();
         return View(sheet);
     }
 
@@ -137,6 +144,7 @@ public class LearningActivitySheetsController : Controller
         var sheet = await _db.LearningActivitySheets.FirstOrDefaultAsync(x => x.Id == id);
         if (sheet is null) return NotFound();
         if (!sheet.IsPublished && !CanEdit(sheet)) return Forbid();
+        if (!await CanStudentViewAsync(sheet)) return Forbid();
 
         var bytes = sheet.StorageKey is not null && _storage.IsConfigured
             ? await _storage.DownloadAsync(sheet.StorageKey)
@@ -161,6 +169,7 @@ public class LearningActivitySheetsController : Controller
         var sheet = await _db.LearningActivitySheets.FirstOrDefaultAsync(x => x.Id == id);
         if (sheet is null) return NotFound();
         if (!sheet.IsPublished && !CanEdit(sheet)) return Forbid();
+        if (!await CanStudentViewAsync(sheet)) return Forbid();
 
         var bytes = sheet.StorageKey is not null && _storage.IsConfigured
             ? await _storage.DownloadAsync(sheet.StorageKey)
@@ -363,14 +372,178 @@ public class LearningActivitySheetsController : Controller
     }
 
     // ------------------------------------------------------------------
+    // Send to sections (the teacher who uploaded the sheet)
+    // ------------------------------------------------------------------
+    [Authorize(Roles = Roles.Teacher)]
+    [HttpGet]
+    public async Task<IActionResult> Send(int id, int? gradeLevelId)
+    {
+        var sheet = await _db.LearningActivitySheets.FirstOrDefaultAsync(x => x.Id == id);
+        if (sheet is null) return NotFound();
+        if (!CanEdit(sheet)) return Forbid();
+
+        // On first load default to the sheet's own grade level; once the teacher
+        // submits the filter, honour it exactly (an empty value means "all levels").
+        var scope = Request.Query.ContainsKey(nameof(gradeLevelId))
+            ? (gradeLevelId is > 0 ? gradeLevelId : null)
+            : sheet.GradeLevelId;
+
+        var model = await BuildSendViewModelAsync(sheet, scope);
+        ViewData["Title"] = "Send activity sheet";
+        ViewData["Section"] = "Academics";
+        return View(model);
+    }
+
+    [Authorize(Roles = Roles.Teacher)]
+    [HttpPost]
+    public async Task<IActionResult> Send(int id, List<int>? sectionIds)
+    {
+        var sheet = await _db.LearningActivitySheets.FirstOrDefaultAsync(x => x.Id == id);
+        if (sheet is null) return NotFound();
+        if (!CanEdit(sheet)) return Forbid();
+
+        // Only keep ids that really exist, so a hand-crafted post cannot inject rows.
+        var requested = (sectionIds ?? new List<int>()).Distinct().ToList();
+        var valid = await _db.Sections
+            .Where(s => requested.Contains(s.Id))
+            .Select(s => s.Id)
+            .ToListAsync();
+
+        var existing = await _db.ActivitySheetTargets
+            .Where(t => t.ActivitySheetId == sheet.Id)
+            .ToListAsync();
+        _db.ActivitySheetTargets.RemoveRange(existing);
+
+        foreach (var sectionId in valid)
+        {
+            _db.ActivitySheetTargets.Add(new ActivitySheetTarget
+            {
+                ActivitySheetId = sheet.Id,
+                SectionId = sectionId
+            });
+        }
+
+        // Sending also releases the sheet so the chosen sections can actually see it.
+        if (valid.Count > 0) sheet.IsPublished = true;
+        sheet.UpdatedAt = DateTime.UtcNow;
+
+        await _db.SaveChangesAsync();
+
+        await _audit.LogAsync("Send Activity Sheet", "LearningActivitySheet", sheet.Id,
+            valid.Count == 0 ? "Cleared section targets (school-wide)." : $"Sent to {valid.Count} section(s).");
+        TempData["Success"] = valid.Count == 0
+            ? "Targets cleared. The sheet is school-wide again."
+            : $"Activity sheet sent to {valid.Count} section(s).";
+        return RedirectToAction(nameof(Details), new { id = sheet.Id });
+    }
+
+    /// <summary>Builds the section picker for a sheet. <paramref name="scope"/> is the grade-level filter (null = all).</summary>
+    private async Task<ActivitySheetSendViewModel> BuildSendViewModelAsync(LearningActivitySheet sheet, int? scope)
+    {
+        var selectedIds = await _db.ActivitySheetTargets
+            .Where(t => t.ActivitySheetId == sheet.Id)
+            .Select(t => t.SectionId)
+            .ToListAsync();
+
+        var sectionQuery = _db.Sections.AsQueryable();
+        if (scope is > 0)
+        {
+            sectionQuery = sectionQuery.Where(s => s.GradeLevelId == scope);
+        }
+
+        var sections = await sectionQuery
+            .OrderBy(s => s.GradeLevel.OrderIndex).ThenBy(s => s.Name)
+            .Select(s => new SectionCheckOption
+            {
+                Id = s.Id,
+                Name = s.Name,
+                Code = s.Code,
+                TrackStrand = s.TrackStrand,
+                GradeLevelId = s.GradeLevelId,
+                GradeLevelName = s.GradeLevel.Name,
+                StudentCount = s.Students.Count(st => st.IsActive)
+            })
+            .ToListAsync();
+
+        foreach (var section in sections)
+        {
+            section.IsSelected = selectedIds.Contains(section.Id);
+        }
+
+        var subject = await _db.Subjects
+            .Where(s => s.Id == sheet.SubjectId)
+            .Select(s => s.Code + " - " + s.Title)
+            .FirstOrDefaultAsync();
+
+        return new ActivitySheetSendViewModel
+        {
+            Id = sheet.Id,
+            Title = sheet.Title,
+            SubjectLabel = subject,
+            GradeLevelId = scope,
+            GradeLevels = await GradeLevelOptionsAsync(scope),
+            Sections = sections
+        };
+    }
+
+    // ------------------------------------------------------------------
     // Helpers
     // ------------------------------------------------------------------
 
-    /// <summary>Only published sheets are public; teachers also see their own drafts.</summary>
-    private IQueryable<LearningActivitySheet> ApplyVisibility(IQueryable<LearningActivitySheet> query)
+    /// <summary>
+    /// Only published sheets are public; teachers also see their own drafts. Students
+    /// additionally only see sheets that are school-wide (no targets) or were sent to
+    /// their own section.
+    /// </summary>
+    private IQueryable<LearningActivitySheet> ApplyVisibility(IQueryable<LearningActivitySheet> query, int? studentSectionId)
     {
         if (CanUpload) return query.Where(x => x.IsPublished || x.UploadedByUserId == _currentUser.UserId);
-        return query.Where(x => x.IsPublished);
+
+        var visible = query.Where(x => x.IsPublished);
+
+        // Learners only see sheets that are school-wide (no targets) or sent to their
+        // own section. A learner with no section sees school-wide sheets only.
+        if (_currentUser.IsStudent)
+        {
+            visible = studentSectionId is int sectionId
+                ? visible.Where(x => !x.Targets.Any() || x.Targets.Any(t => t.SectionId == sectionId))
+                : visible.Where(x => !x.Targets.Any());
+        }
+
+        return visible;
+    }
+
+    /// <summary>The section of the signed-in learner, or null for staff and unassigned students.</summary>
+    private async Task<int?> CurrentStudentSectionAsync()
+    {
+        if (!_currentUser.IsStudent) return null;
+
+        var userId = _currentUser.UserId;
+        if (string.IsNullOrWhiteSpace(userId)) return null;
+
+        return await _db.Students
+            .Where(s => s.UserId == userId)
+            .Select(s => s.SectionId)
+            .FirstOrDefaultAsync();
+    }
+
+    /// <summary>
+    /// Students may open a published sheet only when it is school-wide (no targets) or
+    /// was sent to their section. Staff and the owning teacher are never restricted.
+    /// </summary>
+    private async Task<bool> CanStudentViewAsync(LearningActivitySheet sheet)
+    {
+        if (!_currentUser.IsStudent) return true;
+
+        var targets = await _db.ActivitySheetTargets
+            .Where(t => t.ActivitySheetId == sheet.Id)
+            .Select(t => t.SectionId)
+            .ToListAsync();
+
+        if (targets.Count == 0) return true;
+
+        var sectionId = await CurrentStudentSectionAsync();
+        return sectionId is int id && targets.Contains(id);
     }
 
     /// <summary>
