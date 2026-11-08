@@ -150,6 +150,34 @@ public class LearningActivitySheetsController : Controller
         return File(bytes, sheet.ContentType, sheet.FileName);
     }
 
+    /// <summary>
+    /// Streams the sheet inline so it can be read inside the page. Viewing is kept
+    /// separate from downloading: DownloadCount only moves on the Download action.
+    /// </summary>
+    public async Task<IActionResult> Preview(int id)
+    {
+        if (_currentUser.IsFormerStudent) return Forbid();
+
+        var sheet = await _db.LearningActivitySheets.FirstOrDefaultAsync(x => x.Id == id);
+        if (sheet is null) return NotFound();
+        if (!sheet.IsPublished && !CanEdit(sheet)) return Forbid();
+
+        var bytes = sheet.StorageKey is not null && _storage.IsConfigured
+            ? await _storage.DownloadAsync(sheet.StorageKey)
+            : sheet.FileContent;
+
+        if (bytes.Length == 0) return NotFound();
+
+        // The site-wide security headers forbid framing; relax them to same-origin
+        // only for this response so the details page can embed the sheet. Every
+        // other page keeps the stricter policy.
+        Response.Headers["X-Frame-Options"] = "SAMEORIGIN";
+        Response.Headers["Content-Security-Policy"] = "frame-ancestors 'self';";
+
+        // Range processing lets the browser's PDF viewer fetch pages as needed.
+        return File(bytes, sheet.ContentType ?? "application/pdf", enableRangeProcessing: true);
+    }
+
     // ------------------------------------------------------------------
     // Upload (teachers only)
     // ------------------------------------------------------------------
