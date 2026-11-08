@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using SchoolEase.Web.Data;
 using SchoolEase.Web.Helpers;
 using SchoolEase.Web.Models;
@@ -22,19 +23,52 @@ public class DashboardService : IDashboardService
         "#800000", "#1aa179", "#f2a93b", "#dc3545", "#6f42c1", "#17a2b8", "#d63384", "#5b6b7c"
     };
 
+    /// <summary>
+    /// How long a built dashboard is reused. The pages are read-only summaries, so a
+    /// short window turns hundreds of staff refreshes into a few dozen queries while
+    /// still showing new announcements and attendance within half a minute.
+    /// </summary>
+    private static readonly TimeSpan CacheDuration = TimeSpan.FromSeconds(30);
+
     private readonly ApplicationDbContext _db;
     private readonly IAuditService _audit;
+    private readonly IMemoryCache _cache;
 
-    public DashboardService(ApplicationDbContext db, IAuditService audit)
+    public DashboardService(ApplicationDbContext db, IAuditService audit, IMemoryCache cache)
     {
         _db = db;
         _audit = audit;
+        _cache = cache;
     }
+
+    // ------------------------------------------------------------------
+    // Cached entry points
+    // ------------------------------------------------------------------
+    public async Task<DashboardViewModel> BuildAdminDashboardAsync() =>
+        (await _cache.GetOrCreateAsync("dashboard:admin", entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = CacheDuration;
+            return BuildAdminDashboardCoreAsync();
+        }))!;
+
+    public async Task<TeacherDashboardViewModel> BuildTeacherDashboardAsync(string userId) =>
+        (await _cache.GetOrCreateAsync($"dashboard:teacher:{userId}", entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = CacheDuration;
+            return BuildTeacherDashboardCoreAsync(userId);
+        }))!;
+
+    public async Task<StudentDashboardViewModel> BuildStudentDashboardAsync(string userId) =>
+        (await _cache.GetOrCreateAsync($"dashboard:student:{userId}", entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = CacheDuration;
+            return BuildStudentDashboardCoreAsync(userId);
+        }))!;
 
     // ------------------------------------------------------------------
     // Administrator dashboard
     // ------------------------------------------------------------------
-    public async Task<DashboardViewModel> BuildAdminDashboardAsync()
+    private async Task<DashboardViewModel> BuildAdminDashboardCoreAsync()
     {
         var today = DateTime.Today;
         var tomorrow = today.AddDays(1);
@@ -59,16 +93,21 @@ public class DashboardService : IDashboardService
         };
 
         // ----- Today's attendance -----
-        var todayMarks = await _db.AttendanceRecords
+        // Counted in SQL: at most one row per status instead of every mark of the day.
+        var todayCounts = await _db.AttendanceRecords
             .Where(a => a.Date >= today && a.Date < tomorrow)
-            .Select(a => a.Status)
+            .GroupBy(a => a.Status)
+            .Select(g => new { Status = g.Key, Count = g.Count() })
             .ToListAsync();
 
-        vm.PresentToday = todayMarks.Count(s => s == AttendanceStatus.Present);
-        vm.LateToday = todayMarks.Count(s => s == AttendanceStatus.Late);
-        vm.AbsentToday = todayMarks.Count(s => s == AttendanceStatus.Absent);
-        vm.ExcusedToday = todayMarks.Count(s => s == AttendanceStatus.Excused);
-        vm.AttendanceMarkedToday = todayMarks.Count;
+        int TodayCount(AttendanceStatus status) =>
+            todayCounts.FirstOrDefault(c => c.Status == status)?.Count ?? 0;
+
+        vm.PresentToday = TodayCount(AttendanceStatus.Present);
+        vm.LateToday = TodayCount(AttendanceStatus.Late);
+        vm.AbsentToday = TodayCount(AttendanceStatus.Absent);
+        vm.ExcusedToday = TodayCount(AttendanceStatus.Excused);
+        vm.AttendanceMarkedToday = todayCounts.Sum(c => c.Count);
         vm.AttendanceRateToday = vm.AttendanceMarkedToday == 0
             ? 0
             : Math.Round((vm.PresentToday + vm.LateToday) * 100.0 / vm.AttendanceMarkedToday, 1);
@@ -147,23 +186,22 @@ public class DashboardService : IDashboardService
 
         // Last 7 days that actually have attendance marks
         var trendStart = today.AddDays(-6);
-        var trendMarks = await _db.AttendanceRecords
-            .Where(a => a.Date >= trendStart && a.Date < tomorrow)
-            .Select(a => new { a.Date, a.Status })
+
+        var trendCounts = await _db.AttendanceRecords
+            .Where(a => a.Date >= trendStart && a.Date < tomorrow &&
+                        (a.Status == AttendanceStatus.Present || a.Status == AttendanceStatus.Late))
+            .GroupBy(a => a.Date)
+            .Select(g => new { Date = g.Key, Count = g.Count() })
             .ToListAsync();
 
+        var trendLookup = trendCounts.ToDictionary(c => c.Date.Date, c => c.Count);
         var trendDates = Enumerable.Range(0, 7).Select(i => trendStart.AddDays(i)).ToList();
-        var perDate = trendMarks
-            .GroupBy(m => m.Date.Date)
-            .ToDictionary(g => g.Key, g => g.ToList());
 
         vm.AttendanceTrend = new ChartData
         {
             Title = "Attendance Trend (Last 7 Days)",
             Labels = trendDates.Select(d => d.ToString("MMM d")).ToList(),
-            Values = trendDates.Select(d => (double)(perDate.TryGetValue(d, out var marks)
-                ? marks.Count(m => m.Status is AttendanceStatus.Present or AttendanceStatus.Late)
-                : 0)).ToList(),
+            Values = trendDates.Select(d => (double)trendLookup.GetValueOrDefault(d)).ToList(),
             Colors = trendDates.Select(_ => "#800000").ToList()
         };
 
@@ -212,7 +250,7 @@ public class DashboardService : IDashboardService
     // ------------------------------------------------------------------
     // Teacher dashboard
     // ------------------------------------------------------------------
-    public async Task<TeacherDashboardViewModel> BuildTeacherDashboardAsync(string userId)
+    private async Task<TeacherDashboardViewModel> BuildTeacherDashboardCoreAsync(string userId)
     {
         var today = DateTime.Today;
         var now = DateTime.UtcNow;
@@ -283,21 +321,24 @@ public class DashboardService : IDashboardService
             .ToListAsync();
 
         var trendStart = today.AddDays(-6);
+        var dayAfterToday = today.AddDays(1);
+
         var marks = await _db.AttendanceRecords
-            .Where(a => a.Date >= trendStart && a.Date < today.AddDays(1) && sectionIds.Contains(a.SectionId))
-            .Select(a => new { a.Date, a.Status })
+            .Where(a => a.Date >= trendStart && a.Date < dayAfterToday &&
+                        sectionIds.Contains(a.SectionId) &&
+                        (a.Status == AttendanceStatus.Present || a.Status == AttendanceStatus.Late))
+            .GroupBy(a => a.Date)
+            .Select(g => new { Date = g.Key, Count = g.Count() })
             .ToListAsync();
 
+        var markLookup = marks.ToDictionary(m => m.Date.Date, m => m.Count);
         var dates = Enumerable.Range(0, 7).Select(i => trendStart.AddDays(i)).ToList();
-        var grouped = marks.GroupBy(m => m.Date.Date).ToDictionary(g => g.Key, g => g.ToList());
 
         vm.AttendanceTrend = new ChartData
         {
             Title = "My Classes Attendance (Last 7 Days)",
             Labels = dates.Select(d => d.ToString("MMM d")).ToList(),
-            Values = dates.Select(d => grouped.TryGetValue(d, out var list)
-                ? (double)list.Count(m => m.Status is AttendanceStatus.Present or AttendanceStatus.Late)
-                : 0).ToList(),
+            Values = dates.Select(d => (double)markLookup.GetValueOrDefault(d)).ToList(),
             Colors = dates.Select(_ => "#1aa179").ToList()
         };
 
@@ -326,7 +367,7 @@ public class DashboardService : IDashboardService
     // ------------------------------------------------------------------
     // Student dashboard
     // ------------------------------------------------------------------
-    public async Task<StudentDashboardViewModel> BuildStudentDashboardAsync(string userId)
+    private async Task<StudentDashboardViewModel> BuildStudentDashboardCoreAsync(string userId)
     {
         var today = DateTime.Today;
         var now = DateTime.UtcNow;
@@ -359,16 +400,24 @@ public class DashboardService : IDashboardService
             .DefaultIfEmpty()
             .Average();
 
-        var attendance = await _db.AttendanceRecords
+        // Counted in SQL so a learner's whole attendance history is never loaded.
+        var attendanceCounts = await _db.AttendanceRecords
             .Where(a => a.StudentId == student.Id)
+            .GroupBy(a => a.Status)
+            .Select(g => new { Status = g.Key, Count = g.Count() })
             .ToListAsync();
 
-        vm.PresentDays = attendance.Count(a => a.Status == AttendanceStatus.Present);
-        vm.LateDays = attendance.Count(a => a.Status == AttendanceStatus.Late);
-        vm.AbsentDays = attendance.Count(a => a.Status == AttendanceStatus.Absent);
-        vm.AttendanceRate = attendance.Count == 0
+        int AttendanceCount(AttendanceStatus status) =>
+            attendanceCounts.FirstOrDefault(c => c.Status == status)?.Count ?? 0;
+
+        vm.PresentDays = AttendanceCount(AttendanceStatus.Present);
+        vm.LateDays = AttendanceCount(AttendanceStatus.Late);
+        vm.AbsentDays = AttendanceCount(AttendanceStatus.Absent);
+
+        var markedDays = attendanceCounts.Sum(c => c.Count);
+        vm.AttendanceRate = markedDays == 0
             ? 0
-            : Math.Round((vm.PresentDays + vm.LateDays) * 100.0 / attendance.Count, 1);
+            : Math.Round((vm.PresentDays + vm.LateDays) * 100.0 / markedDays, 1);
 
         var requests = await _db.DocumentRequests
             .Include(r => r.DocumentType)
@@ -411,15 +460,22 @@ public class DashboardService : IDashboardService
             .ToListAsync();
 
         var trendStart = today.AddDays(-6);
-        var recent = attendance.Where(a => a.Date >= trendStart).ToList();
+
+        var recentCounts = await _db.AttendanceRecords
+            .Where(a => a.StudentId == student.Id && a.Date >= trendStart &&
+                        (a.Status == AttendanceStatus.Present || a.Status == AttendanceStatus.Late))
+            .GroupBy(a => a.Date)
+            .Select(g => new { Date = g.Key, Count = g.Count() })
+            .ToListAsync();
+
+        var recentLookup = recentCounts.ToDictionary(c => c.Date.Date, c => c.Count);
         var dates = Enumerable.Range(0, 7).Select(i => trendStart.AddDays(i)).ToList();
 
         vm.AttendanceTrend = new ChartData
         {
             Title = "My Attendance (Last 7 Days)",
             Labels = dates.Select(d => d.ToString("MMM d")).ToList(),
-            Values = dates.Select(d => (double)recent.Count(a => a.Date.Date == d &&
-                a.Status is AttendanceStatus.Present or AttendanceStatus.Late)).ToList(),
+            Values = dates.Select(d => (double)recentLookup.GetValueOrDefault(d)).ToList(),
             Colors = dates.Select(_ => "#800000").ToList()
         };
 

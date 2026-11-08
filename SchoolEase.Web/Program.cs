@@ -1,9 +1,11 @@
+using System.IO.Compression;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using SchoolEase.Web.Data;
 using SchoolEase.Web.Infrastructure;
@@ -26,7 +28,7 @@ builder.Services.Configure<StorageSettings>(builder.Configuration.GetSection("St
 // ---------------------------------------------------------------------------
 // Database (SQLite by default, MySQL / SQL Server selectable from appsettings)
 // ---------------------------------------------------------------------------
-builder.Services.AddSchoolEaseDatabase(builder.Configuration);
+builder.Services.AddSchoolEaseDatabase(builder.Configuration, builder.Environment.IsDevelopment());
 
 // ---------------------------------------------------------------------------
 // Authentication - ASP.NET Core Identity with hashed passwords + lockout
@@ -96,6 +98,35 @@ builder.Services.AddAuthorization(options =>
 });
 
 builder.Services.AddHttpContextAccessor();
+
+// ---------------------------------------------------------------------------
+// Response compression. Bootstrap, the site stylesheet and every rendered page
+// leave the server uncompressed otherwise, which is the single biggest cost on a
+// small host. Fastest (not Optimal) because CPU is the scarce resource here.
+// ---------------------------------------------------------------------------
+builder.Services.AddResponseCompression(options =>
+{
+    // TLS is usually terminated by the host's proxy, but keep this on so
+    // direct HTTPS requests are compressed too.
+    options.EnableForHttps = true;
+
+    options.Providers.Add<BrotliCompressionProvider>();
+    options.Providers.Add<GzipCompressionProvider>();
+
+    options.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(new[]
+    {
+        "application/javascript",
+        "text/javascript",
+        "application/json",
+        "image/svg+xml"
+    });
+});
+
+builder.Services.Configure<BrotliCompressionProviderOptions>(o => o.Level = CompressionLevel.Fastest);
+builder.Services.Configure<GzipCompressionProviderOptions>(o => o.Level = CompressionLevel.Fastest);
+
+// In-memory cache for the role dashboards (see DashboardService).
+builder.Services.AddMemoryCache();
 
 // ---------------------------------------------------------------------------
 // Application services
@@ -237,7 +268,20 @@ if (app.Configuration.GetValue("Https:Redirect", true))
     app.UseHttpsRedirection();
 }
 
-app.UseStaticFiles();
+app.UseResponseCompression();
+
+// Long-lived cache headers for library assets so browsers stop re-downloading
+// Bootstrap and jQuery on every page view. Images get a shorter window so a
+// replaced logo still reaches users within a day. Pages themselves stay uncached.
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = ctx =>
+    {
+        var path = ctx.Context.Request.Path.Value ?? string.Empty;
+        var maxAge = path.StartsWith("/lib/", StringComparison.OrdinalIgnoreCase) ? 604800 : 86400;
+        ctx.Context.Response.Headers.CacheControl = $"public,max-age={maxAge}";
+    }
+});
 app.UseRouting();
 app.UseSession();
 app.UseAuthentication();

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace SchoolEase.Web.Infrastructure;
 
@@ -23,7 +24,8 @@ public static class DatabaseSetup
     public const string Postgres = "postgres";
     public const string SqlServer = "sqlserver";
 
-    public static IServiceCollection AddSchoolEaseDatabase(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddSchoolEaseDatabase(
+        this IServiceCollection services, IConfiguration configuration, bool isDevelopment = false)
     {
         var provider = (configuration["Database:Provider"] ?? Sqlite).Trim().ToLowerInvariant();
         if (provider is "postgresql" or "pgsql") provider = Postgres;
@@ -42,7 +44,7 @@ public static class DatabaseSetup
                     break;
 
                 case Postgres:
-                    options.UseNpgsql(connectionString,
+                    options.UseNpgsql(CapPostgresPool(connectionString),
                         npgsql => npgsql.EnableRetryOnFailure().MigrationsHistoryTable("__EFMigrationsHistory"));
                     break;
 
@@ -62,10 +64,40 @@ public static class DatabaseSetup
                 options.EnableSensitiveDataLogging();
             }
 
-            options.EnableDetailedErrors();
+            // Detailed errors expose query parameters in logs and add overhead on
+            // every query, so they stay out of production.
+            if (isDevelopment)
+            {
+                options.EnableDetailedErrors();
+            }
         });
 
         return services;
+    }
+
+    /// <summary>
+    /// Keeps the connection pool inside what a free PostgreSQL tier accepts.
+    /// Free tiers reject connections past their limit, which turns a traffic spike
+    /// into hard errors; queueing inside the pool is the gentler failure. Left as
+    /// configured when the connection string already sets a size.
+    /// </summary>
+    private static string CapPostgresPool(string connectionString)
+    {
+        try
+        {
+            var builder = new NpgsqlConnectionStringBuilder(connectionString);
+            if (!builder.ContainsKey("Maximum Pool Size"))
+            {
+                builder.MaxPoolSize = 20;
+            }
+
+            return builder.ConnectionString;
+        }
+        catch (ArgumentException)
+        {
+            // Not a key/value Npgsql string (or malformed) - pass it through untouched.
+            return connectionString;
+        }
     }
 
     /// <summary>Human-readable name of the active engine (shown on the Settings page).</summary>
