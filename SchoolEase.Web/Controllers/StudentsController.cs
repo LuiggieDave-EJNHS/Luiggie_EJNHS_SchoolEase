@@ -166,6 +166,7 @@ public class StudentsController : Controller
         ViewData["Title"] = "Add Student";
         return View(new Student
         {
+            StudentNumber = await GenerateStudentNumberAsync(),
             DateEnrolled = DateTime.Today,
             EnrollmentStatus = EnrollmentStatus.Enrolled,
             IsActive = true
@@ -182,13 +183,13 @@ public class StudentsController : Controller
         string? newGuardianContactNumber,
         string? newGuardianEmail)
     {
-        if (string.IsNullOrWhiteSpace(model.StudentNumber))
+        // Student numbers are allocated by the system. Generate the next one when the
+        // field is blank or when a stale/duplicate value was submitted, so encoding a
+        // learner never fails because of a number clash.
+        if (string.IsNullOrWhiteSpace(model.StudentNumber) ||
+            await _db.Students.AnyAsync(s => s.StudentNumber == model.StudentNumber))
         {
             model.StudentNumber = await GenerateStudentNumberAsync();
-        }
-        else if (await _db.Students.AnyAsync(s => s.StudentNumber == model.StudentNumber))
-        {
-            ModelState.AddModelError(nameof(Student.StudentNumber), $"Student number {model.StudentNumber} is already in use.");
         }
 
         if (!ModelState.IsValid)

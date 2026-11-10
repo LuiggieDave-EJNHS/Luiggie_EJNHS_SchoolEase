@@ -516,6 +516,7 @@ h1, h2, h3, h4, h5, h6 { color: var(--se-ink); font-weight: 650; letter-spacing:
 }
 .form-control::placeholder { color: #a6b2c5; }
 .form-control:disabled, .form-select:disabled { background: #f5f7fb; }
+.form-control[readonly] { background: #f5f7fb; color: var(--se-ink-soft); cursor: default; font-weight: 600; letter-spacing: .01em; }
 
 .se-field-error, .text-danger.field-validation-error { font-size: .78rem; margin-top: .25rem; display: block; }
 
