@@ -19,15 +19,18 @@ public class StudentController : Controller
     private readonly ApplicationDbContext _db;
     private readonly ICurrentUserService _currentUser;
     private readonly IDashboardService _dashboard;
+    private readonly IFileStorage _storage;
 
     public StudentController(
         ApplicationDbContext db,
         ICurrentUserService currentUser,
-        IDashboardService dashboard)
+        IDashboardService dashboard,
+        IFileStorage storage)
     {
         _db = db;
         _currentUser = currentUser;
         _dashboard = dashboard;
+        _storage = storage;
     }
 
     // ------------------------------------------------------------------
@@ -247,6 +250,90 @@ public class StudentController : Controller
 
         return View(requests);
     }
+
+    // ------------------------------------------------------------------
+    public async Task<IActionResult> Documents()
+    {
+        var vm = new MyDocumentsViewModel();
+        var student = await LoadStudentAsync();
+        vm.Student = student;
+
+        if (student is not null)
+        {
+            vm.Documents = await _db.StudentDocuments
+                .Where(d => d.StudentId == student.Id && d.IsVisibleToStudent)
+                .OrderBy(d => d.Category)
+                .ThenByDescending(d => d.CreatedAt)
+                .Select(d => new StudentDocument
+                {
+                    Id = d.Id,
+                    StudentId = d.StudentId,
+                    Title = d.Title,
+                    Category = d.Category,
+                    Description = d.Description,
+                    FileName = d.FileName,
+                    ContentType = d.ContentType,
+                    FileSize = d.FileSize,
+                    StorageKey = d.StorageKey,
+                    IsVisibleToStudent = d.IsVisibleToStudent,
+                    SchoolYear = d.SchoolYear,
+                    UploaderName = d.UploaderName,
+                    DownloadCount = d.DownloadCount,
+                    CreatedAt = d.CreatedAt,
+                    UpdatedAt = d.UpdatedAt
+                })
+                .ToListAsync();
+        }
+
+        ViewData["Title"] = "My Records";
+        return View(vm);
+    }
+
+    // ------------------------------------------------------------------
+    public async Task<IActionResult> PreviewDocument(int id)
+    {
+        var document = await LoadOwnDocumentAsync(id);
+        if (document is null) return NotFound();
+
+        var bytes = await ReadDocumentBytesAsync(document);
+        if (bytes.Length == 0) return NotFound();
+
+        // Allow this response to be framed same-origin so the in-page preview works.
+        Response.Headers["X-Frame-Options"] = "SAMEORIGIN";
+        Response.Headers["Content-Security-Policy"] = "frame-ancestors 'self';";
+
+        return File(bytes, document.ContentType, enableRangeProcessing: true);
+    }
+
+    // ------------------------------------------------------------------
+    public async Task<IActionResult> DownloadDocument(int id)
+    {
+        var document = await LoadOwnDocumentAsync(id);
+        if (document is null) return NotFound();
+
+        var bytes = await ReadDocumentBytesAsync(document);
+        if (bytes.Length == 0) return NotFound();
+
+        document.DownloadCount++;
+        await _db.SaveChangesAsync();
+
+        return File(bytes, document.ContentType, document.FileName);
+    }
+
+    /// <summary>Loads a record from the current learner's own 201 file, honouring visibility.</summary>
+    private async Task<StudentDocument?> LoadOwnDocumentAsync(int id)
+    {
+        var student = await LoadStudentAsync();
+        if (student is null) return null;
+
+        return await _db.StudentDocuments
+            .FirstOrDefaultAsync(d => d.Id == id && d.StudentId == student.Id && d.IsVisibleToStudent);
+    }
+
+    private async Task<byte[]> ReadDocumentBytesAsync(StudentDocument document)
+        => document.StorageKey is not null && _storage.IsConfigured
+            ? await _storage.DownloadAsync(document.StorageKey)
+            : document.FileContent;
 
     // ------------------------------------------------------------------
     private Task<Student?> LoadStudentAsync()

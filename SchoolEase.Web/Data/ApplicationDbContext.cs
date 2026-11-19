@@ -30,6 +30,8 @@ public class ApplicationDbContext : IdentityDbContext<AppUser>
     public DbSet<ActivitySheetTarget> ActivitySheetTargets => Set<ActivitySheetTarget>();
     public DbSet<DocumentType> DocumentTypes => Set<DocumentType>();
     public DbSet<DocumentRequest> DocumentRequests => Set<DocumentRequest>();
+    public DbSet<StudentDocument> StudentDocuments => Set<StudentDocument>();
+    public DbSet<UserPhoto> UserPhotos => Set<UserPhoto>();
     public DbSet<Announcement> Announcements => Set<Announcement>();
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<SchoolEvent> SchoolEvents => Set<SchoolEvent>();
@@ -47,6 +49,16 @@ public class ApplicationDbContext : IdentityDbContext<AppUser>
         {
             e.Property(u => u.FullName).IsRequired().HasMaxLength(120);
             e.HasIndex(u => u.IsActive);
+        });
+
+        builder.Entity<UserPhoto>(e =>
+        {
+            e.HasKey(p => p.UserId);
+
+            e.HasOne(p => p.User)
+                .WithOne(u => u.Photo)
+                .HasForeignKey<UserPhoto>(p => p.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         // ------------------------------------------------------------------
@@ -324,6 +336,17 @@ public class ApplicationDbContext : IdentityDbContext<AppUser>
                 .WithMany()
                 .HasForeignKey(r => r.ProcessedByUserId)
                 .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        builder.Entity<StudentDocument>(e =>
+        {
+            e.HasIndex(d => d.StudentId);
+            e.HasIndex(d => d.Category);
+
+            e.HasOne(d => d.Student)
+                .WithMany(s => s.Documents)
+                .HasForeignKey(d => d.StudentId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         // ------------------------------------------------------------------

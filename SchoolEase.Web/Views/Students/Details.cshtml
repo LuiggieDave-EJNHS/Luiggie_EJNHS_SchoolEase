@@ -199,6 +199,94 @@
     </div>
 </div>
 
+<div class="se-card mb-3">
+    <div class="se-card__head">
+        <h3><i class="bi bi-folder2-open me-1"></i>201 file documents</h3>
+        <a class="btn btn-sm btn-primary" asp-controller="StudentDocuments" asp-action="Create" asp-route-studentId="@s.Id">
+            <i class="bi bi-cloud-arrow-up me-1"></i>Upload document
+        </a>
+    </div>
+    @if (Model.Documents.Count == 0)
+    {
+        <partial name="_EmptyState" model="@(new EmptyState
+        {
+            Icon = "bi-folder2-open",
+            Title = "No records yet",
+            Message = "Upload the first scanned record for this learner's 201 file.",
+            ActionText = "Upload document",
+            ActionUrl = Url.Action("Create", "StudentDocuments", new { studentId = s.Id })
+        })" />
+    }
+    else
+    {
+        <div class="se-table-wrap">
+            <table class="se-table se-table--compact">
+                <thead>
+                    <tr>
+                        <th>Document</th>
+                        <th>Category</th>
+                        <th>File</th>
+                        <th>Shared</th>
+                        <th>Added</th>
+                        <th class="se-col-actions">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var doc in Model.Documents)
+                    {
+                        <tr>
+                            <td>
+                                <span class="se-strong d-block">@doc.Title</span>
+                                @if (!string.IsNullOrWhiteSpace(doc.Description))
+                                {
+                                    <span class="se-tiny se-muted">@doc.Description</span>
+                                }
+                            </td>
+                            <td><span class="se-badge text-bg-primary">@doc.Category.DisplayName()</span></td>
+                            <td>
+                                <span class="se-tiny d-block text-truncate" style="max-width:180px;">@doc.FileName</span>
+                                <span class="se-tiny se-muted">@doc.FileSizeLabel</span>
+                            </td>
+                            <td>
+                                @if (doc.IsVisibleToStudent)
+                                {
+                                    <span class="se-badge text-bg-success"><i class="bi bi-eye"></i>Yes</span>
+                                }
+                                else
+                                {
+                                    <span class="se-badge text-bg-secondary"><i class="bi bi-eye-slash"></i>Staff only</span>
+                                }
+                            </td>
+                            <td>
+                                @doc.CreatedAt.ToLocalTime().ToDateLabel()
+                                <span class="se-tiny se-muted d-block">@doc.UploaderName</span>
+                            </td>
+                            <td class="se-col-actions">
+                                <div class="se-row-actions">
+                                    <a class="btn btn-sm btn-light" asp-controller="StudentDocuments" asp-action="Preview"
+                                       asp-route-id="@doc.Id" target="_blank" rel="noopener" title="View">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a class="btn btn-sm btn-light" asp-controller="StudentDocuments" asp-action="Download"
+                                       asp-route-id="@doc.Id" title="Download">
+                                        <i class="bi bi-download"></i>
+                                    </a>
+                                    <form asp-controller="StudentDocuments" asp-action="Delete" asp-route-id="@doc.Id" method="post"
+                                          class="d-inline" data-se-confirm="Remove this document from the 201 file?">
+                                        <button type="submit" class="btn btn-sm btn-light text-danger" title="Delete">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
 <div class="se-card">
     <div class="se-card__head"><h3><i class="bi bi-file-earmark-text me-1"></i>Document requests</h3></div>
     @if (Model.DocumentRequests.Count == 0)

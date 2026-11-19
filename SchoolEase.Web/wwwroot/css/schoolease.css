@@ -281,7 +281,10 @@ h1, h2, h3, h4, h5, h6 { color: var(--se-ink); font-weight: 650; letter-spacing:
     flex: 0 0 34px;
     border: 2px solid #fff;
     box-shadow: var(--se-shadow-sm);
+    position: relative; overflow: hidden;
 }
+.se-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: inherit; }
+.se-photo-input { max-width: 280px; }
 .se-avatar--lg { width: 56px; height: 56px; font-size: 1.15rem; flex-basis: 56px; }
 .se-avatar--xl { width: 88px; height: 88px; font-size: 1.7rem; flex-basis: 88px; }
 .se-avatar--primary { background: var(--se-primary-soft); color: var(--se-primary-700); }

@@ -1,0 +1,101 @@
+@model MyDocumentsViewModel
+@{
+    ViewData["Title"] = "My Records";
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = "My Records",
+    Subtitle = "Documents the school keeps in your learner record (201 file).",
+    Icon = "bi-folder2-open",
+    Actions = new List<PageAction>()
+})" />
+
+<div class="row g-3 mb-3">
+    <div class="col-6 col-xl-3">
+        <partial name="_StatCard" model="@(new StatCard
+        {
+            Label = "Records",
+            Value = Model.Documents.Count.ToString("N0"),
+            Icon = "bi-folder2-open",
+            Tone = "primary",
+            Meta = $"S.Y. {SchoolInfo.SchoolYear}"
+        })" />
+    </div>
+    <div class="col-6 col-xl-3">
+        <partial name="_StatCard" model="@(new StatCard
+        {
+            Label = "Downloaded",
+            Value = Model.Documents.Sum(d => d.DownloadCount).ToString("N0"),
+            Icon = "bi-download",
+            Tone = "teal",
+            Meta = "Times you saved a copy"
+        })" />
+    </div>
+</div>
+
+<div class="se-card">
+    <div class="se-card__head">
+        <h3><i class="bi bi-folder2-open me-1"></i>My records</h3>
+        <span class="se-pill"><i class="bi bi-list-ul"></i>@Model.Documents.Count record(s)</span>
+    </div>
+
+    @if (Model.Documents.Count == 0)
+    {
+        <partial name="_EmptyState" model="@(new EmptyState
+        {
+            Icon = "bi-folder2-open",
+            Title = "No records yet",
+            Message = "Documents shared with you by the school will appear here."
+        })" />
+    }
+    else
+    {
+        <div class="se-table-wrap">
+            <table class="se-table">
+                <thead>
+                    <tr>
+                        <th>Document</th>
+                        <th>Category</th>
+                        <th>File</th>
+                        <th>Shared By</th>
+                        <th>Added</th>
+                        <th class="se-col-actions">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var doc in Model.Documents)
+                    {
+                        <tr>
+                            <td>
+                                <span class="se-strong d-block">@doc.Title</span>
+                                @if (!string.IsNullOrWhiteSpace(doc.Description))
+                                {
+                                    <span class="se-tiny se-muted">@doc.Description</span>
+                                }
+                            </td>
+                            <td><span class="se-badge text-bg-primary">@doc.Category.DisplayName()</span></td>
+                            <td>
+                                <span class="se-tiny d-block text-truncate" style="max-width:200px;">@doc.FileName</span>
+                                <span class="se-tiny se-muted">@doc.FileSizeLabel</span>
+                            </td>
+                            <td>@doc.UploaderName</td>
+                            <td>@doc.CreatedAt.ToLocalTime().ToDateLabel()</td>
+                            <td class="se-col-actions">
+                                <div class="se-row-actions">
+                                    <a class="btn btn-sm btn-light" asp-action="PreviewDocument" asp-route-id="@doc.Id"
+                                       target="_blank" rel="noopener" title="View in browser">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a class="btn btn-sm btn-light" asp-action="DownloadDocument" asp-route-id="@doc.Id" title="Download">
+                                        <i class="bi bi-download"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

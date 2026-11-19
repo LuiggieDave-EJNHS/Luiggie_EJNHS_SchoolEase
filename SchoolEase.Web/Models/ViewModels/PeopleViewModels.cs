@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using SchoolEase.Web.Helpers;
 using SchoolEase.Web.Models;
@@ -44,6 +46,43 @@ public class StudentDetailsViewModel
     public List<GradeRecord> Grades { get; set; } = new();
     public List<DocumentRequest> DocumentRequests { get; set; } = new();
     public List<AttendanceRecord> RecentAttendance { get; set; } = new();
+
+    /// <summary>Scanned records in the learner's 201 file.</summary>
+    public List<StudentDocument> Documents { get; set; } = new();
+}
+
+/// <summary>Backing model for the staff upload form of a learner's 201 file record.</summary>
+public class StudentDocumentFormViewModel
+{
+    public int StudentId { get; set; }
+    public string StudentLabel { get; set; } = string.Empty;
+
+    [Required, StringLength(160)]
+    [Display(Name = "Title")]
+    public string Title { get; set; } = string.Empty;
+
+    [Display(Name = "Category")]
+    public StudentDocumentCategory Category { get; set; } = StudentDocumentCategory.Other;
+
+    [StringLength(500)]
+    [Display(Name = "Description")]
+    public string? Description { get; set; }
+
+    [Display(Name = "Share with learner")]
+    public bool IsVisibleToStudent { get; set; } = true;
+
+    [Display(Name = "File")]
+    public IFormFile? File { get; set; }
+
+    public string? ExistingFileName { get; set; }
+    public long ExistingFileSize { get; set; }
+}
+
+/// <summary>Learner-facing list of the records kept in their own 201 file.</summary>
+public class MyDocumentsViewModel
+{
+    public Student? Student { get; set; }
+    public List<StudentDocument> Documents { get; set; } = new();
 }
 
 /// <summary>Backing model for the teaching personnel list screen.</summary>

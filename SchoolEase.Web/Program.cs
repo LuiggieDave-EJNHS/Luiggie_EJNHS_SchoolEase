@@ -136,6 +136,7 @@ builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddScoped<IProfilePhotoService, ProfilePhotoService>();
 builder.Services.AddTransient<IEmailSender, EmailSender>();
 
 // Optional S3-compatible object storage (Cloudflare R2). When the credentials are

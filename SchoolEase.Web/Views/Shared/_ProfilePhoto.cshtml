@@ -1,0 +1,58 @@
+@inject IProfilePhotoService Photos
+@{
+    var uid = CurrentUser.UserId;
+    if (uid is null)
+    {
+        return;
+    }
+
+    var hasPhoto = await Photos.HasPhotoAsync(uid);
+    var photoUrl = Url.Action("Avatar", "ProfilePicture", new { id = uid });
+    var returnUrl = Context.Request.Path + Context.Request.QueryString;
+    var name = CurrentUser.FullName;
+}
+
+<div class="se-card mb-3">
+    <div class="se-card__head"><h3><i class="bi bi-person-bounding-box me-1"></i>Profile photo</h3></div>
+    <div class="se-card__body">
+        <div class="d-flex flex-wrap align-items-center gap-3">
+            <span class="se-avatar se-avatar--xl se-avatar--@name.AvatarTone()">
+                @if (hasPhoto)
+                {
+                    <img src="@photoUrl" alt="@name" />
+                }
+                else
+                {
+                    @name.Initials()
+                }
+            </span>
+
+            <div class="flex-grow-1">
+                <p class="se-small se-muted mb-2">
+                    JPG, PNG or WEBP, up to 2 MB. Your photo appears next to your name in the top bar.
+                </p>
+
+                <form asp-controller="ProfilePicture" asp-action="Upload" method="post"
+                      enctype="multipart/form-data" class="d-flex flex-wrap align-items-center gap-2">
+                    <input type="hidden" name="returnUrl" value="@returnUrl" />
+                    <input type="file" name="photo" accept="image/png,image/jpeg,image/webp"
+                           class="form-control form-control-sm se-photo-input" required />
+                    <button type="submit" class="btn btn-sm btn-primary">
+                        <i class="bi bi-upload me-1"></i>@(hasPhoto ? "Replace" : "Upload")
+                    </button>
+                </form>
+
+                @if (hasPhoto)
+                {
+                    <form asp-controller="ProfilePicture" asp-action="Remove" method="post"
+                          class="mt-2" data-se-confirm="Remove your profile photo?">
+                        <input type="hidden" name="returnUrl" value="@returnUrl" />
+                        <button type="submit" class="btn btn-sm btn-light text-danger">
+                            <i class="bi bi-trash me-1"></i>Remove photo
+                        </button>
+                    </form>
+                }
+            </div>
+        </div>
+    </div>
+</div>

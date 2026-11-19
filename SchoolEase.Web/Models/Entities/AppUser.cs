@@ -16,6 +16,9 @@ public class AppUser : IdentityUser
     [Display(Name = "Profile Photo")]
     public string? ProfilePicturePath { get; set; }
 
+    /// <summary>The user's uploaded profile photo, when one has been set.</summary>
+    public UserPhoto? Photo { get; set; }
+
     [Display(Name = "Active")]
     public bool IsActive { get; set; } = true;
 

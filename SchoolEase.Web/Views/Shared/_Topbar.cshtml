@@ -1,9 +1,11 @@
 @inject INotificationService Notifications
+@inject IProfilePhotoService Photos
 @{
     var uid = CurrentUser.UserId;
     var unread = uid is null ? 0 : await Notifications.UnreadCountAsync(uid);
     var recent = uid is null ? new List<Notification>() : await Notifications.RecentAsync(uid, 6);
     var roleLabel = string.IsNullOrWhiteSpace(CurrentUser.PrimaryRole) ? "Member" : CurrentUser.PrimaryRole;
+    var hasPhoto = uid is not null && await Photos.HasPhotoAsync(uid);
 }
 
 <header class="se-topbar">
@@ -69,7 +71,16 @@
 
     <div class="dropdown">
         <button type="button" class="se-userchip" data-bs-toggle="dropdown" aria-label="Account menu">
-            <span class="se-avatar se-avatar--@CurrentUser.FullName.AvatarTone()">@CurrentUser.FullName.Initials()</span>
+            <span class="se-avatar se-avatar--@CurrentUser.FullName.AvatarTone()">
+                @if (hasPhoto)
+                {
+                    <img src="@Url.Action("Avatar", "ProfilePicture", new { id = uid })" alt="@CurrentUser.FullName" />
+                }
+                else
+                {
+                    @CurrentUser.FullName.Initials()
+                }
+            </span>
             <span class="text-start">
                 <span class="se-userchip__name d-block">@CurrentUser.FullName</span>
                 <span class="se-userchip__role d-block">@roleLabel</span>

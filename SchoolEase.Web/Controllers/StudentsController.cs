@@ -152,6 +152,27 @@ public class StudentsController : Controller
                 .Include(a => a.Subject)
                 .OrderByDescending(a => a.Date)
                 .Take(12)
+                .ToListAsync(),
+            Documents = await _db.StudentDocuments
+                .Where(d => d.StudentId == id)
+                .OrderBy(d => d.Category).ThenByDescending(d => d.CreatedAt)
+                .Select(d => new StudentDocument
+                {
+                    Id = d.Id,
+                    StudentId = d.StudentId,
+                    Title = d.Title,
+                    Category = d.Category,
+                    Description = d.Description,
+                    FileName = d.FileName,
+                    ContentType = d.ContentType,
+                    FileSize = d.FileSize,
+                    StorageKey = d.StorageKey,
+                    IsVisibleToStudent = d.IsVisibleToStudent,
+                    SchoolYear = d.SchoolYear,
+                    UploaderName = d.UploaderName,
+                    DownloadCount = d.DownloadCount,
+                    CreatedAt = d.CreatedAt
+                })
                 .ToListAsync()
         };
 

@@ -49,6 +49,19 @@ public enum DocumentRequestStatus
     [Display(Name = "Rejected")] Rejected = 5
 }
 
+/// <summary>Kind of record kept in a learner's 201 file.</summary>
+public enum StudentDocumentCategory
+{
+    [Display(Name = "Birth Certificate")] BirthCertificate = 1,
+    [Display(Name = "Form 137 (Permanent Record)")] Form137 = 2,
+    [Display(Name = "Form 138 (Report Card)")] Form138 = 3,
+    [Display(Name = "Good Moral Certificate")] GoodMoral = 4,
+    [Display(Name = "Medical / Health Record")] MedicalRecord = 5,
+    [Display(Name = "Certificate of Enrollment")] CertificateOfEnrollment = 6,
+    [Display(Name = "ID / Photo")] Identification = 7,
+    [Display(Name = "Other")] Other = 99
+}
+
 /// <summary>Importance of an announcement.</summary>
 public enum AnnouncementPriority
 {

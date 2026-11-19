@@ -95,4 +95,7 @@ public class Student
     public ICollection<AttendanceRecord> AttendanceRecords { get; set; } = new List<AttendanceRecord>();
     public ICollection<GradeRecord> GradeRecords { get; set; } = new List<GradeRecord>();
     public ICollection<DocumentRequest> DocumentRequests { get; set; } = new List<DocumentRequest>();
+
+    /// <summary>Scanned records kept in this learner's 201 file.</summary>
+    public ICollection<StudentDocument> Documents { get; set; } = new List<StudentDocument>();
 }
