@@ -1,0 +1,103 @@
+@model StudentVerificationIndexViewModel
+@{
+    ViewData["Title"] = "Student Verifications";
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = "Student Verifications",
+    Subtitle = "Confirm whether each self-registered account is a real student.",
+    Icon = "bi-person-check",
+    Actions = new List<PageAction>
+    {
+        new() { Text = "Student register", Url = Url.Action("Index", "Students"), Icon = "bi-people", Css = "btn btn-light" }
+    }
+})" />
+
+<div class="row g-3 mb-3">
+    <div class="col-6 col-xl-3">
+        <partial name="_StatCard" model="@(new StatCard
+        {
+            Label = "Awaiting Confirmation",
+            Value = Model.Pending.Count.ToString("N0"),
+            Icon = "bi-hourglass-split",
+            Tone = Model.Pending.Count > 0 ? "warning" : "success",
+            Meta = Model.Pending.Count > 0 ? "Needs review" : "All clear"
+        })" />
+    </div>
+</div>
+
+<div class="se-card">
+    <div class="se-card__head">
+        <h3><i class="bi bi-person-check me-1"></i>Accounts claiming to be students</h3>
+        <span class="se-pill"><i class="bi bi-list-ul"></i>@Model.Pending.Count pending</span>
+    </div>
+
+    @if (Model.Pending.Count == 0)
+    {
+        <partial name="_EmptyState" model="@(new EmptyState
+        {
+            Icon = "bi-person-check",
+            Title = "Nothing to confirm",
+            Message = "New self-registered student accounts will appear here for confirmation."
+        })" />
+    }
+    else
+    {
+        <div class="se-table-wrap">
+            <table class="se-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Email Verified</th>
+                        <th>Registered</th>
+                        <th class="se-col-actions">Decision</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.Pending)
+                    {
+                        <tr>
+                            <td class="se-strong">@item.FullName</td>
+                            <td>@item.Email</td>
+                            <td>
+                                @if (item.EmailConfirmed)
+                                {
+                                    <span class="se-badge text-bg-success"><i class="bi bi-check-circle"></i>Verified</span>
+                                }
+                                else
+                                {
+                                    <span class="se-badge text-bg-warning"><i class="bi bi-clock"></i>Not yet</span>
+                                }
+                            </td>
+                            <td>@item.RegisteredAt.ToLocalTime().ToDateLabel()</td>
+                            <td class="se-col-actions">
+                                <div class="se-row-actions">
+                                    <form asp-action="ConfirmStudent" asp-route-id="@item.UserId" method="post" class="d-inline"
+                                          data-se-confirm="Confirm @item.FullName as a student? They will be added to the student register.">
+                                        <button type="submit" class="btn btn-sm btn-primary">
+                                            <i class="bi bi-check2-circle me-1"></i>Confirm student
+                                        </button>
+                                    </form>
+                                    <form asp-action="RejectStudent" asp-route-id="@item.UserId" method="post" class="d-inline"
+                                          data-se-confirm="Mark @item.FullName as NOT a student? The student role is removed and the account deactivated.">
+                                        <button type="submit" class="btn btn-sm btn-light text-danger">
+                                            <i class="bi bi-x-circle me-1"></i>Not a student
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    <div class="se-card__foot se-small se-muted">
+        <i class="bi bi-info-circle me-1"></i>
+        Confirming adds the account to the student register and opens the profile form so you can complete the missing details.
+        Rejecting removes the student role and deactivates the account.
+    </div>
+</div>

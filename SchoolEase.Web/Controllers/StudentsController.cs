@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -17,15 +18,25 @@ public class StudentsController : Controller
 {
     private const int PageSize = 15;
 
+    /// <summary>Roles that may confirm or reject self-registered learners.</summary>
+    private const string VerificationRoles =
+        Roles.Registrar + "," + Roles.SchoolAdministrator + "," + Roles.SuperAdministrator + "," + Roles.IctHeadCoordinator;
+
     private readonly ApplicationDbContext _db;
     private readonly IAuditService _audit;
     private readonly INotificationService _notify;
+    private readonly UserManager<AppUser> _userManager;
 
-    public StudentsController(ApplicationDbContext db, IAuditService audit, INotificationService notify)
+    public StudentsController(
+        ApplicationDbContext db,
+        IAuditService audit,
+        INotificationService notify,
+        UserManager<AppUser> userManager)
     {
         _db = db;
         _audit = audit;
         _notify = notify;
+        _userManager = userManager;
     }
 
     // ----------------------------------------------------------------- Index
@@ -323,6 +334,130 @@ public class StudentsController : Controller
         await _audit.LogAsync("Delete Student", "Student", id, name);
         TempData["Success"] = $"Student {name} was deleted.";
         return RedirectToAction(nameof(Index));
+    }
+
+    // ------------------------------------------------------------- Verifications
+    /// <summary>
+    /// Self-registered accounts that claim to be students but have no learner record yet.
+    /// Staff confirm or reject each one, which is how a registrant reaches the student register.
+    /// </summary>
+    [Authorize(Roles = VerificationRoles)]
+    public async Task<IActionResult> Verifications()
+    {
+        var linkedIds = await _db.Students
+            .Where(s => s.UserId != null)
+            .Select(s => s.UserId!)
+            .ToListAsync();
+
+        var studentRoleUserIds = await (
+            from ur in _db.UserRoles
+            join r in _db.Roles on ur.RoleId equals r.Id
+            where r.Name == Roles.Student
+            select ur.UserId).ToListAsync();
+
+        var pendingIds = studentRoleUserIds.Where(id => !linkedIds.Contains(id)).ToList();
+
+        var pending = await _db.Users
+            .Where(u => pendingIds.Contains(u.Id))
+            .OrderByDescending(u => u.CreatedAt)
+            .Select(u => new PendingStudentRegistration
+            {
+                UserId = u.Id,
+                FullName = u.FullName,
+                Email = u.Email,
+                EmailConfirmed = u.EmailConfirmed,
+                RegisteredAt = u.CreatedAt
+            })
+            .ToListAsync();
+
+        ViewData["Title"] = "Student Verifications";
+        return View(new StudentVerificationIndexViewModel { Pending = pending });
+    }
+
+    // --------------------------------------------------------- Confirm student
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = VerificationRoles)]
+    public async Task<IActionResult> ConfirmStudent(string id)
+    {
+        var user = await _userManager.FindByIdAsync(id);
+        if (user is null || !await _userManager.IsInRoleAsync(user, Roles.Student))
+        {
+            TempData["Error"] = "That account is no longer waiting in the student queue.";
+            return RedirectToAction(nameof(Verifications));
+        }
+
+        if (await _db.Students.AnyAsync(s => s.UserId == user.Id))
+        {
+            TempData["Error"] = $"{user.FullName} is already in the student register.";
+            return RedirectToAction(nameof(Verifications));
+        }
+
+        // Split the registered display name into the parts the register expects.
+        var names = user.FullName.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var firstName = names.ElementAtOrDefault(0) ?? "Student";
+        var lastName = names.Length > 1 ? names[^1] : firstName;
+        var middleName = names.Length > 2 ? string.Join(' ', names.Skip(1).Take(names.Length - 2)) : null;
+
+        var student = new Student
+        {
+            UserId = user.Id,
+            StudentNumber = await GenerateStudentNumberAsync(),
+            FirstName = firstName,
+            MiddleName = middleName,
+            LastName = lastName,
+            Email = user.Email,
+            EnrollmentStatus = EnrollmentStatus.Enrolled,
+            DateEnrolled = DateTime.Today,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _db.Students.Add(student);
+        await _db.SaveChangesAsync();
+
+        await _audit.LogAsync("Confirm Student", "Student", student.Id,
+            $"{user.FullName} was confirmed as a student ({student.StudentNumber}).");
+
+        await _notify.NotifyAsync(user.Id,
+            "You are confirmed as a student",
+            "The registrar confirmed your student account. Please complete your profile details.",
+            NotificationType.Success,
+            Url.Action("Profile", "Student"));
+
+        await _notify.NotifyAdministratorsAsync(
+            "Student confirmed",
+            $"{user.FullName} was added to the student register ({student.StudentNumber}).",
+            NotificationType.Info,
+            Url.Action(nameof(Details), new { id = student.Id }));
+
+        TempData["Success"] = $"{user.FullName} was added to the student register. Complete the remaining details below.";
+        return RedirectToAction(nameof(Edit), new { id = student.Id });
+    }
+
+    // ---------------------------------------------------------- Reject student
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = VerificationRoles)]
+    public async Task<IActionResult> RejectStudent(string id)
+    {
+        var user = await _userManager.FindByIdAsync(id);
+        if (user is null)
+        {
+            TempData["Error"] = "That account could not be found.";
+            return RedirectToAction(nameof(Verifications));
+        }
+
+        await _userManager.RemoveFromRoleAsync(user, Roles.Student);
+        user.IsActive = false;
+        await _userManager.UpdateAsync(user);
+
+        await _audit.LogAsync("Reject Student", "Account", user.Id,
+            $"{user.FullName} was not confirmed as a student; the student role was removed and the account deactivated.",
+            userName: user.FullName, userId: user.Id);
+
+        TempData["Success"] = $"{user.FullName} was not confirmed as a student. The account has been deactivated.";
+        return RedirectToAction(nameof(Verifications));
     }
 
     // --------------------------------------------------------------- Helpers

@@ -38,6 +38,22 @@ public class StudentIndexViewModel
     public List<SelectListItem> Statuses { get; set; } = new();
 }
 
+/// <summary>A self-registered account waiting to be confirmed as a learner.</summary>
+public class PendingStudentRegistration
+{
+    public string UserId { get; set; } = string.Empty;
+    public string FullName { get; set; } = string.Empty;
+    public string? Email { get; set; }
+    public bool EmailConfirmed { get; set; }
+    public DateTime RegisteredAt { get; set; }
+}
+
+/// <summary>Backing model for the student verification queue.</summary>
+public class StudentVerificationIndexViewModel
+{
+    public List<PendingStudentRegistration> Pending { get; set; } = new();
+}
+
 /// <summary>Full learner profile.</summary>
 public class StudentDetailsViewModel
 {

@@ -109,8 +109,11 @@
             </a>
 
             <div class="se-nav__label">People</div>
-            <a class="se-nav__link @Active("Students")" asp-controller="Students" asp-action="Index">
+            <a class="se-nav__link @Active("Students", "Index", "Details", "Create", "Edit")" asp-controller="Students" asp-action="Index">
                 <i class="bi bi-people"></i><span>Students</span>
+            </a>
+            <a class="se-nav__link @Active("Students", "Verifications")" asp-controller="Students" asp-action="Verifications">
+                <i class="bi bi-person-check"></i><span>Student Verifications</span>
             </a>
             <a class="se-nav__link @Active("Teachers")" asp-controller="Teachers" asp-action="Index">
                 <i class="bi bi-person-video3"></i><span>Teachers</span>
@@ -177,8 +180,11 @@
             </a>
 
             <div class="se-nav__label">People</div>
-            <a class="se-nav__link @Active("Students")" asp-controller="Students" asp-action="Index">
+            <a class="se-nav__link @Active("Students", "Index", "Details", "Create", "Edit")" asp-controller="Students" asp-action="Index">
                 <i class="bi bi-people"></i><span>Students</span>
+            </a>
+            <a class="se-nav__link @Active("Students", "Verifications")" asp-controller="Students" asp-action="Verifications">
+                <i class="bi bi-person-check"></i><span>Student Verifications</span>
             </a>
             <a class="se-nav__link @Active("Teachers")" asp-controller="Teachers" asp-action="Index">
                 <i class="bi bi-person-video3"></i><span>Teachers</span>
@@ -229,8 +235,11 @@
             <a class="se-nav__link @Active("DocumentRequests")" asp-controller="DocumentRequests" asp-action="Index">
                 <i class="bi bi-file-earmark-text"></i><span>Document Requests</span>
             </a>
-            <a class="se-nav__link @Active("Students")" asp-controller="Students" asp-action="Index">
+            <a class="se-nav__link @Active("Students", "Index", "Details", "Create", "Edit")" asp-controller="Students" asp-action="Index">
                 <i class="bi bi-people"></i><span>Students</span>
+            </a>
+            <a class="se-nav__link @Active("Students", "Verifications")" asp-controller="Students" asp-action="Verifications">
+                <i class="bi bi-person-check"></i><span>Student Verifications</span>
             </a>
             <a class="se-nav__link @Active("Emailer")" asp-controller="Emailer" asp-action="Index">
                 <i class="bi bi-envelope-paper"></i><span>Email Center</span>
