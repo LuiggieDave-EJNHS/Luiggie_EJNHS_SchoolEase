@@ -145,14 +145,24 @@ public class GradesController : Controller
         var schoolYear = SchoolInfo.SchoolYear;
         var teacherId = await CurrentTeacherIdAsync();
 
+        // Only learners actually enrolled in this section may be graded from this
+        // sheet, so a posted row naming a student outside the section is ignored.
+        var enrolled = (await _db.Students
+            .Where(s => s.SectionId == sectionId)
+            .Select(s => s.Id)
+            .ToListAsync()).ToHashSet();
+
         var existing = await _db.GradeRecords
             .Where(g => g.SectionId == sectionId && g.SubjectId == subjectId && g.Term == term
                 && g.SchoolYear == schoolYear)
             .ToListAsync();
 
+        var handled = new HashSet<int>();
         var count = 0;
         foreach (var row in rows ?? new List<GradeRowInput>())
         {
+            if (!enrolled.Contains(row.StudentId) || !handled.Add(row.StudentId)) continue;
+
             var record = existing.FirstOrDefault(g => g.StudentId == row.StudentId);
             if (record is null)
             {
@@ -186,7 +196,7 @@ public class GradesController : Controller
         await _db.SaveChangesAsync();
 
         // Let linked learners know their grades changed.
-        var studentIds = (rows ?? new List<GradeRowInput>()).Select(r => r.StudentId).Distinct().ToList();
+        var studentIds = handled.ToList();
         var linked = await _db.Students.Where(s => studentIds.Contains(s.Id) && s.UserId != null).ToListAsync();
         foreach (var student in linked)
         {

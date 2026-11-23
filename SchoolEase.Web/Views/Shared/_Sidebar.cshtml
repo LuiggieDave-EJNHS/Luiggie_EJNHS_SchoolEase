@@ -56,6 +56,9 @@
             <a class="se-nav__link @Active("Student", "Documents")" asp-controller="Student" asp-action="Documents">
                 <i class="bi bi-folder2-open"></i><span>My Records</span>
             </a>
+            <a class="se-nav__link @Active("Appointments", "MyAppointments", "Book")" asp-controller="Appointments" asp-action="MyAppointments">
+                <i class="bi bi-calendar-check"></i><span>My Appointments</span>
+            </a>
             <div class="se-nav__label">School</div>
             <a class="se-nav__link @Active("Announcements")" asp-controller="Announcements" asp-action="Index">
                 <i class="bi bi-megaphone"></i><span>Announcements</span>
@@ -87,6 +90,9 @@
             </a>
             <a class="se-nav__link @Active("LearningActivitySheets")" asp-controller="LearningActivitySheets" asp-action="Index">
                 <i class="bi bi-journal-text"></i><span>Activity Sheets</span>
+            </a>
+            <a class="se-nav__link @Active("Appointments")" asp-controller="Appointments" asp-action="Index">
+                <i class="bi bi-calendar-check"></i><span>Appointments</span>
             </a>
             <div class="se-nav__label">School</div>
             <a class="se-nav__link @Active("Announcements")" asp-controller="Announcements" asp-action="Index">
@@ -148,6 +154,9 @@
             <div class="se-nav__label">Records &amp; Communication</div>
             <a class="se-nav__link @Active("DocumentRequests")" asp-controller="DocumentRequests" asp-action="Index">
                 <i class="bi bi-file-earmark-text"></i><span>Document Requests</span>
+            </a>
+            <a class="se-nav__link @Active("Appointments")" asp-controller="Appointments" asp-action="Index">
+                <i class="bi bi-calendar-check"></i><span>Appointments</span>
             </a>
             <a class="se-nav__link @Active("Emailer")" asp-controller="Emailer" asp-action="Index">
                 <i class="bi bi-envelope-paper"></i><span>Email Center</span>
@@ -211,6 +220,9 @@
             </a>
 
             <div class="se-nav__label">Records &amp; Communication</div>
+            <a class="se-nav__link @Active("Appointments")" asp-controller="Appointments" asp-action="Index">
+                <i class="bi bi-calendar-check"></i><span>Appointments</span>
+            </a>
             <a class="se-nav__link @Active("Reports")" asp-controller="Reports" asp-action="Index">
                 <i class="bi bi-file-earmark-bar-graph"></i><span>Reports</span>
             </a>
@@ -234,6 +246,9 @@
             </a>
             <a class="se-nav__link @Active("DocumentRequests")" asp-controller="DocumentRequests" asp-action="Index">
                 <i class="bi bi-file-earmark-text"></i><span>Document Requests</span>
+            </a>
+            <a class="se-nav__link @Active("Appointments")" asp-controller="Appointments" asp-action="Index">
+                <i class="bi bi-calendar-check"></i><span>Appointments</span>
             </a>
             <a class="se-nav__link @Active("Students", "Index", "Details", "Create", "Edit")" asp-controller="Students" asp-action="Index">
                 <i class="bi bi-people"></i><span>Students</span>

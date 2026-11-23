@@ -1,0 +1,68 @@
+@model AppointmentSlot
+@{
+    ViewData["Title"] = "Book Appointment";
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = "Book Appointment",
+    Subtitle = Model.Title,
+    Icon = "bi-calendar-plus",
+    Actions = new List<PageAction>
+    {
+        new() { Text = "My Appointments", Url = Url.Action("MyAppointments"), Icon = "bi-arrow-left", Css = "btn btn-light" }
+    }
+})" />
+
+<div class="row g-3">
+    <div class="col-lg-7">
+        <div class="se-card">
+            <div class="se-card__head"><h3><i class="bi bi-pencil-square me-1"></i>Appointment details</h3></div>
+            <div class="se-card__body">
+                <form asp-action="Book" asp-route-slotId="@Model.Id" method="post">
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 se-small"></div>
+
+                    <div class="mb-3">
+                        <label class="se-form-label" for="reason">Reason for your visit <span class="req">*</span></label>
+                        <textarea id="reason" name="reason" rows="4" class="form-control" maxlength="500"
+                                  placeholder="e.g. Claim my Form 138 and Certificate of Enrollment"></textarea>
+                        <span class="text-danger se-small">@Html.ValidationMessage("reason")</span>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-calendar-check me-1"></i>Confirm booking</button>
+                        <a class="btn btn-light" asp-action="MyAppointments">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="se-card">
+            <div class="se-card__head"><h3><i class="bi bi-info-circle me-1"></i>Slot summary</h3></div>
+            <div class="se-card__body">
+                <dl class="row se-small mb-0">
+                    <dt class="col-5 se-muted">Slot</dt>
+                    <dd class="col-7">@Model.Title</dd>
+                    <dt class="col-5 se-muted">Purpose</dt>
+                    <dd class="col-7">@Model.Purpose.DisplayName()</dd>
+                    <dt class="col-5 se-muted">Date</dt>
+                    <dd class="col-7">@Model.Date.ToDateLabel()</dd>
+                    <dt class="col-5 se-muted">Time</dt>
+                    <dd class="col-7">@Model.StartTime.To12Hour() – @Model.EndTime.To12Hour()</dd>
+                    <dt class="col-5 se-muted">Location</dt>
+                    <dd class="col-7">@(string.IsNullOrWhiteSpace(Model.Location) ? "—" : Model.Location)</dd>
+                    <dt class="col-5 se-muted">Seats left</dt>
+                    <dd class="col-7">@Model.RemainingSeats</dd>
+                </dl>
+                @if (!string.IsNullOrWhiteSpace(Model.Notes))
+                {
+                    <hr />
+                    <span class="se-form-label d-block">Notes for learners</span>
+                    <span class="se-small">@Model.Notes</span>
+                }
+            </div>
+        </div>
+    </div>
+</div>

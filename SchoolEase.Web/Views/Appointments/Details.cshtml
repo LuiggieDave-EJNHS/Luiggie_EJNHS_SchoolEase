@@ -1,0 +1,154 @@
+@model AppointmentSlotDetailsViewModel
+@{
+    ViewData["Title"] = Model.Slot.Title;
+    var slot = Model.Slot;
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = slot.Title,
+    Subtitle = $"{slot.Purpose.DisplayName()} • {slot.Date.ToDateLabel()} • {slot.StartTime.To12Hour()} – {slot.EndTime.To12Hour()}",
+    Icon = "bi-calendar-check",
+    Actions = new List<PageAction>
+    {
+        new() { Text = "Edit", Url = Url.Action("Edit", new { id = slot.Id }), Icon = "bi-pencil", Css = "btn btn-light" },
+        new() { Text = "All slots", Url = Url.Action("Index"), Icon = "bi-arrow-left", Css = "btn btn-light" }
+    }
+})" />
+
+<div class="row g-3">
+    <div class="col-lg-4">
+        <div class="se-card mb-3">
+            <div class="se-card__head">
+                <h3><i class="bi bi-info-circle me-1"></i>Slot details</h3>
+                @if (!slot.IsPublished)
+                {
+                    <span class="se-badge text-bg-secondary"><i class="bi bi-eye-slash"></i>Draft</span>
+                }
+                else if (slot.IsPast)
+                {
+                    <span class="se-badge text-bg-dark"><i class="bi bi-clock-history"></i>Past</span>
+                }
+                else if (slot.IsFull)
+                {
+                    <span class="se-badge text-bg-warning"><i class="bi bi-people"></i>Full</span>
+                }
+                else
+                {
+                    <span class="se-badge text-bg-success"><i class="bi bi-check2-circle"></i>Open</span>
+                }
+            </div>
+            <div class="se-card__body">
+                <dl class="row se-small mb-0">
+                    <dt class="col-5 se-muted">Purpose</dt>
+                    <dd class="col-7">@slot.Purpose.DisplayName()</dd>
+                    <dt class="col-5 se-muted">Date</dt>
+                    <dd class="col-7">@slot.Date.ToDateLabel()</dd>
+                    <dt class="col-5 se-muted">Time</dt>
+                    <dd class="col-7">@slot.StartTime.To12Hour() – @slot.EndTime.To12Hour()</dd>
+                    <dt class="col-5 se-muted">Location</dt>
+                    <dd class="col-7">@(string.IsNullOrWhiteSpace(slot.Location) ? "—" : slot.Location)</dd>
+                    <dt class="col-5 se-muted">Seats</dt>
+                    <dd class="col-7">@slot.BookedCount booked of @slot.Capacity</dd>
+                    <dt class="col-5 se-muted">Remaining</dt>
+                    <dd class="col-7">@slot.RemainingSeats</dd>
+                    <dt class="col-5 se-muted">Opened by</dt>
+                    <dd class="col-7">@(string.IsNullOrWhiteSpace(slot.CreatedByName) ? "—" : slot.CreatedByName)</dd>
+                </dl>
+                @if (!string.IsNullOrWhiteSpace(slot.Notes))
+                {
+                    <hr />
+                    <span class="se-form-label d-block">Notes for learners</span>
+                    <span class="se-small">@slot.Notes</span>
+                }
+            </div>
+        </div>
+
+        <div class="se-card border-danger-subtle">
+            <div class="se-card__head"><h3 class="text-danger"><i class="bi bi-exclamation-triangle me-1"></i>Danger zone</h3></div>
+            <div class="se-card__body">
+                <form asp-action="Delete" asp-route-id="@slot.Id" method="post" data-se-confirm="Delete this appointment slot permanently?">
+                    <button type="submit" class="btn btn-outline-danger w-100">
+                        <i class="bi bi-trash me-1"></i>Delete slot
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        <div class="se-card">
+            <div class="se-card__head">
+                <h3><i class="bi bi-people me-1"></i>Bookings</h3>
+                <span class="se-small se-muted">@Model.Bookings.Count booking(s)</span>
+            </div>
+
+            @if (Model.Bookings.Count == 0)
+            {
+                <partial name="_EmptyState" model="@(new EmptyState
+                {
+                    Icon = "bi-person-plus",
+                    Title = "No bookings yet",
+                    Message = "Learner bookings for this slot will appear here."
+                })" />
+            }
+            else
+            {
+                <div class="se-table-wrap">
+                    <table class="se-table">
+                        <thead>
+                            <tr>
+                                <th>Learner</th>
+                                <th>Reason</th>
+                                <th>Booked</th>
+                                <th>Status</th>
+                                <th class="se-col-actions">Update</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var booking in Model.Bookings)
+                            {
+                                <tr>
+                                    <td>
+                                        <span class="d-flex align-items-center gap-2">
+                                            <span class="se-avatar se-avatar--@booking.StudentName.AvatarTone()">@booking.StudentName.Initials()</span>
+                                            <span>
+                                                <span class="se-strong d-block">@booking.StudentName</span>
+                                                <span class="se-tiny se-muted">@(string.IsNullOrWhiteSpace(booking.StudentNumber) ? "—" : booking.StudentNumber)</span>
+                                            </span>
+                                        </span>
+                                    </td>
+                                    <td>@booking.Reason</td>
+                                    <td>@booking.CreatedAt.ToLocalTime().ToDateLabel()</td>
+                                    <td>
+                                        <span class="se-badge text-bg-@booking.Status.BootstrapTone()">
+                                            <i class="bi @booking.Status.Icon()"></i>@booking.Status.DisplayName()
+                                        </span>
+                                        @if (!string.IsNullOrWhiteSpace(booking.StaffRemarks))
+                                        {
+                                            <span class="se-tiny se-muted d-block">@booking.StaffRemarks</span>
+                                        }
+                                    </td>
+                                    <td class="se-col-actions">
+                                        <form asp-action="UpdateBooking" asp-route-id="@booking.Id" method="post" class="d-flex gap-1">
+                                            <select name="status" class="form-select form-select-sm" style="min-width:8rem;">
+                                                @foreach (var opt in SelectLists.EnumOptions<AppointmentStatus>(booking.Status))
+                                                {
+                                                    <option value="@opt.Value" selected="@opt.Selected">@opt.Text</option>
+                                                }
+                                            </select>
+                                            <input name="remarks" class="form-control form-control-sm" placeholder="Remarks" value="@booking.StaffRemarks" />
+                                            <button type="submit" class="btn btn-sm btn-primary" title="Save">
+                                                <i class="bi bi-check2"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>

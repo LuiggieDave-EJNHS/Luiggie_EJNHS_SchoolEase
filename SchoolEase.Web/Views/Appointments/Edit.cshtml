@@ -1,0 +1,29 @@
+@model AppointmentSlotFormViewModel
+@{
+    ViewData["Title"] = "Edit Appointment Slot";
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = "Edit Appointment Slot",
+    Subtitle = "Update the schedule, seats or availability of this slot.",
+    Icon = "bi-calendar-event",
+    Actions = new List<PageAction>
+    {
+        new() { Text = "Bookings", Url = Url.Action("Details", new { id = Model.Id }), Icon = "bi-people", Css = "btn btn-light" }
+    }
+})" />
+
+<div class="se-card">
+    <div class="se-card__body">
+        <form asp-action="Edit" asp-route-id="@Model.Id" method="post">
+            <input type="hidden" asp-for="Id" />
+            <partial name="_Form" model="Model" />
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-check2 me-1"></i>Save changes</button>
+                <a class="btn btn-light" asp-action="Details" asp-route-id="@Model.Id">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>

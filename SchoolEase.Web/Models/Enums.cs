@@ -100,3 +100,23 @@ public enum NotificationType
     [Display(Name = "Warning")] Warning = 3,
     [Display(Name = "Alert")] Danger = 4
 }
+
+/// <summary>Why a learner is meeting school staff.</summary>
+public enum AppointmentPurpose
+{
+    [Display(Name = "Registrar / Records")] Registrar = 1,
+    [Display(Name = "Document Claiming")] DocumentClaim = 2,
+    [Display(Name = "Guidance & Counselling")] Guidance = 3,
+    [Display(Name = "Academic Consultation")] Academic = 4,
+    [Display(Name = "Finance / Payments")] Finance = 5,
+    [Display(Name = "Other")] Other = 99
+}
+
+/// <summary>Lifecycle of a booked appointment.</summary>
+public enum AppointmentStatus
+{
+    [Display(Name = "Booked")] Booked = 1,
+    [Display(Name = "Completed")] Completed = 2,
+    [Display(Name = "Cancelled")] Cancelled = 3,
+    [Display(Name = "No Show")] NoShow = 4
+}

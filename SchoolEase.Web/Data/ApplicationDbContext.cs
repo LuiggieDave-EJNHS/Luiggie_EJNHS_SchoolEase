@@ -31,6 +31,8 @@ public class ApplicationDbContext : IdentityDbContext<AppUser>
     public DbSet<DocumentType> DocumentTypes => Set<DocumentType>();
     public DbSet<DocumentRequest> DocumentRequests => Set<DocumentRequest>();
     public DbSet<StudentDocument> StudentDocuments => Set<StudentDocument>();
+    public DbSet<AppointmentSlot> AppointmentSlots => Set<AppointmentSlot>();
+    public DbSet<Appointment> Appointments => Set<Appointment>();
     public DbSet<UserPhoto> UserPhotos => Set<UserPhoto>();
     public DbSet<Announcement> Announcements => Set<Announcement>();
     public DbSet<Notification> Notifications => Set<Notification>();
@@ -382,6 +384,37 @@ public class ApplicationDbContext : IdentityDbContext<AppUser>
             e.HasOne(x => x.CreatedBy)
                 .WithMany()
                 .HasForeignKey(x => x.CreatedByUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // ------------------------------------------------------------------
+        // Appointments
+        // ------------------------------------------------------------------
+        builder.Entity<AppointmentSlot>(e =>
+        {
+            e.HasIndex(s => s.Date);
+            e.HasIndex(s => s.IsPublished);
+
+            e.HasOne(s => s.CreatedBy)
+                .WithMany()
+                .HasForeignKey(s => s.CreatedByUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        builder.Entity<Appointment>(e =>
+        {
+            e.HasIndex(a => a.SlotId);
+            e.HasIndex(a => a.UserId);
+            e.HasIndex(a => new { a.UserId, a.Status });
+
+            e.HasOne(a => a.Slot)
+                .WithMany(s => s.Appointments)
+                .HasForeignKey(a => a.SlotId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne(a => a.Student)
+                .WithMany()
+                .HasForeignKey(a => a.StudentId)
                 .OnDelete(DeleteBehavior.SetNull);
         });
 

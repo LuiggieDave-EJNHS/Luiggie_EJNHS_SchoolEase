@@ -54,6 +54,12 @@ public static class DisplayExtensions
         Models.EventCategory.Meeting => "purple",
         Models.EventCategory.Deadline => "pink",
         Models.EventCategory.Activity => "teal",
+
+        Models.AppointmentStatus.Booked => "primary",
+        Models.AppointmentStatus.Completed => "success",
+        Models.AppointmentStatus.Cancelled => "secondary",
+        Models.AppointmentStatus.NoShow => "danger",
+
         _ => "primary"
     };
 
@@ -76,6 +82,12 @@ public static class DisplayExtensions
         Models.EventCategory.Meeting => "bi-people",
         Models.EventCategory.Deadline => "bi-alarm",
         Models.EventCategory.Activity => "bi-flag",
+
+        Models.AppointmentStatus.Booked => "bi-calendar-check",
+        Models.AppointmentStatus.Completed => "bi-check2-circle",
+        Models.AppointmentStatus.Cancelled => "bi-x-circle",
+        Models.AppointmentStatus.NoShow => "bi-slash-circle",
+
         _ => "bi-calendar-event"
     };
 

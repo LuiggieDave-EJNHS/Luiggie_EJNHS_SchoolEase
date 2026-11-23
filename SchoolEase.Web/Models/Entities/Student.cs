@@ -98,4 +98,7 @@ public class Student
 
     /// <summary>Scanned records kept in this learner's 201 file.</summary>
     public ICollection<StudentDocument> Documents { get; set; } = new List<StudentDocument>();
+
+    /// <summary>Appointments this learner has booked with school staff.</summary>
+    public ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();
 }

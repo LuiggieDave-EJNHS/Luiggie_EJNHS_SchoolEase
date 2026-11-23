@@ -1,0 +1,144 @@
+@model MyAppointmentsViewModel
+@{
+    ViewData["Title"] = "My Appointments";
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = "My Appointments",
+    Subtitle = "Book a time to see the registrar, guidance or another school office.",
+    Icon = "bi-calendar-check"
+})" />
+
+@if (Model.Student is null)
+{
+    <div class="se-card">
+        <partial name="_EmptyState" model="@(new EmptyState
+        {
+            Icon = "bi-person-exclamation",
+            Title = "Account not linked",
+            Message = "Your account is not linked to a student record. Please contact the registrar."
+        })" />
+    </div>
+}
+
+<div class="row g-3">
+    <div class="col-lg-7">
+        <div class="se-card h-100">
+            <div class="se-card__head">
+                <h3><i class="bi bi-bookmark-check me-1"></i>My bookings</h3>
+                <span class="se-small se-muted">@Model.Bookings.Count booking(s)</span>
+            </div>
+
+            @if (Model.Bookings.Count == 0)
+            {
+                <partial name="_EmptyState" model="@(new EmptyState
+                {
+                    Icon = "bi-calendar-x",
+                    Title = "No bookings yet",
+                    Message = "Pick an open slot on the right to book your appointment."
+                })" />
+            }
+            else
+            {
+                <div class="se-table-wrap">
+                    <table class="se-table">
+                        <thead>
+                            <tr>
+                                <th>Slot</th>
+                                <th>Schedule</th>
+                                <th>Reason</th>
+                                <th>Status</th>
+                                <th class="se-col-actions">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var booking in Model.Bookings)
+                            {
+                                <tr>
+                                    <td>
+                                        <span class="se-strong d-block">@booking.Slot?.Title</span>
+                                        <span class="se-tiny se-muted">@booking.Slot?.Purpose.DisplayName()</span>
+                                    </td>
+                                    <td>
+                                        @if (booking.Slot is not null)
+                                        {
+                                            <span class="d-block">@booking.Slot.Date.ToDateLabel()</span>
+                                            <span class="se-tiny se-muted">@booking.Slot.StartTime.To12Hour() – @booking.Slot.EndTime.To12Hour()</span>
+                                        }
+                                    </td>
+                                    <td>@booking.Reason</td>
+                                    <td>
+                                        <span class="se-badge text-bg-@booking.Status.BootstrapTone()">
+                                            <i class="bi @booking.Status.Icon()"></i>@booking.Status.DisplayName()
+                                        </span>
+                                        @if (!string.IsNullOrWhiteSpace(booking.StaffRemarks))
+                                        {
+                                            <span class="se-tiny se-muted d-block">@booking.StaffRemarks</span>
+                                        }
+                                    </td>
+                                    <td class="se-col-actions">
+                                        @if (booking.Status == AppointmentStatus.Booked)
+                                        {
+                                            <form asp-action="Cancel" asp-route-id="@booking.Id" method="post" data-se-confirm="Cancel this appointment?">
+                                                <button type="submit" class="btn btn-sm btn-light text-danger" title="Cancel">
+                                                    <i class="bi bi-x-circle"></i>
+                                                </button>
+                                            </form>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="se-card h-100">
+            <div class="se-card__head">
+                <h3><i class="bi bi-calendar-plus me-1"></i>Open slots</h3>
+                <span class="se-small se-muted">@Model.OpenSlots.Count available</span>
+            </div>
+
+            @if (Model.OpenSlots.Count == 0)
+            {
+                <partial name="_EmptyState" model="@(new EmptyState
+                {
+                    Icon = "bi-calendar-week",
+                    Title = "Nothing open right now",
+                    Message = "New appointment slots will appear here once the school opens them."
+                })" />
+            }
+            else
+            {
+                <ul class="list-group list-group-flush">
+                    @foreach (var slot in Model.OpenSlots)
+                    {
+                        <li class="list-group-item d-flex justify-content-between align-items-center gap-3 px-0">
+                            <span>
+                                <span class="se-strong d-block">@slot.Title</span>
+                                <span class="se-small se-muted d-block">
+                                    @slot.Purpose.DisplayName() • @slot.Date.ToDateLabel()
+                                </span>
+                                <span class="se-tiny se-muted d-block">
+                                    @slot.StartTime.To12Hour() – @slot.EndTime.To12Hour()
+                                    @if (!string.IsNullOrWhiteSpace(slot.Location))
+                                    {
+                                        <text> • @slot.Location</text>
+                                    }
+                                    <text> • </text>@slot.RemainingSeats seat(s) left
+                                </span>
+                            </span>
+                            <a class="btn btn-sm btn-primary" asp-action="Book" asp-route-slotId="@slot.Id">
+                                <i class="bi bi-calendar-plus me-1"></i>Book
+                            </a>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+    </div>
+</div>

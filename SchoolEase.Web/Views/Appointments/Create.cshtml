@@ -1,0 +1,28 @@
+@model AppointmentSlotFormViewModel
+@{
+    ViewData["Title"] = "Open Appointment Slot";
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = "Open Appointment Slot",
+    Subtitle = "Create a window of time learners can book a seat in.",
+    Icon = "bi-calendar-plus",
+    Actions = new List<PageAction>
+    {
+        new() { Text = "Appointments", Url = Url.Action("Index"), Icon = "bi-arrow-left", Css = "btn btn-light" }
+    }
+})" />
+
+<div class="se-card">
+    <div class="se-card__body">
+        <form asp-action="Create" method="post">
+            <partial name="_Form" model="Model" />
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-check2 me-1"></i>Open slot</button>
+                <a class="btn btn-light" asp-action="Index">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
