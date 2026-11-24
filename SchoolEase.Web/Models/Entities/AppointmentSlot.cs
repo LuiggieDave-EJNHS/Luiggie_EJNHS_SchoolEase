@@ -20,8 +20,12 @@ public class AppointmentSlot
     public AppointmentPurpose Purpose { get; set; } = AppointmentPurpose.Registrar;
 
     [DataType(DataType.Date)]
-    [Display(Name = "Date")]
-    public DateTime Date { get; set; } = DateTime.Today;
+    [Display(Name = "Start date")]
+    public DateTime StartDate { get; set; } = DateTime.Today;
+
+    [DataType(DataType.Date)]
+    [Display(Name = "End date")]
+    public DateTime EndDate { get; set; } = DateTime.Today;
 
     [DataType(DataType.Time)]
     [Display(Name = "Start time")]
@@ -69,13 +73,27 @@ public class AppointmentSlot
 
     /// <summary>Start of the slot in local time, used to sort and to hide past slots.</summary>
     [NotMapped]
-    public DateTime StartDateTime => Date.Date.Add(StartTime);
+    public DateTime StartDateTime => StartDate.Date.Add(StartTime);
+
+    /// <summary>End of the slot in local time. A multi-day slot only becomes "past" after this point.</summary>
+    [NotMapped]
+    public DateTime EndDateTime => EndDate.Date.Add(EndTime);
 
     [NotMapped]
-    public bool IsPast => StartDateTime < DateTime.Now;
+    public bool IsPast => EndDateTime < DateTime.Now;
 
-    /// <summary>Label such as "Nov 24, 2026 • 8:00 AM – 9:00 AM".</summary>
+    /// <summary>True when the slot spans more than one calendar day.</summary>
+    [NotMapped]
+    public bool IsMultiDay => StartDate.Date != EndDate.Date;
+
+    /// <summary>"Nov 24, 2026" for a single day, or "Nov 24 – 28, 2026" across a range.</summary>
+    [NotMapped]
+    public string DateLabel => IsMultiDay
+        ? $"{StartDate:MMM d} – {EndDate:MMM d, yyyy}"
+        : StartDate.ToString("MMM d, yyyy");
+
+    /// <summary>Label such as "Nov 24 – 28, 2026 • 8:00 AM – 9:00 AM".</summary>
     [NotMapped]
     public string TimeLabel =>
-        $"{Date:MMM d, yyyy} • {DateTime.Today.Add(StartTime):h:mm tt} – {DateTime.Today.Add(EndTime):h:mm tt}";
+        $"{DateLabel} • {DateTime.Today.Add(StartTime):h:mm tt} – {DateTime.Today.Add(EndTime):h:mm tt}";
 }

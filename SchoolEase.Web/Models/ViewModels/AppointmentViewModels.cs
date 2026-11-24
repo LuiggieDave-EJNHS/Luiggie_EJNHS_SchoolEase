@@ -11,6 +11,7 @@ public class AppointmentSlotIndexViewModel
     public int UpcomingCount { get; set; }
     public int TodayCount { get; set; }
     public int TotalBookings { get; set; }
+    public int PendingRequests { get; set; }
 }
 
 /// <summary>Backing model for the staff "open a slot" form.</summary>
@@ -26,8 +27,12 @@ public class AppointmentSlotFormViewModel
     public AppointmentPurpose Purpose { get; set; } = AppointmentPurpose.Registrar;
 
     [DataType(DataType.Date)]
-    [Display(Name = "Date")]
-    public DateTime Date { get; set; } = DateTime.Today;
+    [Display(Name = "Start date")]
+    public DateTime StartDate { get; set; } = DateTime.Today;
+
+    [DataType(DataType.Date)]
+    [Display(Name = "End date")]
+    public DateTime EndDate { get; set; } = DateTime.Today;
 
     [DataType(DataType.Time)]
     [Display(Name = "Start time")]
@@ -53,6 +58,36 @@ public class AppointmentSlotFormViewModel
     public bool IsPublished { get; set; } = true;
 
     public List<SelectListItem> Purposes { get; set; } = new();
+}
+
+/// <summary>Backing model for a learner's slot-less appointment request.</summary>
+public class AppointmentRequestFormViewModel
+{
+    [Display(Name = "Purpose")]
+    public AppointmentPurpose Purpose { get; set; } = AppointmentPurpose.Registrar;
+
+    [DataType(DataType.Date)]
+    [Display(Name = "Preferred date")]
+    public DateTime? PreferredDate { get; set; } = DateTime.Today.AddDays(1);
+
+    [DataType(DataType.Time)]
+    [Display(Name = "Preferred time")]
+    public TimeSpan? PreferredTime { get; set; }
+
+    [Required, StringLength(500)]
+    [Display(Name = "What do you need?")]
+    public string Reason { get; set; } = string.Empty;
+
+    public List<SelectListItem> Purposes { get; set; } = new();
+}
+
+/// <summary>Staff screen listing the learner requests that still need a slot.</summary>
+public class AppointmentRequestsViewModel
+{
+    public List<Appointment> Requests { get; set; } = new();
+
+    /// <summary>Slots staff can hand a request into (published, not past, with room left).</summary>
+    public List<AppointmentSlot> OpenSlots { get; set; } = new();
 }
 
 /// <summary>A slot together with the bookings made against it.</summary>

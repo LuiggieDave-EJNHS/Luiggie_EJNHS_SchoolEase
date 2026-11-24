@@ -2,14 +2,19 @@
 @{
     ViewData["Title"] = "Appointments";
 
-    var headerActions = new List<PageAction>
-    {
-        new() { Text = "Open Slot", Url = Url.Action("Create"), Icon = "bi-plus-lg" }
-    };
+    var headerActions = new List<PageAction>();
     if (CurrentUser.IsTeacher)
     {
-        headerActions.Insert(0, new PageAction { Text = "My Appointments", Url = Url.Action("MyAppointments"), Icon = "bi-calendar-check", Css = "btn btn-light" });
+        headerActions.Add(new PageAction { Text = "My Appointments", Url = Url.Action("MyAppointments"), Icon = "bi-calendar-check", Css = "btn btn-light" });
     }
+    headerActions.Add(new PageAction
+    {
+        Text = Model.PendingRequests > 0 ? $"Requests ({Model.PendingRequests})" : "Requests",
+        Url = Url.Action("Requests"),
+        Icon = "bi-inbox",
+        Css = Model.PendingRequests > 0 ? "btn btn-warning" : "btn btn-light"
+    });
+    headerActions.Add(new PageAction { Text = "Open Slot", Url = Url.Action("Create"), Icon = "bi-plus-lg" });
 
     var cards = new List<StatCard>
     {
@@ -18,6 +23,10 @@
         new() { Label = "Active Bookings", Value = Model.TotalBookings.ToString("N0"), Icon = "bi-people", Tone = "success" },
         new() { Label = "Total Slots", Value = Model.Slots.Count.ToString("N0"), Icon = "bi-calendar3", Tone = "purple" }
     };
+    if (Model.PendingRequests > 0)
+    {
+        cards.Add(new StatCard { Label = "Pending Requests", Value = Model.PendingRequests.ToString("N0"), Icon = "bi-inbox", Tone = "warning" });
+    }
 }
 
 <partial name="_PageHeader" model="@(new PageHeader
@@ -75,7 +84,7 @@
                             <td><span class="se-strong">@slot.Title</span></td>
                             <td>@slot.Purpose.DisplayName()</td>
                             <td>
-                                <span class="d-block">@slot.Date.ToDateLabel()</span>
+                                <span class="d-block">@slot.DateLabel</span>
                                 <span class="se-tiny se-muted">@slot.StartTime.To12Hour() – @slot.EndTime.To12Hour()</span>
                             </td>
                             <td>@(string.IsNullOrWhiteSpace(slot.Location) ? "—" : slot.Location)</td>

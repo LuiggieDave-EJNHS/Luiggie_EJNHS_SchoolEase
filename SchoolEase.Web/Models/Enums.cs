@@ -115,6 +115,7 @@ public enum AppointmentPurpose
 /// <summary>Lifecycle of a booked appointment.</summary>
 public enum AppointmentStatus
 {
+    [Display(Name = "Requested")] Requested = 5,
     [Display(Name = "Booked")] Booked = 1,
     [Display(Name = "Completed")] Completed = 2,
     [Display(Name = "Cancelled")] Cancelled = 3,

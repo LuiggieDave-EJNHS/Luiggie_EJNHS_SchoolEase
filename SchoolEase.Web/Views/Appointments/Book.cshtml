@@ -23,6 +23,16 @@
                     <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 se-small"></div>
 
                     <div class="mb-3">
+                        <label class="se-form-label" for="preferredDate">Preferred day <span class="req">*</span></label>
+                        <input id="preferredDate" name="preferredDate" type="date" class="form-control"
+                               value="@Model.StartDate.ToString("yyyy-MM-dd")"
+                               min="@Model.StartDate.ToString("yyyy-MM-dd")"
+                               max="@Model.EndDate.ToString("yyyy-MM-dd")" />
+                        <span class="se-tiny se-muted">This slot runs @Model.DateLabel.</span>
+                        <span class="text-danger se-small">@Html.ValidationMessage("preferredDate")</span>
+                    </div>
+
+                    <div class="mb-3">
                         <label class="se-form-label" for="reason">Reason for your visit <span class="req">*</span></label>
                         <textarea id="reason" name="reason" rows="4" class="form-control" maxlength="500"
                                   placeholder="e.g. Claim my Form 138 and Certificate of Enrollment"></textarea>
@@ -48,7 +58,7 @@
                     <dt class="col-5 se-muted">Purpose</dt>
                     <dd class="col-7">@Model.Purpose.DisplayName()</dd>
                     <dt class="col-5 se-muted">Date</dt>
-                    <dd class="col-7">@Model.Date.ToDateLabel()</dd>
+                    <dd class="col-7">@Model.DateLabel</dd>
                     <dt class="col-5 se-muted">Time</dt>
                     <dd class="col-7">@Model.StartTime.To12Hour() – @Model.EndTime.To12Hour()</dd>
                     <dt class="col-5 se-muted">Location</dt>

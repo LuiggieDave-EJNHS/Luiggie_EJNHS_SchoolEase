@@ -392,7 +392,7 @@ public class ApplicationDbContext : IdentityDbContext<AppUser>
         // ------------------------------------------------------------------
         builder.Entity<AppointmentSlot>(e =>
         {
-            e.HasIndex(s => s.Date);
+            e.HasIndex(s => s.StartDate);
             e.HasIndex(s => s.IsPublished);
 
             e.HasOne(s => s.CreatedBy)
@@ -407,10 +407,12 @@ public class ApplicationDbContext : IdentityDbContext<AppUser>
             e.HasIndex(a => a.UserId);
             e.HasIndex(a => new { a.UserId, a.Status });
 
+            // SlotId is nullable so a request can exist before staff assign a slot.
+            // Deleting a slot keeps the request/booking record instead of cascading.
             e.HasOne(a => a.Slot)
                 .WithMany(s => s.Appointments)
                 .HasForeignKey(a => a.SlotId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.SetNull);
 
             e.HasOne(a => a.Student)
                 .WithMany(s => s.Appointments)

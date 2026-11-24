@@ -2,10 +2,13 @@
 @{
     ViewData["Title"] = "My Appointments";
 
-    var actions = new List<PageAction>();
+    var actions = new List<PageAction>
+    {
+        new() { Text = "Request Appointment", Url = Url.Action("RequestAppointment"), Icon = "bi-send", Css = "btn btn-primary" }
+    };
     if (CurrentUser.IsTeacher)
     {
-        actions.Add(new PageAction { Text = "Manage Slots", Url = Url.Action("Index"), Icon = "bi-sliders", Css = "btn btn-light" });
+        actions.Insert(0, new PageAction { Text = "Manage Slots", Url = Url.Action("Index"), Icon = "bi-sliders", Css = "btn btn-light" });
     }
 }
 
@@ -43,7 +46,7 @@
                 {
                     Icon = "bi-calendar-x",
                     Title = "No bookings yet",
-                    Message = "Pick an open slot on the right to book your appointment."
+                    Message = "Pick an open slot on the right, or send a request if no slot is open."
                 })" />
             }
             else
@@ -64,14 +67,19 @@
                             {
                                 <tr>
                                     <td>
-                                        <span class="se-strong d-block">@booking.Slot?.Title</span>
-                                        <span class="se-tiny se-muted">@booking.Slot?.Purpose.DisplayName()</span>
+                                        <span class="se-strong d-block">@(booking.Slot?.Title ?? "Appointment request")</span>
+                                        <span class="se-tiny se-muted">@booking.EffectivePurpose.DisplayName()</span>
                                     </td>
                                     <td>
                                         @if (booking.Slot is not null)
                                         {
-                                            <span class="d-block">@booking.Slot.Date.ToDateLabel()</span>
+                                            <span class="d-block">@((booking.PreferredDate ?? booking.Slot.StartDate).ToDateLabel())</span>
                                             <span class="se-tiny se-muted">@booking.Slot.StartTime.To12Hour() – @booking.Slot.EndTime.To12Hour()</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="d-block">@(booking.PreferredDate?.ToDateLabel() ?? "Any day")</span>
+                                            <span class="se-tiny se-muted">@(booking.PreferredTime.HasValue ? booking.PreferredTime.Value.To12Hour() : "Any time")</span>
                                         }
                                     </td>
                                     <td>@booking.Reason</td>
@@ -90,6 +98,14 @@
                                             <form asp-action="Cancel" asp-route-id="@booking.Id" method="post" data-se-confirm="Cancel this appointment?">
                                                 <button type="submit" class="btn btn-sm btn-light text-danger" title="Cancel">
                                                     <i class="bi bi-x-circle"></i>
+                                                </button>
+                                            </form>
+                                        }
+                                        else if (booking.Status == AppointmentStatus.Requested)
+                                        {
+                                            <form asp-action="Cancel" asp-route-id="@booking.Id" method="post" data-se-confirm="Withdraw this request?">
+                                                <button type="submit" class="btn btn-sm btn-light text-danger" title="Withdraw request">
+                                                    <i class="bi bi-x-circle me-1"></i>Withdraw
                                                 </button>
                                             </form>
                                         }
@@ -116,7 +132,9 @@
                 {
                     Icon = "bi-calendar-week",
                     Title = "Nothing open right now",
-                    Message = "New appointment slots will appear here once the school opens them."
+                    Message = "No slots are open, but you can still ask for a time and the school will get back to you.",
+                    ActionText = "Request an appointment",
+                    ActionUrl = Url.Action("RequestAppointment")
                 })" />
             }
             else
@@ -128,7 +146,7 @@
                             <span>
                                 <span class="se-strong d-block">@slot.Title</span>
                                 <span class="se-small se-muted d-block">
-                                    @slot.Purpose.DisplayName() • @slot.Date.ToDateLabel()
+                                    @slot.Purpose.DisplayName() • @slot.DateLabel
                                 </span>
                                 <span class="se-tiny se-muted d-block">
                                     @slot.StartTime.To12Hour() – @slot.EndTime.To12Hour()

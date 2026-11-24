@@ -7,7 +7,7 @@
 <partial name="_PageHeader" model="@(new PageHeader
 {
     Title = slot.Title,
-    Subtitle = $"{slot.Purpose.DisplayName()} • {slot.Date.ToDateLabel()} • {slot.StartTime.To12Hour()} – {slot.EndTime.To12Hour()}",
+    Subtitle = $"{slot.Purpose.DisplayName()} • {slot.DateLabel} • {slot.StartTime.To12Hour()} – {slot.EndTime.To12Hour()}",
     Icon = "bi-calendar-check",
     Actions = new List<PageAction>
     {
@@ -43,7 +43,7 @@
                     <dt class="col-5 se-muted">Purpose</dt>
                     <dd class="col-7">@slot.Purpose.DisplayName()</dd>
                     <dt class="col-5 se-muted">Date</dt>
-                    <dd class="col-7">@slot.Date.ToDateLabel()</dd>
+                    <dd class="col-7">@slot.DateLabel</dd>
                     <dt class="col-5 se-muted">Time</dt>
                     <dd class="col-7">@slot.StartTime.To12Hour() – @slot.EndTime.To12Hour()</dd>
                     <dt class="col-5 se-muted">Location</dt>
@@ -119,7 +119,7 @@
                                         </span>
                                     </td>
                                     <td>@booking.Reason</td>
-                                    <td>@booking.CreatedAt.ToLocalTime().ToDateLabel()</td>
+                                    <td>@(booking.PreferredDate?.ToDateLabel() ?? booking.CreatedAt.ToLocalTime().ToDateLabel())</td>
                                     <td>
                                         <span class="se-badge text-bg-@booking.Status.BootstrapTone()">
                                             <i class="bi @booking.Status.Icon()"></i>@booking.Status.DisplayName()
@@ -132,7 +132,8 @@
                                     <td class="se-col-actions">
                                         <form asp-action="UpdateBooking" asp-route-id="@booking.Id" method="post" class="d-flex gap-1">
                                             <select name="status" class="form-select form-select-sm" style="min-width:8rem;">
-                                                @foreach (var opt in SelectLists.EnumOptions<AppointmentStatus>(booking.Status))
+                                                @foreach (var opt in SelectLists.EnumOptions<AppointmentStatus>(booking.Status)
+                                                    .Where(o => o.Value != ((int)AppointmentStatus.Requested).ToString()))
                                                 {
                                                     <option value="@opt.Value" selected="@opt.Selected">@opt.Text</option>
                                                 }

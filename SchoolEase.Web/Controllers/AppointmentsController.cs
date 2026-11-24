@@ -11,8 +11,9 @@ using SchoolEase.Web.Services;
 namespace SchoolEase.Web.Controllers;
 
 /// <summary>
-/// Staff publish appointment slots (for example the registrar's desk on a Tuesday
-/// morning) and learners book a seat inside them.
+/// Staff publish appointment slots (for example the registrar's desk for a week) and
+/// learners book a seat inside them. Learners (current and former students, plus teachers)
+/// may also raise a request for a time even when no slot is open yet; staff then assign a slot.
 /// </summary>
 [Authorize]
 public class AppointmentsController : Controller
@@ -39,7 +40,7 @@ public class AppointmentsController : Controller
         _currentUser.IsAdministrator || _currentUser.IsIctHeadCoordinator
         || _currentUser.IsTeacher || _currentUser.IsRegistrar;
 
-    /// <summary>True for accounts that may book a seat: learners (current and former) and teachers.</summary>
+    /// <summary>True for accounts that may book or request a seat: learners (current and former) and teachers.</summary>
     private bool CanBook => _currentUser.IsStudent || _currentUser.IsTeacher;
 
     // ------------------------------------------------------------------
@@ -54,17 +55,21 @@ public class AppointmentsController : Controller
                 .Include(s => s.Appointments)
                 .ToListAsync())
             .OrderBy(s => s.IsPast)
-            .ThenBy(s => s.Date).ThenBy(s => s.StartTime)
+            .ThenBy(s => s.StartDate).ThenBy(s => s.StartTime)
             .ToList();
 
         var today = DateTime.Today;
+
+        var pendingRequests = await _db.Appointments
+            .CountAsync(a => a.Status == AppointmentStatus.Requested && a.SlotId == null);
 
         var vm = new AppointmentSlotIndexViewModel
         {
             Slots = slots,
             UpcomingCount = slots.Count(s => !s.IsPast),
-            TodayCount = slots.Count(s => s.Date.Date == today),
-            TotalBookings = slots.Sum(s => s.BookedCount)
+            TodayCount = slots.Count(s => s.StartDate.Date <= today && s.EndDate.Date >= today),
+            TotalBookings = slots.Sum(s => s.BookedCount),
+            PendingRequests = pendingRequests
         };
 
         ViewData["Title"] = "Appointments";
@@ -96,7 +101,8 @@ public class AppointmentsController : Controller
         {
             Title = model.Title.Trim(),
             Purpose = model.Purpose,
-            Date = model.Date.Date,
+            StartDate = model.StartDate.Date,
+            EndDate = model.EndDate.Date,
             StartTime = model.StartTime,
             EndTime = model.EndTime,
             Capacity = model.Capacity,
@@ -112,7 +118,7 @@ public class AppointmentsController : Controller
         await _db.SaveChangesAsync();
 
         await _audit.LogAsync("Open Appointment Slot", "AppointmentSlot", slot.Id,
-            $"Opened slot \"{slot.Title}\" on {slot.Date:MMM d, yyyy}.");
+            $"Opened slot \"{slot.Title}\" for {slot.DateLabel}.");
         TempData["Success"] = "Appointment slot opened.";
         return RedirectToAction(nameof(Details), new { id = slot.Id });
     }
@@ -131,7 +137,8 @@ public class AppointmentsController : Controller
             Id = slot.Id,
             Title = slot.Title,
             Purpose = slot.Purpose,
-            Date = slot.Date,
+            StartDate = slot.StartDate,
+            EndDate = slot.EndDate,
             StartTime = slot.StartTime,
             EndTime = slot.EndTime,
             Capacity = slot.Capacity,
@@ -165,7 +172,8 @@ public class AppointmentsController : Controller
 
         slot.Title = model.Title.Trim();
         slot.Purpose = model.Purpose;
-        slot.Date = model.Date.Date;
+        slot.StartDate = model.StartDate.Date;
+        slot.EndDate = model.EndDate.Date;
         slot.StartTime = model.StartTime;
         slot.EndTime = model.EndTime;
         slot.Capacity = model.Capacity;
@@ -250,19 +258,132 @@ public class AppointmentsController : Controller
             await _notify.NotifyAsync(
                 appointment.UserId,
                 $"Appointment {status.DisplayName()}",
-                $"Your appointment \"{appointment.Slot?.Title}\" is now {status.DisplayName()}.",
+                $"Your appointment \"{appointment.Slot?.Title ?? appointment.EffectivePurpose.DisplayName()}\" is now {status.DisplayName()}.",
                 status == AppointmentStatus.Completed ? NotificationType.Success : NotificationType.Info,
                 Url.Action(nameof(MyAppointments)));
         }
 
         await _audit.LogAsync("Update Appointment", "Appointment", appointment.Id,
-            $"Booking for {appointment.StudentName} set to {status.DisplayName()}.");
-        TempData["Success"] = "Booking updated.";
-        return RedirectToAction(nameof(Details), new { id = appointment.SlotId });
+            $"Appointment for {appointment.StudentName} set to {status.DisplayName()}.");
+        TempData["Success"] = "Appointment updated.";
+        return appointment.SlotId is int slotId
+            ? RedirectToAction(nameof(Details), new { id = slotId })
+            : RedirectToAction(nameof(Requests));
     }
 
     // ------------------------------------------------------------------
-    // Learner: book and track
+    // Staff: work the request queue
+    // ------------------------------------------------------------------
+    public async Task<IActionResult> Requests()
+    {
+        if (!IsStaff) return Forbid();
+
+        var requests = await _db.Appointments
+            .Where(a => a.Status == AppointmentStatus.Requested && a.SlotId == null)
+            .OrderBy(a => a.PreferredDate).ThenBy(a => a.CreatedAt)
+            .ToListAsync();
+
+        var openSlots = (await _db.AppointmentSlots
+                .Include(s => s.Appointments)
+                .Where(s => s.IsPublished)
+                .ToListAsync())
+            .Where(s => !s.IsPast && !s.IsFull)
+            .OrderBy(s => s.StartDate).ThenBy(s => s.StartTime)
+            .ToList();
+
+        ViewData["Title"] = "Appointment Requests";
+        return View(new AppointmentRequestsViewModel { Requests = requests, OpenSlots = openSlots });
+    }
+
+    /// <summary>Staff approve a request by handing it into an open slot.</summary>
+    [HttpPost]
+    public async Task<IActionResult> Approve(int id, int slotId, string? remarks)
+    {
+        if (!IsStaff) return Forbid();
+
+        var appointment = await _db.Appointments.FirstOrDefaultAsync(a => a.Id == id);
+        if (appointment is null) return NotFound();
+
+        var slot = await _db.AppointmentSlots
+            .Include(s => s.Appointments)
+            .FirstOrDefaultAsync(s => s.Id == slotId);
+        if (slot is null) return NotFound();
+
+        if (!slot.IsPublished || slot.IsPast)
+        {
+            TempData["Error"] = "That slot is not open for booking any more.";
+            return RedirectToAction(nameof(Requests));
+        }
+
+        if (slot.IsFull)
+        {
+            TempData["Error"] = "That slot has no seats left. Pick another one.";
+            return RedirectToAction(nameof(Requests));
+        }
+
+        appointment.SlotId = slot.Id;
+        appointment.Status = AppointmentStatus.Booked;
+        appointment.StaffRemarks = remarks?.Trim();
+        // Keep the learner's chosen day when it falls inside the slot's range.
+        if (appointment.PreferredDate is null
+            || appointment.PreferredDate.Value.Date < slot.StartDate.Date
+            || appointment.PreferredDate.Value.Date > slot.EndDate.Date)
+        {
+            appointment.PreferredDate = slot.StartDate.Date;
+        }
+        appointment.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+
+        if (!string.IsNullOrWhiteSpace(appointment.UserId))
+        {
+            await _notify.NotifyAsync(
+                appointment.UserId,
+                "Appointment confirmed",
+                $"Your appointment has been set for {appointment.ScheduleLabel}.",
+                NotificationType.Success,
+                Url.Action(nameof(MyAppointments)));
+        }
+
+        await _audit.LogAsync("Approve Appointment Request", "Appointment", appointment.Id,
+            $"{appointment.StudentName} assigned to slot \"{slot.Title}\".");
+        TempData["Success"] = "Request approved and the learner booked in.";
+        return RedirectToAction(nameof(Requests));
+    }
+
+    /// <summary>Staff decline a request they cannot accommodate.</summary>
+    [HttpPost]
+    public async Task<IActionResult> Decline(int id, string? remarks)
+    {
+        if (!IsStaff) return Forbid();
+
+        var appointment = await _db.Appointments.FirstOrDefaultAsync(a => a.Id == id);
+        if (appointment is null) return NotFound();
+
+        appointment.Status = AppointmentStatus.Cancelled;
+        appointment.StaffRemarks = remarks?.Trim();
+        appointment.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+
+        if (!string.IsNullOrWhiteSpace(appointment.UserId))
+        {
+            await _notify.NotifyAsync(
+                appointment.UserId,
+                "Appointment request declined",
+                string.IsNullOrWhiteSpace(remarks)
+                    ? "We could not accommodate your requested appointment time."
+                    : remarks!.Trim(),
+                NotificationType.Warning,
+                Url.Action(nameof(MyAppointments)));
+        }
+
+        await _audit.LogAsync("Decline Appointment Request", "Appointment", appointment.Id,
+            $"Declined request from {appointment.StudentName}.");
+        TempData["Success"] = "Request declined and the learner was notified.";
+        return RedirectToAction(nameof(Requests));
+    }
+
+    // ------------------------------------------------------------------
+    // Learner: book, request and track
     // ------------------------------------------------------------------
     public async Task<IActionResult> MyAppointments()
     {
@@ -271,15 +392,17 @@ public class AppointmentsController : Controller
         var student = await GetCurrentStudentAsync();
         var userId = _currentUser.UserId;
 
-        var bookings = await _db.Appointments
-            .Include(a => a.Slot)
-            .Where(a => a.UserId == userId)
-            .OrderByDescending(a => a.Slot!.Date).ThenBy(a => a.Slot!.StartTime)
-            .ToListAsync();
+        var bookings = (await _db.Appointments
+                .Include(a => a.Slot)
+                .Where(a => a.UserId == userId)
+                .ToListAsync())
+            .OrderBy(a => a.SlotId is null ? 1 : 0)
+            .ThenByDescending(a => a.CreatedAt)
+            .ToList();
 
         var activeSlotIds = bookings
-            .Where(a => a.Status == AppointmentStatus.Booked)
-            .Select(a => a.SlotId)
+            .Where(a => a.Status == AppointmentStatus.Booked && a.SlotId is not null)
+            .Select(a => a.SlotId!.Value)
             .ToHashSet();
 
         var openSlots = (await _db.AppointmentSlots
@@ -287,7 +410,7 @@ public class AppointmentsController : Controller
                 .Where(s => s.IsPublished)
                 .ToListAsync())
             .Where(s => !s.IsPast && !s.IsFull && !activeSlotIds.Contains(s.Id))
-            .OrderBy(s => s.Date).ThenBy(s => s.StartTime)
+            .OrderBy(s => s.StartDate).ThenBy(s => s.StartTime)
             .ToList();
 
         ViewData["Title"] = "My Appointments";
@@ -326,7 +449,7 @@ public class AppointmentsController : Controller
     }
 
     [HttpPost]
-    public async Task<IActionResult> Book(int slotId, string reason)
+    public async Task<IActionResult> Book(int slotId, string reason, DateTime? preferredDate)
     {
         if (!CanBook) return RedirectToAction(nameof(Index));
 
@@ -344,6 +467,16 @@ public class AppointmentsController : Controller
         if (string.IsNullOrWhiteSpace(reason))
         {
             ModelState.AddModelError(nameof(reason), "Please tell us the reason for your appointment.");
+        }
+
+        var chosenDate = (preferredDate ?? slot.StartDate).Date;
+        if (chosenDate < slot.StartDate.Date || chosenDate > slot.EndDate.Date)
+        {
+            ModelState.AddModelError(nameof(preferredDate), "Pick a day inside the slot's date range.");
+        }
+        else if (chosenDate < DateTime.Today)
+        {
+            ModelState.AddModelError(nameof(preferredDate), "Pick today or a later day.");
         }
 
         if (await HasActiveBookingAsync(slotId))
@@ -365,7 +498,9 @@ public class AppointmentsController : Controller
             UserId = _currentUser.UserId,
             StudentName = student?.FullName ?? _currentUser.FullName,
             StudentNumber = student?.StudentNumber,
+            Purpose = slot.Purpose,
             Reason = reason.Trim(),
+            PreferredDate = chosenDate,
             Status = AppointmentStatus.Booked,
             CreatedAt = DateTime.UtcNow
         };
@@ -375,7 +510,7 @@ public class AppointmentsController : Controller
 
         await _notify.NotifyAdministratorsAsync(
             "New appointment booking",
-            $"{appointment.StudentName} booked \"{slot.Title}\" on {slot.Date:MMM d, yyyy}.",
+            $"{appointment.StudentName} booked \"{slot.Title}\" for {appointment.ScheduleLabel}.",
             NotificationType.Info,
             Url.Action(nameof(Details), new { id = slot.Id }));
 
@@ -383,6 +518,64 @@ public class AppointmentsController : Controller
             $"{appointment.StudentName} booked slot {slot.Id}.");
 
         TempData["Success"] = "Your appointment has been booked.";
+        return RedirectToAction(nameof(MyAppointments));
+    }
+
+    /// <summary>A learner asks for a time even when no slot is open. Staff fill it later.</summary>
+    [HttpGet]
+    public IActionResult RequestAppointment()
+    {
+        if (!CanBook) return RedirectToAction(nameof(Index));
+
+        ViewData["Title"] = "Request an Appointment";
+        return View(BuildRequestForm(new AppointmentRequestFormViewModel()));
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> RequestAppointment(AppointmentRequestFormViewModel model)
+    {
+        if (!CanBook) return RedirectToAction(nameof(Index));
+
+        if (model.PreferredDate is { } wanted && wanted.Date < DateTime.Today)
+        {
+            ModelState.AddModelError(nameof(model.PreferredDate), "Pick today or a later day.");
+        }
+
+        if (!ModelState.IsValid)
+        {
+            ViewData["Title"] = "Request an Appointment";
+            return View(BuildRequestForm(model));
+        }
+
+        var student = await GetCurrentStudentAsync();
+        var appointment = new Appointment
+        {
+            SlotId = null,
+            StudentId = student?.Id,
+            UserId = _currentUser.UserId,
+            StudentName = student?.FullName ?? _currentUser.FullName,
+            StudentNumber = student?.StudentNumber,
+            Purpose = model.Purpose,
+            Reason = model.Reason.Trim(),
+            PreferredDate = model.PreferredDate?.Date,
+            PreferredTime = model.PreferredTime,
+            Status = AppointmentStatus.Requested,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _db.Appointments.Add(appointment);
+        await _db.SaveChangesAsync();
+
+        await _notify.NotifyAdministratorsAsync(
+            "New appointment request",
+            $"{appointment.StudentName} requested a {appointment.EffectivePurpose.DisplayName()} appointment on {appointment.ScheduleLabel}.",
+            NotificationType.Info,
+            Url.Action(nameof(Requests)));
+
+        await _audit.LogAsync("Request Appointment", "Appointment", appointment.Id,
+            $"{appointment.StudentName} requested an appointment.");
+
+        TempData["Success"] = "Your request has been sent. You will be notified once a time is set.";
         return RedirectToAction(nameof(MyAppointments));
     }
 
@@ -398,19 +591,20 @@ public class AppointmentsController : Controller
 
         if (appointment.UserId != _currentUser.UserId) return Forbid();
 
-        if (appointment.Status != AppointmentStatus.Booked)
+        if (appointment.Status != AppointmentStatus.Booked && appointment.Status != AppointmentStatus.Requested)
         {
-            TempData["Error"] = "Only active bookings can be cancelled.";
+            TempData["Error"] = "Only active bookings or requests can be cancelled.";
             return RedirectToAction(nameof(MyAppointments));
         }
 
+        var wasRequest = appointment.Status == AppointmentStatus.Requested;
         appointment.Status = AppointmentStatus.Cancelled;
         appointment.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
 
-        await _audit.LogAsync("Cancel Appointment", "Appointment", appointment.Id,
-            $"{appointment.StudentName} cancelled slot {appointment.SlotId}.");
-        TempData["Success"] = "Your appointment has been cancelled.";
+        await _audit.LogAsync(wasRequest ? "Cancel Appointment Request" : "Cancel Appointment",
+            "Appointment", appointment.Id, $"{appointment.StudentName} cancelled {appointment.ScheduleLabel}.");
+        TempData["Success"] = wasRequest ? "Your request has been withdrawn." : "Your appointment has been cancelled.";
         return RedirectToAction(nameof(MyAppointments));
     }
 
@@ -424,13 +618,24 @@ public class AppointmentsController : Controller
             ModelState.AddModelError(nameof(model.EndTime), "The end time must be after the start time.");
         }
 
-        if (model.Date.Date < DateTime.Today)
+        if (model.StartDate.Date < DateTime.Today)
         {
-            ModelState.AddModelError(nameof(model.Date), "The date cannot be in the past.");
+            ModelState.AddModelError(nameof(model.StartDate), "The start date cannot be in the past.");
+        }
+
+        if (model.EndDate.Date < model.StartDate.Date)
+        {
+            ModelState.AddModelError(nameof(model.EndDate), "The end date must be on or after the start date.");
         }
     }
 
     private static AppointmentSlotFormViewModel BuildForm(AppointmentSlotFormViewModel model)
+    {
+        model.Purposes = SelectLists.EnumOptions<AppointmentPurpose>(model.Purpose);
+        return model;
+    }
+
+    private static AppointmentRequestFormViewModel BuildRequestForm(AppointmentRequestFormViewModel model)
     {
         model.Purposes = SelectLists.EnumOptions<AppointmentPurpose>(model.Purpose);
         return model;

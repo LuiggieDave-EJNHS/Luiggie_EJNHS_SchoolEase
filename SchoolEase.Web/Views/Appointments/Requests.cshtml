@@ -1,0 +1,94 @@
+@model AppointmentRequestsViewModel
+@{
+    ViewData["Title"] = "Appointment Requests";
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = "Appointment Requests",
+    Subtitle = "Learners who asked for a time even without an open slot.",
+    Icon = "bi-inbox",
+    Actions = new List<PageAction>
+    {
+        new() { Text = "Slots", Url = Url.Action("Index"), Icon = "bi-arrow-left", Css = "btn btn-light" }
+    }
+})" />
+
+@if (Model.Requests.Count == 0)
+{
+    <div class="se-card">
+        <partial name="_EmptyState" model="@(new EmptyState
+        {
+            Icon = "bi-inbox",
+            Title = "No pending requests",
+            Message = "New appointment requests from learners will appear here."
+        })" />
+    </div>
+}
+else
+{
+    <div class="se-card">
+        <div class="se-card__head">
+            <h3><i class="bi bi-inbox me-1"></i>Pending requests</h3>
+            <span class="se-small se-muted">@Model.Requests.Count request(s)</span>
+        </div>
+
+        @if (Model.OpenSlots.Count == 0)
+        {
+            <div class="px-3 pt-3">
+                <div class="alert alert-warning py-2 se-small mb-0">
+                    No slot is open right now. <a asp-action="Create" class="alert-link">Open a slot</a> so you can assign these requests.
+                </div>
+            </div>
+        }
+
+        <div class="se-table-wrap">
+            <table class="se-table">
+                <thead>
+                    <tr>
+                        <th>Learner</th>
+                        <th>Purpose</th>
+                        <th>Preferred time</th>
+                        <th>Reason</th>
+                        <th class="se-col-actions">Assign</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var request in Model.Requests)
+                    {
+                        <tr>
+                            <td>
+                                <span class="se-strong d-block">@request.StudentName</span>
+                                <span class="se-tiny se-muted">@(string.IsNullOrWhiteSpace(request.StudentNumber) ? "—" : request.StudentNumber)</span>
+                            </td>
+                            <td>@request.EffectivePurpose.DisplayName()</td>
+                            <td>@request.ScheduleLabel</td>
+                            <td>@request.Reason</td>
+                            <td class="se-col-actions">
+                                @if (Model.OpenSlots.Count > 0)
+                                {
+                                    <form asp-action="Approve" asp-route-id="@request.Id" method="post" class="d-flex gap-2 align-items-center mb-1">
+                                        <select name="slotId" class="form-select form-select-sm" style="min-width: 12rem;">
+                                            @foreach (var slot in Model.OpenSlots)
+                                            {
+                                                <option value="@slot.Id">@slot.Title — @slot.DateLabel (@slot.StartTime.To12Hour())</option>
+                                            }
+                                        </select>
+                                        <button type="submit" class="btn btn-sm btn-primary text-nowrap">
+                                            <i class="bi bi-check2 me-1"></i>Approve
+                                        </button>
+                                    </form>
+                                }
+                                <form asp-action="Decline" asp-route-id="@request.Id" method="post" data-se-confirm="Decline this request?">
+                                    <button type="submit" class="btn btn-sm btn-light text-danger text-nowrap">
+                                        <i class="bi bi-x-circle me-1"></i>Decline
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}

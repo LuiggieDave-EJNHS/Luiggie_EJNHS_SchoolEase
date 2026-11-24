@@ -1,0 +1,76 @@
+@model AppointmentRequestFormViewModel
+@{
+    ViewData["Title"] = "Request an Appointment";
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = "Request an Appointment",
+    Subtitle = "No open slot? Ask for a time and the school will get back to you.",
+    Icon = "bi-send",
+    Actions = new List<PageAction>
+    {
+        new() { Text = "My Appointments", Url = Url.Action("MyAppointments"), Icon = "bi-arrow-left", Css = "btn btn-light" }
+    }
+})" />
+
+<div class="row g-3">
+    <div class="col-lg-7">
+        <div class="se-card">
+            <div class="se-card__head"><h3><i class="bi bi-pencil-square me-1"></i>Request details</h3></div>
+            <div class="se-card__body">
+                <form asp-action="RequestAppointment" method="post">
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 se-small"></div>
+
+                    <div class="mb-3">
+                        <label class="se-form-label" asp-for="Purpose">Purpose <span class="req">*</span></label>
+                        <select asp-for="Purpose" asp-items="Model.Purposes" class="form-select"></select>
+                        <span asp-validation-for="Purpose" class="text-danger se-small"></span>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="se-form-label" asp-for="PreferredDate">Preferred date</label>
+                            <input asp-for="PreferredDate" type="date" class="form-control" />
+                            <span asp-validation-for="PreferredDate" class="text-danger se-small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="se-form-label" asp-for="PreferredTime">Preferred time</label>
+                            <input asp-for="PreferredTime" type="time" class="form-control" />
+                            <span asp-validation-for="PreferredTime" class="text-danger se-small"></span>
+                        </div>
+                    </div>
+
+                    <div class="mb-3 mt-3">
+                        <label class="se-form-label" asp-for="Reason">What do you need? <span class="req">*</span></label>
+                        <textarea asp-for="Reason" rows="4" class="form-control" maxlength="500"
+                                  placeholder="e.g. Claim my Form 138 and Certificate of Enrollment"></textarea>
+                        <span asp-validation-for="Reason" class="text-danger se-small"></span>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-send me-1"></i>Send request</button>
+                        <a class="btn btn-light" asp-action="MyAppointments">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="se-card">
+            <div class="se-card__head"><h3><i class="bi bi-info-circle me-1"></i>How it works</h3></div>
+            <div class="se-card__body">
+                <p class="se-small mb-2">
+                    You can send a request even when no slot is open. The school will set a time and you will
+                    be notified once it is confirmed.
+                </p>
+                <ul class="se-small se-muted mb-0 ps-3">
+                    <li>Pick your preferred day and time.</li>
+                    <li>Tell us what you need to do.</li>
+                    <li>Watch <strong>My Appointments</strong> for the confirmed schedule.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>

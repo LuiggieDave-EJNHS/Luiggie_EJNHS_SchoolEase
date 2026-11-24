@@ -55,6 +55,7 @@ public static class DisplayExtensions
         Models.EventCategory.Deadline => "pink",
         Models.EventCategory.Activity => "teal",
 
+        Models.AppointmentStatus.Requested => "info",
         Models.AppointmentStatus.Booked => "primary",
         Models.AppointmentStatus.Completed => "success",
         Models.AppointmentStatus.Cancelled => "secondary",
@@ -83,6 +84,7 @@ public static class DisplayExtensions
         Models.EventCategory.Deadline => "bi-alarm",
         Models.EventCategory.Activity => "bi-flag",
 
+        Models.AppointmentStatus.Requested => "bi-hourglass-split",
         Models.AppointmentStatus.Booked => "bi-calendar-check",
         Models.AppointmentStatus.Completed => "bi-check2-circle",
         Models.AppointmentStatus.Cancelled => "bi-x-circle",
