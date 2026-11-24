@@ -98,8 +98,10 @@ public static class DbSeeder
     /// built with EnsureCreated(), which never alters an existing schema, so any
     /// table added later has to be created explicitly. Uses CREATE TABLE IF NOT
     /// EXISTS so it is idempotent and safe to run on every application start.
+    /// Schema maintenance runs on every start regardless of Seed:Enabled, so hosted
+    /// deployments that turn seeding off still pick up new columns/tables.
     /// </summary>
-    private static async Task EnsureSchemaAsync(ApplicationDbContext db)
+    public static async Task EnsureSchemaAsync(ApplicationDbContext db)
     {
         var provider = db.Database.ProviderName ?? string.Empty;
 

@@ -239,6 +239,12 @@ using (var scope = app.Services.CreateScope())
             await db.Database.EnsureCreatedAsync();
         }
 
+        // Schema additions (tables/columns added after the first release) must always
+        // regardless of whether demo seeding is enabled. Hosted databases are built with
+        // EnsureCreated(), which never alters an existing schema, so this keeps the
+        // manual migration runs on every start.
+        await DbSeeder.EnsureSchemaAsync(db);
+
         if (config.GetValue("Seed:Enabled", true))
         {
             await DbSeeder.SeedAsync(scope.ServiceProvider);
