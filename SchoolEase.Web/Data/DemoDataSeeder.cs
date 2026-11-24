@@ -62,9 +62,22 @@ public static class DemoDataSeeder
         // ---------------------------------------------------------------
         // Grade levels
         // ---------------------------------------------------------------
-        var grade11 = new GradeLevel { Name = "Grade 11", Code = "G11", OrderIndex = 11, Description = "Senior High School - Grade 11" };
-        var grade12 = new GradeLevel { Name = "Grade 12", Code = "G12", OrderIndex = 12, Description = "Senior High School - Grade 12" };
-        db.GradeLevels.AddRange(grade11, grade12);
+        // The academic lookup seeding already creates Grade 11 and Grade 12 (their
+        // codes are unique), so reuse those rows instead of inserting duplicates.
+        var grade11 = await db.GradeLevels.FirstOrDefaultAsync(g => g.Code == "G11");
+        if (grade11 is null)
+        {
+            grade11 = new GradeLevel { Name = "Grade 11", Code = "G11", OrderIndex = 11, Description = "Senior High School - Grade 11" };
+            db.GradeLevels.Add(grade11);
+        }
+
+        var grade12 = await db.GradeLevels.FirstOrDefaultAsync(g => g.Code == "G12");
+        if (grade12 is null)
+        {
+            grade12 = new GradeLevel { Name = "Grade 12", Code = "G12", OrderIndex = 12, Description = "Senior High School - Grade 12" };
+            db.GradeLevels.Add(grade12);
+        }
+
         await db.SaveChangesAsync();
 
         // ---------------------------------------------------------------
@@ -82,25 +95,37 @@ public static class DemoDataSeeder
             new { Emp = "EMP-2023-008", First = "Paolo", Middle = "Ramos", Last = "Mendoza", Dept = "Social Science and MAPEH", Spec = "UCSP, Physical Education", Email = "paolo.mendoza@schoolease.ph", Female = false }
         };
 
-        var teachers = teacherSeeds.Select((seed, i) => new Teacher
+        // Reuse personnel that already exist: a previous run may have stopped after
+        // this step, and the employee number is unique so a blind insert would fail.
+        var existingTeachers = await db.Teachers.ToDictionaryAsync(t => t.EmployeeNumber);
+
+        var teachers = teacherSeeds.Select((seed, i) =>
         {
-            EmployeeNumber = seed.Emp,
-            FirstName = seed.First,
-            MiddleName = seed.Middle,
-            LastName = seed.Last,
-            Gender = seed.Female ? Gender.Female : Gender.Male,
-            BirthDate = new DateTime(1980 + i, (i % 12) + 1, ((i * 3) % 27) + 1),
-            Address = $"{100 + i} Mabini Street, Sampaloc, Manila",
-            ContactNumber = $"0917{2000000 + i * 13579}",
-            Email = seed.Email,
-            Department = seed.Dept,
-            Specialization = seed.Spec,
-            EmploymentStatus = i % 5 == 0 ? EmploymentStatus.Probationary : EmploymentStatus.Permanent,
-            DateHired = new DateTime(2018 + (i % 5), (i % 12) + 1, 15),
-            IsActive = true
+            if (existingTeachers.TryGetValue(seed.Emp, out var existing)) return existing;
+
+            var created = new Teacher
+            {
+                EmployeeNumber = seed.Emp,
+                FirstName = seed.First,
+                MiddleName = seed.Middle,
+                LastName = seed.Last,
+                Gender = seed.Female ? Gender.Female : Gender.Male,
+                BirthDate = new DateTime(1980 + i, (i % 12) + 1, ((i * 3) % 27) + 1),
+                Address = $"{100 + i} Mabini Street, Sampaloc, Manila",
+                ContactNumber = $"0917{2000000 + i * 13579}",
+                Email = seed.Email,
+                Department = seed.Dept,
+                Specialization = seed.Spec,
+                EmploymentStatus = i % 5 == 0 ? EmploymentStatus.Probationary : EmploymentStatus.Permanent,
+                DateHired = new DateTime(2018 + (i % 5), (i % 12) + 1, 15),
+                IsActive = true
+            };
+
+            db.Teachers.Add(created);
+            existingTeachers[seed.Emp] = created;
+            return created;
         }).ToList();
 
-        db.Teachers.AddRange(teachers);
         await db.SaveChangesAsync();
 
         teachers[0].UserId = accounts.Teacher.Id;
@@ -119,25 +144,35 @@ public static class DemoDataSeeder
             new { No = "STF-2022-005", First = "Jasmine", Last = "Tolentino", Pos = "Cashier / Finance Clerk", Dept = "Finance Office", Email = "jasmine.tolentino@schoolease.ph", Female = true }
         };
 
-        var staffMembers = staffSeeds.Select((seed, i) => new Staff
+        var existingStaff = await db.StaffMembers.ToDictionaryAsync(s => s.StaffNumber);
+
+        var staffMembers = staffSeeds.Select((seed, i) =>
         {
-            StaffNumber = seed.No,
-            FirstName = seed.First,
-            MiddleName = i % 2 == 0 ? "Santos" : "Reyes",
-            LastName = seed.Last,
-            Gender = seed.Female ? Gender.Female : Gender.Male,
-            BirthDate = new DateTime(1982 + i, (i % 12) + 1, ((i * 5) % 27) + 1),
-            Address = $"{20 + i} Espana Boulevard, Sampaloc, Manila",
-            ContactNumber = $"0918{3000000 + i * 24680}",
-            Email = seed.Email,
-            Position = seed.Pos,
-            Department = seed.Dept,
-            EmploymentStatus = EmploymentStatus.Permanent,
-            DateHired = new DateTime(2015 + i, (i % 12) + 1, 10),
-            IsActive = true
+            if (existingStaff.TryGetValue(seed.No, out var existing)) return existing;
+
+            var created = new Staff
+            {
+                StaffNumber = seed.No,
+                FirstName = seed.First,
+                MiddleName = i % 2 == 0 ? "Santos" : "Reyes",
+                LastName = seed.Last,
+                Gender = seed.Female ? Gender.Female : Gender.Male,
+                BirthDate = new DateTime(1982 + i, (i % 12) + 1, ((i * 5) % 27) + 1),
+                Address = $"{20 + i} Espana Boulevard, Sampaloc, Manila",
+                ContactNumber = $"0918{3000000 + i * 24680}",
+                Email = seed.Email,
+                Position = seed.Pos,
+                Department = seed.Dept,
+                EmploymentStatus = EmploymentStatus.Permanent,
+                DateHired = new DateTime(2015 + i, (i % 12) + 1, 10),
+                IsActive = true
+            };
+
+            db.StaffMembers.Add(created);
+            existingStaff[seed.No] = created;
+            return created;
         }).ToList();
 
-        db.StaffMembers.AddRange(staffMembers);
         await db.SaveChangesAsync();
 
         staffMembers[0].UserId = accounts.Staff.Id;
@@ -159,20 +194,30 @@ public static class DemoDataSeeder
             ("12-ICT-CCS", "G12-ICT-CCS", "TVL - ICT (CSS NC II)", "Computer Laboratory 2", grade12, 0)
         };
 
-        var sections = sectionSeeds.Select(s => new Section
+        var existingSections = await db.Sections.ToDictionaryAsync(s => s.Code);
+
+        var sections = sectionSeeds.Select(s =>
         {
-            Name = s.Name,
-            Code = s.Code,
-            GradeLevelId = s.Level.Id,
-            AdviserId = teachers[s.Adviser].Id,
-            TrackStrand = s.Track,
-            Room = s.Room,
-            Capacity = 40,
-            SchoolYear = year,
-            IsActive = true
+            if (existingSections.TryGetValue(s.Code, out var existing)) return existing;
+
+            var created = new Section
+            {
+                Name = s.Name,
+                Code = s.Code,
+                GradeLevelId = s.Level.Id,
+                AdviserId = teachers[s.Adviser].Id,
+                TrackStrand = s.Track,
+                Room = s.Room,
+                Capacity = 40,
+                SchoolYear = year,
+                IsActive = true
+            };
+
+            db.Sections.Add(created);
+            existingSections[s.Code] = created;
+            return created;
         }).ToList();
 
-        db.Sections.AddRange(sections);
         await db.SaveChangesAsync();
 
         // ---------------------------------------------------------------
@@ -203,30 +248,34 @@ public static class DemoDataSeeder
             ("STATPROB", "Statistics and Probability", "Core", 3)
         };
 
-        var subjects11 = grade11Subjects.Select(s => new Subject
-        {
-            Code = s.Code,
-            Title = s.Title,
-            Description = $"{s.Title} - {s.Track} subject for Grade 11.",
-            Units = s.Units,
-            GradeLevelId = grade11.Id,
-            TrackStrand = s.Track,
-            IsActive = true
-        }).ToList();
+        // The academic lookup seeding already created the core Grade 11/12 subjects
+        // (their codes are unique), so reuse those rows and only add the demo-only
+        // ones instead of inserting duplicates that would trip the unique index.
+        var existingSubjects = await db.Subjects.ToDictionaryAsync(s => s.Code);
 
-        var subjects12 = grade12Subjects.Select(s => new Subject
+        Subject ResolveSubject((string Code, string Title, string Track, double Units) seed, GradeLevel level, int grade)
         {
-            Code = s.Code,
-            Title = s.Title,
-            Description = $"{s.Title} - {s.Track} subject for Grade 12.",
-            Units = s.Units,
-            GradeLevelId = grade12.Id,
-            TrackStrand = s.Track,
-            IsActive = true
-        }).ToList();
+            if (existingSubjects.TryGetValue(seed.Code, out var existing)) return existing;
 
-        db.Subjects.AddRange(subjects11);
-        db.Subjects.AddRange(subjects12);
+            var created = new Subject
+            {
+                Code = seed.Code,
+                Title = seed.Title,
+                Description = $"{seed.Title} - {seed.Track} subject for Grade {grade}.",
+                Units = seed.Units,
+                GradeLevelId = level.Id,
+                TrackStrand = seed.Track,
+                IsActive = true
+            };
+
+            db.Subjects.Add(created);
+            existingSubjects[seed.Code] = created;
+            return created;
+        }
+
+        var subjects11 = grade11Subjects.Select(s => ResolveSubject(s, grade11, 11)).ToList();
+        var subjects12 = grade12Subjects.Select(s => ResolveSubject(s, grade12, 12)).ToList();
+
         await db.SaveChangesAsync();
 
         // Index i of the subject list is taught by teacher i.

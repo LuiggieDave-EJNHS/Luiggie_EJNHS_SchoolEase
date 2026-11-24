@@ -119,19 +119,38 @@ public static class DemoRecordsSeeder
         // ==============================================================
         // Document types
         // ==============================================================
-        var documentTypes = new List<DocumentType>
+        var documentTypeSeeds = new (string Name, string Code, string Description, int Days)[]
         {
-            new() { Name = "Certificate of Enrollment", Code = "COE", Description = "Proof that the learner is currently enrolled for the school year.", ProcessingDays = 2 },
-            new() { Name = "Certificate of Good Moral Character", Code = "CGMC", Description = "Certifies the learner's good conduct inside and outside the campus.", ProcessingDays = 2 },
-            new() { Name = "Transcript of Records (SHS)", Code = "TOR", Description = "Official academic record covering all terms of Senior High School.", ProcessingDays = 5 },
-            new() { Name = "Form 137 / SF10 Copy", Code = "SF10", Description = "Permanent record copy of the learner.", ProcessingDays = 4 },
-            new() { Name = "Certificate of Graduation", Code = "COG", Description = "Certificate issued to confirmed graduating learners.", ProcessingDays = 3 },
-            new() { Name = "Certification of Grades", Code = "CGRADE", Description = "Summary of grades for a specific term.", ProcessingDays = 3 },
-            new() { Name = "Certificate of Completion", Code = "COCOMP", Description = "Issued after completing all academic requirements.", ProcessingDays = 3 },
-            new() { Name = "Barangay / Scholarship Certification", Code = "BRGY", Description = "Supporting document for scholarship and subsidy applications.", ProcessingDays = 2 }
+            ("Certificate of Enrollment", "COE", "Proof that the learner is currently enrolled for the school year.", 2),
+            ("Certificate of Good Moral Character", "CGMC", "Certifies the learner's good conduct inside and outside the campus.", 2),
+            ("Transcript of Records (SHS)", "TOR", "Official academic record covering all terms of Senior High School.", 5),
+            ("Form 137 / SF10 Copy", "SF10", "Permanent record copy of the learner.", 4),
+            ("Certificate of Graduation", "COG", "Certificate issued to confirmed graduating learners.", 3),
+            ("Certification of Grades", "CGRADE", "Summary of grades for a specific term.", 3),
+            ("Certificate of Completion", "COCOMP", "Issued after completing all academic requirements.", 3),
+            ("Barangay / Scholarship Certification", "BRGY", "Supporting document for scholarship and subsidy applications.", 2)
         };
 
-        db.DocumentTypes.AddRange(documentTypes);
+        // The base seeding already created some of these codes, so reuse them.
+        var existingDocumentTypes = await db.DocumentTypes.ToDictionaryAsync(t => t.Code);
+
+        var documentTypes = documentTypeSeeds.Select(seed =>
+        {
+            if (existingDocumentTypes.TryGetValue(seed.Code, out var existing)) return existing;
+
+            var created = new DocumentType
+            {
+                Name = seed.Name,
+                Code = seed.Code,
+                Description = seed.Description,
+                ProcessingDays = seed.Days
+            };
+
+            db.DocumentTypes.Add(created);
+            existingDocumentTypes[seed.Code] = created;
+            return created;
+        }).ToList();
+
         await db.SaveChangesAsync();
 
         // ==============================================================

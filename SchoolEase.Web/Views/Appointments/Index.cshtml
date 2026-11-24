@@ -2,6 +2,15 @@
 @{
     ViewData["Title"] = "Appointments";
 
+    var headerActions = new List<PageAction>
+    {
+        new() { Text = "Open Slot", Url = Url.Action("Create"), Icon = "bi-plus-lg" }
+    };
+    if (CurrentUser.IsTeacher)
+    {
+        headerActions.Insert(0, new PageAction { Text = "My Appointments", Url = Url.Action("MyAppointments"), Icon = "bi-calendar-check", Css = "btn btn-light" });
+    }
+
     var cards = new List<StatCard>
     {
         new() { Label = "Open Slots", Value = Model.UpcomingCount.ToString("N0"), Icon = "bi-calendar-plus", Tone = "primary" },
@@ -16,10 +25,7 @@
     Title = "Appointments",
     Subtitle = "Open appointment slots and manage the learners who book them.",
     Icon = "bi-calendar-check",
-    Actions = new List<PageAction>
-    {
-        new() { Text = "Open Slot", Url = Url.Action("Create"), Icon = "bi-plus-lg" }
-    }
+    Actions = headerActions
 })" />
 
 <div class="row g-3 mb-3">

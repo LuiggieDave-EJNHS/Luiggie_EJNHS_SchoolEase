@@ -1,16 +1,23 @@
 @model MyAppointmentsViewModel
 @{
     ViewData["Title"] = "My Appointments";
+
+    var actions = new List<PageAction>();
+    if (CurrentUser.IsTeacher)
+    {
+        actions.Add(new PageAction { Text = "Manage Slots", Url = Url.Action("Index"), Icon = "bi-sliders", Css = "btn btn-light" });
+    }
 }
 
 <partial name="_PageHeader" model="@(new PageHeader
 {
     Title = "My Appointments",
     Subtitle = "Book a time to see the registrar, guidance or another school office.",
-    Icon = "bi-calendar-check"
+    Icon = "bi-calendar-check",
+    Actions = actions
 })" />
 
-@if (Model.Student is null)
+@if (Model.Student is null && !CurrentUser.IsTeacher)
 {
     <div class="se-card">
         <partial name="_EmptyState" model="@(new EmptyState

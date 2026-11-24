@@ -413,7 +413,7 @@ public class ApplicationDbContext : IdentityDbContext<AppUser>
                 .OnDelete(DeleteBehavior.Cascade);
 
             e.HasOne(a => a.Student)
-                .WithMany()
+                .WithMany(s => s.Appointments)
                 .HasForeignKey(a => a.StudentId)
                 .OnDelete(DeleteBehavior.SetNull);
         });

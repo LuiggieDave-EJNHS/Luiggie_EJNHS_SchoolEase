@@ -91,8 +91,11 @@
             <a class="se-nav__link @Active("LearningActivitySheets")" asp-controller="LearningActivitySheets" asp-action="Index">
                 <i class="bi bi-journal-text"></i><span>Activity Sheets</span>
             </a>
-            <a class="se-nav__link @Active("Appointments")" asp-controller="Appointments" asp-action="Index">
+            <a class="se-nav__link @Active("Appointments", "Index", "Create", "Edit", "Details")" asp-controller="Appointments" asp-action="Index">
                 <i class="bi bi-calendar-check"></i><span>Appointments</span>
+            </a>
+            <a class="se-nav__link @Active("Appointments", "MyAppointments", "Book")" asp-controller="Appointments" asp-action="MyAppointments">
+                <i class="bi bi-calendar2-check"></i><span>My Appointments</span>
             </a>
             <div class="se-nav__label">School</div>
             <a class="se-nav__link @Active("Announcements")" asp-controller="Announcements" asp-action="Index">

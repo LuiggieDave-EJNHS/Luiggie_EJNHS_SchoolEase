@@ -39,6 +39,9 @@ public class AppointmentsController : Controller
         _currentUser.IsAdministrator || _currentUser.IsIctHeadCoordinator
         || _currentUser.IsTeacher || _currentUser.IsRegistrar;
 
+    /// <summary>True for accounts that may book a seat: learners (current and former) and teachers.</summary>
+    private bool CanBook => _currentUser.IsStudent || _currentUser.IsTeacher;
+
     // ------------------------------------------------------------------
     // Staff: manage slots
     // ------------------------------------------------------------------
@@ -263,7 +266,7 @@ public class AppointmentsController : Controller
     // ------------------------------------------------------------------
     public async Task<IActionResult> MyAppointments()
     {
-        if (!_currentUser.IsStudent) return RedirectToAction(nameof(Index));
+        if (!CanBook) return RedirectToAction(nameof(Index));
 
         var student = await GetCurrentStudentAsync();
         var userId = _currentUser.UserId;
@@ -299,7 +302,7 @@ public class AppointmentsController : Controller
     [HttpGet]
     public async Task<IActionResult> Book(int slotId)
     {
-        if (!_currentUser.IsStudent) return RedirectToAction(nameof(Index));
+        if (!CanBook) return RedirectToAction(nameof(Index));
 
         var slot = await _db.AppointmentSlots
             .Include(s => s.Appointments)
@@ -325,7 +328,7 @@ public class AppointmentsController : Controller
     [HttpPost]
     public async Task<IActionResult> Book(int slotId, string reason)
     {
-        if (!_currentUser.IsStudent) return RedirectToAction(nameof(Index));
+        if (!CanBook) return RedirectToAction(nameof(Index));
 
         var slot = await _db.AppointmentSlots
             .Include(s => s.Appointments)
@@ -386,7 +389,7 @@ public class AppointmentsController : Controller
     [HttpPost]
     public async Task<IActionResult> Cancel(int id)
     {
-        if (!_currentUser.IsStudent) return Forbid();
+        if (!CanBook) return Forbid();
 
         var appointment = await _db.Appointments
             .Include(a => a.Slot)
