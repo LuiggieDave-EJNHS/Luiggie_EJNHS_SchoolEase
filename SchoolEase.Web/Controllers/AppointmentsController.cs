@@ -531,7 +531,7 @@ public class AppointmentsController : Controller
         if (!CanBook) return RedirectToAction(nameof(Index));
 
         ViewData["Title"] = "Request an Appointment";
-        return View(BuildRequestForm(new AppointmentRequestFormViewModel()));
+        return View("Request", BuildRequestForm(new AppointmentRequestFormViewModel()));
     }
 
     [HttpPost]
@@ -547,7 +547,7 @@ public class AppointmentsController : Controller
         if (!ModelState.IsValid)
         {
             ViewData["Title"] = "Request an Appointment";
-            return View(BuildRequestForm(model));
+            return View("Request", BuildRequestForm(model));
         }
 
         var student = await GetCurrentStudentAsync();
