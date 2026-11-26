@@ -28,9 +28,12 @@ public class R2FileStorage : IFileStorage
             var config = new AmazonS3Config
             {
                 ServiceURL = _settings.Endpoint,
-                ForcePathStyle = true,
-                // R2 ignores the region but the SDK requires one.
-                AuthenticationRegion = "auto"
+                ForcePathStyle = _settings.PathStyle,
+                // R2 and Tigris ignore "auto"; Backblaze B2 needs its bucket region here,
+                // so it comes from configuration rather than being hard-coded.
+                AuthenticationRegion = string.IsNullOrWhiteSpace(_settings.Region)
+                    ? "auto"
+                    : _settings.Region.Trim()
             };
 
             return new AmazonS3Client(

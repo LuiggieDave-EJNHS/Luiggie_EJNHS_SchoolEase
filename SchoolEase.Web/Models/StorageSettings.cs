@@ -21,6 +21,19 @@ public class StorageSettings
     /// <summary>Key prefix so several environments can share one bucket.</summary>
     public string Prefix { get; set; } = "schoolease";
 
+    /// <summary>
+    /// SigV4 signing region. Cloudflare R2 and Tigris accept "auto", but Backblaze B2
+    /// must sign with the bucket's own region — the second part of its endpoint, e.g.
+    /// us-west-004 for s3.us-west-004.backblazeb2.com.
+    /// </summary>
+    public string Region { get; set; } = "auto";
+
+    /// <summary>
+    /// Path-style addressing (bucket name in the URL path). R2 and B2 accept it; some
+    /// providers prefer virtual-hosted style, so it can be switched off per environment.
+    /// </summary>
+    public bool PathStyle { get; set; } = true;
+
     /// <summary>True when enough settings are present to talk to the bucket.</summary>
     public bool IsConfigured =>
         !string.IsNullOrWhiteSpace(AccessKey)
