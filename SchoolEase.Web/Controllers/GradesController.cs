@@ -152,9 +152,12 @@ public class GradesController : Controller
             .Select(s => s.Id)
             .ToListAsync()).ToHashSet();
 
+        // Keyed on the same columns as the unique index (student, subject, year, term)
+        // so a learner who moved sections updates their existing row instead of adding
+        // a second one that would violate the index.
         var existing = await _db.GradeRecords
-            .Where(g => g.SectionId == sectionId && g.SubjectId == subjectId && g.Term == term
-                && g.SchoolYear == schoolYear)
+            .Where(g => g.SubjectId == subjectId && g.Term == term && g.SchoolYear == schoolYear
+                && enrolled.Contains(g.StudentId))
             .ToListAsync();
 
         var handled = new HashSet<int>();
@@ -181,6 +184,8 @@ public class GradesController : Controller
             record.PerformanceTask = row.PerformanceTask;
             record.TermAssessment = row.TermAssessment;
             record.Remarks = row.Remarks;
+            // Keep the record pointing at the learner's current section.
+            record.SectionId = sectionId;
 
             record.FinalGrade = row.WrittenWork.HasValue && row.PerformanceTask.HasValue && row.TermAssessment.HasValue
                 ? record.ComputeWeighted()
@@ -205,7 +210,9 @@ public class GradesController : Controller
                 "Grades updated",
                 $"Your {subject.Code} grade for Term {term} has been updated.",
                 NotificationType.Info,
-                Url.Action(nameof(StudentGrades), new { studentId = student.Id }));
+                // The recipient is the learner, so link to their own grades portal —
+                // StudentGrades on this controller is gated by TeacherOrAdmin.
+                Url.Action("Grades", "Student"));
         }
 
         await _audit.LogAsync("Encoded grades", "GradeRecord", sectionId,
@@ -295,9 +302,10 @@ public class GradesController : Controller
             .OrderBy(s => s.LastName).ThenBy(s => s.FirstName)
             .ToListAsync();
 
+        var studentIds = students.Select(s => s.Id).ToList();
         var existing = await _db.GradeRecords
-            .Where(g => g.SectionId == sectionId && g.SubjectId == subjectId && g.Term == term
-                && g.SchoolYear == SchoolInfo.SchoolYear)
+            .Where(g => g.SubjectId == subjectId && g.Term == term
+                && g.SchoolYear == SchoolInfo.SchoolYear && studentIds.Contains(g.StudentId))
             .ToListAsync();
 
         var rows = students.Select(s =>
@@ -349,9 +357,10 @@ public class GradesController : Controller
             .OrderBy(s => s.LastName).ThenBy(s => s.FirstName)
             .ToListAsync();
 
+        var studentIds = students.Select(s => s.Id).ToList();
         var existing = await _db.GradeRecords
-            .Where(g => g.SectionId == sectionId && g.SubjectId == subjectId && g.Term == term
-                && g.SchoolYear == SchoolInfo.SchoolYear)
+            .Where(g => g.SubjectId == subjectId && g.Term == term
+                && g.SchoolYear == SchoolInfo.SchoolYear && studentIds.Contains(g.StudentId))
             .ToListAsync();
 
         return new GradeEncodeViewModel

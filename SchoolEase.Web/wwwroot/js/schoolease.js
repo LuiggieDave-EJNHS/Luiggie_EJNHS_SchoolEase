@@ -402,7 +402,10 @@
             try {
                 const response = await fetch(btn.dataset.seMarkAllRead, {
                     method: "POST",
-                    headers: { "X-Requested-With": "XMLHttpRequest" }
+                    headers: {
+                        "X-Requested-With": "XMLHttpRequest",
+                        "RequestVerificationToken": btn.dataset.seToken || ""
+                    }
                 });
                 if (!response.ok) throw new Error("Request failed");
                 SE.qsa(".se-notif__item--unread").forEach(el => el.classList.remove("se-notif__item--unread"));

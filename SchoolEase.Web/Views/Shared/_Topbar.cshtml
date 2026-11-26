@@ -1,11 +1,15 @@
 @inject INotificationService Notifications
 @inject IProfilePhotoService Photos
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
 @{
     var uid = CurrentUser.UserId;
     var unread = uid is null ? 0 : await Notifications.UnreadCountAsync(uid);
     var recent = uid is null ? new List<Notification>() : await Notifications.RecentAsync(uid, 6);
     var roleLabel = string.IsNullOrWhiteSpace(CurrentUser.PrimaryRole) ? "Member" : CurrentUser.PrimaryRole;
     var hasPhoto = uid is not null && await Photos.HasPhotoAsync(uid);
+    // The "Mark all read" button posts over fetch(), which bypasses the form tag helper,
+    // so the anti-forgery token has to be handed to the script explicitly.
+    var csrfToken = Antiforgery.GetAndStoreTokens(Context).RequestToken;
 }
 
 <header class="se-topbar">
@@ -36,7 +40,7 @@
                 <strong>Notifications</strong>
                 @if (unread > 0)
                 {
-                    <button type="button" class="btn btn-sm btn-light" data-se-mark-all-read="/Notifications/MarkAllRead">Mark all read</button>
+                    <button type="button" class="btn btn-sm btn-light" data-se-mark-all-read="@Url.Action("MarkAllRead", "Notifications")" data-se-token="@csrfToken">Mark all read</button>
                 }
             </div>
             <div class="se-notif__list">

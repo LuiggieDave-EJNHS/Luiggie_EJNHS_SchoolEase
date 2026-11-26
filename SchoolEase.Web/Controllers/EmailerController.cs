@@ -46,11 +46,16 @@ public class EmailerController : Controller
         {
             // The composer is a plain-text box but Brevo delivers HTML, so the
             // body is escaped (never trust typed markup) and newlines become
-            // real line breaks once wrapped in a minimal shell.
+            // real line breaks once wrapped in the branded shell.
             var safeBody = WebUtility.HtmlEncode(model.Body)
                 .Replace("\r\n", "\n")
                 .Replace("\n", "<br />");
-            var html = $"<div style=\"font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;color:#16202c;\">{safeBody}</div>";
+
+            var logoPath = Url.Content("~/images/logo.jpg");
+            if (logoPath.StartsWith("~")) logoPath = logoPath[1..];
+            var logoUrl = $"{Request.Scheme}://{Request.Host}{logoPath}";
+
+            var html = EmailTemplates.Message(model.Subject, safeBody, logoUrl);
 
             await _emailSender.SendEmailAsync(model.Recipient, model.Subject, html);
 

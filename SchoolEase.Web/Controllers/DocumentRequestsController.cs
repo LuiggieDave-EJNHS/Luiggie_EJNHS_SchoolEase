@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SchoolEase.Web.Data;
@@ -24,17 +25,23 @@ public class DocumentRequestsController : Controller
     private readonly ICurrentUserService _currentUser;
     private readonly IAuditService _audit;
     private readonly INotificationService _notify;
+    private readonly IEmailSender _email;
+    private readonly ILogger<DocumentRequestsController> _logger;
 
     public DocumentRequestsController(
         ApplicationDbContext db,
         ICurrentUserService currentUser,
         IAuditService audit,
-        INotificationService notify)
+        INotificationService notify,
+        IEmailSender email,
+        ILogger<DocumentRequestsController> logger)
     {
         _db = db;
         _currentUser = currentUser;
         _audit = audit;
         _notify = notify;
+        _email = email;
+        _logger = logger;
     }
 
     // ------------------------------------------------------------------
@@ -287,6 +294,34 @@ public class DocumentRequestsController : Controller
                 $"Your request for {request.DocumentType.Name} is now {status.DisplayName()}.",
                 status == DocumentRequestStatus.Released ? NotificationType.Success : NotificationType.Info,
                 Url.Action(nameof(Details), "DocumentRequests", new { id = request.Id }));
+        }
+
+        // Releases also go out by email so the learner keeps an official record.
+        if (status == DocumentRequestStatus.Released && !string.IsNullOrWhiteSpace(request.Student?.Email))
+        {
+            try
+            {
+                var logoPath = Url.Content("~/images/logo.jpg");
+                if (logoPath.StartsWith("~")) logoPath = logoPath[1..];
+                var logoUrl = $"{Request.Scheme}://{Request.Host}{logoPath}";
+                var portalUrl = Url.Action(nameof(Details), "DocumentRequests", new { id = request.Id }, Request.Scheme);
+
+                var emailBody = EmailTemplates.DocumentReleased(
+                    request.Student.FullName,
+                    request.RequestNumber,
+                    request.DocumentType.Name,
+                    request.Copies,
+                    request.ReleasedAt ?? DateTime.UtcNow,
+                    request.Remarks,
+                    portalUrl,
+                    logoUrl);
+
+                await _email.SendEmailAsync(request.Student.Email!, $"Document released — {request.RequestNumber}", emailBody);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send document release email for request {RequestNumber}.", request.RequestNumber);
+            }
         }
 
         await _audit.LogAsync("Update Request Status", "DocumentRequest", request.Id,

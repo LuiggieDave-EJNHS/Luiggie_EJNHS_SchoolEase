@@ -396,9 +396,9 @@ public class DashboardService : IDashboardService
             .ToListAsync();
 
         vm.LatestGrades = grades.Take(6).ToList();
-        vm.GeneralAverage = grades.Where(g => g.FinalGrade.HasValue).Select(g => g.FinalGrade!.Value)
-            .DefaultIfEmpty()
-            .Average();
+        var gradedValues = grades.Where(g => g.FinalGrade.HasValue).Select(g => g.FinalGrade!.Value).ToList();
+        // No graded records should read as "N/A" on the dashboard, not a 0.00 average.
+        vm.GeneralAverage = gradedValues.Count == 0 ? null : Math.Round(gradedValues.Average(), 2);
 
         // Counted in SQL so a learner's whole attendance history is never loaded.
         var attendanceCounts = await _db.AttendanceRecords
