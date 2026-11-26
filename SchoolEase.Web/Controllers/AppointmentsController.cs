@@ -452,7 +452,7 @@ public class AppointmentsController : Controller
     }
 
     [HttpPost]
-    public async Task<IActionResult> Book(int slotId, string reason, DateTime? preferredDate)
+    public async Task<IActionResult> Book(int slotId, string reason, DateTime? preferredDate, string? documentRequestNumber)
     {
         if (!CanBook) return RedirectToAction(nameof(Index));
 
@@ -470,6 +470,14 @@ public class AppointmentsController : Controller
         if (string.IsNullOrWhiteSpace(reason))
         {
             ModelState.AddModelError(nameof(reason), "Please tell us the reason for your appointment.");
+        }
+
+        // Require the request number when the slot is for document claiming.
+        if (slot.Purpose == AppointmentPurpose.DocumentClaim
+            && string.IsNullOrWhiteSpace(documentRequestNumber))
+        {
+            ModelState.AddModelError(nameof(documentRequestNumber),
+                "Paste your Document Request ID (e.g. DR-2026-0001) so we can pull up your request.");
         }
 
         var chosenDate = (preferredDate ?? slot.StartDate).Date;
@@ -504,6 +512,9 @@ public class AppointmentsController : Controller
             Purpose = slot.Purpose,
             Reason = reason.Trim(),
             PreferredDate = chosenDate,
+            DocumentRequestNumber = string.IsNullOrWhiteSpace(documentRequestNumber)
+                ? null
+                : documentRequestNumber.Trim(),
             Status = AppointmentStatus.Booked,
             CreatedAt = DateTime.UtcNow
         };
@@ -544,6 +555,15 @@ public class AppointmentsController : Controller
             ModelState.AddModelError(nameof(model.PreferredDate), "Pick today or a later day.");
         }
 
+        // A Document Claiming appointment must carry the request number so staff can
+        // open the matching request without hunting through the worklist.
+        if (model.Purpose == AppointmentPurpose.DocumentClaim
+            && string.IsNullOrWhiteSpace(model.DocumentRequestNumber))
+        {
+            ModelState.AddModelError(nameof(model.DocumentRequestNumber),
+                "Paste your Document Request ID (e.g. DR-2026-0001) so we can pull up your request.");
+        }
+
         if (!ModelState.IsValid)
         {
             ViewData["Title"] = "Request an Appointment";
@@ -562,6 +582,9 @@ public class AppointmentsController : Controller
             Reason = model.Reason.Trim(),
             PreferredDate = model.PreferredDate?.Date,
             PreferredTime = model.PreferredTime,
+            DocumentRequestNumber = string.IsNullOrWhiteSpace(model.DocumentRequestNumber)
+                ? null
+                : model.DocumentRequestNumber.Trim(),
             Status = AppointmentStatus.Requested,
             CreatedAt = DateTime.UtcNow
         };

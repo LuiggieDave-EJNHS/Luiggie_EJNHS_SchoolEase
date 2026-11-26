@@ -78,6 +78,14 @@ public class AppointmentRequestFormViewModel
     [Display(Name = "What do you need?")]
     public string Reason { get; set; } = string.Empty;
 
+    /// <summary>
+    /// The document request number (e.g. DR-2026-0001) the learner is claiming.
+    /// Required when the purpose is Document Claiming so staff can open the request in one click.
+    /// </summary>
+    [StringLength(30)]
+    [Display(Name = "Document Request ID")]
+    public string? DocumentRequestNumber { get; set; }
+
     public List<SelectListItem> Purposes { get; set; } = new();
 }
 

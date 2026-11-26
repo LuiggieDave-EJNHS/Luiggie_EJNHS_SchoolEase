@@ -28,6 +28,16 @@
                         <span asp-validation-for="Purpose" class="text-danger se-small"></span>
                     </div>
 
+                    <div class="mb-3" id="docRequestField">
+                        <label class="se-form-label" asp-for="DocumentRequestNumber">Document Request ID</label>
+                        <input asp-for="DocumentRequestNumber" class="form-control"
+                               placeholder="e.g. DR-2026-0001" maxlength="30" />
+                        <span class="se-tiny se-muted d-block">
+                            Paste your request number when claiming documents. Find it under <strong>My Document Requests</strong>.
+                        </span>
+                        <span asp-validation-for="DocumentRequestNumber" class="text-danger se-small d-block"></span>
+                    </div>
+
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="se-form-label" asp-for="PreferredDate">Preferred date</label>
@@ -74,3 +84,19 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        (function () {
+            var purpose = document.getElementById('Purpose');
+            var field = document.getElementById('docRequestField');
+            var label = field.querySelector('.se-form-label');
+            function sync() {
+                var isClaim = purpose.value === '@((int)AppointmentPurpose.DocumentClaim)';
+                label.innerHTML = 'Document Request ID ' + (isClaim ? '<span class="req">*</span>' : '');
+            }
+            purpose.addEventListener('change', sync);
+            sync();
+        })();
+    </script>
+}

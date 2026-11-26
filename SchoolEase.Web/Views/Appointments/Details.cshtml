@@ -118,7 +118,20 @@
                                             </span>
                                         </span>
                                     </td>
-                                    <td>@booking.Reason</td>
+                                    <td>
+                                        @booking.Reason
+                                        @if (!string.IsNullOrWhiteSpace(booking.DocumentRequestNumber))
+                                        {
+                                            <div class="mt-1">
+                                                <a class="btn btn-sm btn-outline-secondary"
+                                                   asp-controller="DocumentRequests" asp-action="Index"
+                                                   asp-route-keyword="@booking.DocumentRequestNumber"
+                                                   title="Open the matching document request">
+                                                    <i class="bi bi-file-earmark-text me-1"></i>@booking.DocumentRequestNumber
+                                                </a>
+                                            </div>
+                                        }
+                                    </td>
                                     <td>@(booking.PreferredDate?.ToDateLabel() ?? booking.CreatedAt.ToLocalTime().ToDateLabel())</td>
                                     <td>
                                         <span class="se-badge text-bg-@booking.Status.BootstrapTone()">

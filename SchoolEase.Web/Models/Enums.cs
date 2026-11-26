@@ -109,6 +109,7 @@ public enum AppointmentPurpose
     [Display(Name = "Guidance & Counselling")] Guidance = 3,
     [Display(Name = "Academic Consultation")] Academic = 4,
     [Display(Name = "Finance / Payments")] Finance = 5,
+    [Display(Name = "Enrollment")] Enrollment = 6,
     [Display(Name = "Other")] Other = 99
 }
 

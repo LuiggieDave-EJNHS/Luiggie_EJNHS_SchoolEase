@@ -41,6 +41,15 @@ public class Appointment
     [Display(Name = "Reason")]
     public string Reason { get; set; } = string.Empty;
 
+    /// <summary>
+    /// The document request number (e.g. DR-2026-0001) the learner is claiming,
+    /// pasted when the appointment purpose is Document Claiming. Lets staff jump
+    /// straight to the matching request.
+    /// </summary>
+    [StringLength(30)]
+    [Display(Name = "Document Request ID")]
+    public string? DocumentRequestNumber { get; set; }
+
     /// <summary>Day the learner picked (inside the slot's range, or the day hoped for on a request).</summary>
     [DataType(DataType.Date)]
     [Display(Name = "Preferred date")]

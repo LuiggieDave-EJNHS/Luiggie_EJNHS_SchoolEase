@@ -63,7 +63,20 @@ else
                             </td>
                             <td>@request.EffectivePurpose.DisplayName()</td>
                             <td>@request.ScheduleLabel</td>
-                            <td>@request.Reason</td>
+                            <td>
+                                @request.Reason
+                                @if (!string.IsNullOrWhiteSpace(request.DocumentRequestNumber))
+                                {
+                                    <div class="mt-1">
+                                        <a class="btn btn-sm btn-outline-secondary"
+                                           asp-controller="DocumentRequests" asp-action="Index"
+                                           asp-route-keyword="@request.DocumentRequestNumber"
+                                           title="Open the matching document request">
+                                            <i class="bi bi-file-earmark-text me-1"></i>@request.DocumentRequestNumber
+                                        </a>
+                                    </div>
+                                }
+                            </td>
                             <td class="se-col-actions">
                                 @if (Model.OpenSlots.Count > 0)
                                 {

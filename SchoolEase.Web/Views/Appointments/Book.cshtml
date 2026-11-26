@@ -39,6 +39,29 @@
                         <span class="text-danger se-small">@Html.ValidationMessage("reason")</span>
                     </div>
 
+                    <div class="mb-3" id="docRequestField">
+                        <label class="se-form-label" for="documentRequestNumber">
+                            Document Request ID
+                            @if (Model.Purpose == AppointmentPurpose.DocumentClaim)
+                            {
+                                <span class="req">*</span>
+                            }
+                        </label>
+                        <input id="documentRequestNumber" name="documentRequestNumber" type="text" class="form-control"
+                               placeholder="e.g. DR-2026-0001" maxlength="30" />
+                        <span class="se-tiny se-muted d-block">
+                            @if (Model.Purpose == AppointmentPurpose.DocumentClaim)
+                            {
+                                <text>Paste your request number so the registrar can pull up your request instantly.</text>
+                            }
+                            else
+                            {
+                                <text>Optional — paste your request number if this visit is to claim documents.</text>
+                            }
+                        </span>
+                        <span class="text-danger se-small">@Html.ValidationMessage("documentRequestNumber")</span>
+                    </div>
+
                     <div class="form-actions">
                         <button type="submit" class="btn btn-primary"><i class="bi bi-calendar-check me-1"></i>Confirm booking</button>
                         <a class="btn btn-light" asp-action="MyAppointments">Cancel</a>

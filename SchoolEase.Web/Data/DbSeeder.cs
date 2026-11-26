@@ -294,6 +294,10 @@ public static class DbSeeder
             // so an older table that still marks the column NOT NULL must be relaxed the same way as SlotId.
             await db.Database.ExecuteSqlRawAsync(
                 "ALTER TABLE \"Appointments\" ALTER COLUMN \"StudentId\" DROP NOT NULL;");
+            // Optional document-request link: learners paste their request number (e.g. DR-2026-0001)
+            // when booking a Document Claiming appointment so staff can jump straight to it.
+            await db.Database.ExecuteSqlRawAsync(
+                "ALTER TABLE \"Appointments\" ADD COLUMN IF NOT EXISTS \"DocumentRequestNumber\" character varying(30);");
             await db.Database.ExecuteSqlRawAsync(
                 "ALTER TABLE \"Appointments\" DROP CONSTRAINT IF EXISTS \"FK_Appointments_AppointmentSlots_SlotId\";");
             await db.Database.ExecuteSqlRawAsync("""
@@ -472,6 +476,12 @@ public static class DbSeeder
                         FOREIGN KEY ("StudentId") REFERENCES "Students" ("Id") ON DELETE SET NULL
                 );
                 """);
+
+            if (!await SqliteColumnExistsAsync(db, "Appointments", "DocumentRequestNumber"))
+            {
+                await db.Database.ExecuteSqlRawAsync(
+                    "ALTER TABLE \"Appointments\" ADD COLUMN \"DocumentRequestNumber\" TEXT;");
+            }
 
             await db.Database.ExecuteSqlRawAsync(
                 "CREATE INDEX IF NOT EXISTS \"IX_AppointmentSlots_StartDate\" ON \"AppointmentSlots\" (\"StartDate\");");
