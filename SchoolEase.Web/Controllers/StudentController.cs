@@ -20,43 +20,29 @@ public class StudentController : Controller
     private readonly ICurrentUserService _currentUser;
     private readonly IDashboardService _dashboard;
     private readonly IFileStorage _storage;
+    private readonly IAuditService _audit;
 
     public StudentController(
         ApplicationDbContext db,
         ICurrentUserService currentUser,
         IDashboardService dashboard,
-        IFileStorage storage)
+        IFileStorage storage,
+        IAuditService audit)
     {
         _db = db;
         _currentUser = currentUser;
         _dashboard = dashboard;
         _storage = storage;
+        _audit = audit;
     }
 
     // ------------------------------------------------------------------
     public async Task<IActionResult> Dashboard()
     {
         var userId = _currentUser.UserId!;
-        var student = await LoadStudentAsync();
 
         // Auto-link a minimal record for Former Students if missing
-        if (student is null && _currentUser.IsFormerStudent)
-        {
-            var names = _currentUser.FullName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            student = new Student
-            {
-                UserId = userId,
-                FirstName = names.FirstOrDefault() ?? "Former",
-                LastName = names.Length > 1 ? string.Join(" ", names.Skip(1)) : "Student",
-                Email = _currentUser.UserName,
-                EnrollmentStatus = EnrollmentStatus.Graduated,
-                IsActive = true,
-                StudentNumber = $"ALM-{DateTime.UtcNow:yyyyMMddHHmmss}"
-            };
-
-            _db.Students.Add(student);
-            await _db.SaveChangesAsync();
-        }
+        await EnsureStudentAsync();
 
         var vm = await _dashboard.BuildStudentDashboardAsync(userId);
 
@@ -290,6 +276,58 @@ public class StudentController : Controller
     }
 
     // ------------------------------------------------------------------
+    /// <summary>Lets the learner scan or pick a file and add it to their own 201 file.</summary>
+    [HttpGet]
+    public async Task<IActionResult> UploadDocument()
+    {
+        var student = await EnsureStudentAsync();
+        if (student is null) return NotFound();
+
+        ViewData["Title"] = "Upload a record";
+        return View(new StudentDocumentFormViewModel());
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> UploadDocument(StudentDocumentFormViewModel model)
+    {
+        var student = await EnsureStudentAsync();
+        if (student is null) return NotFound();
+
+        var upload = model.File ?? model.Camera;
+        DocumentUpload.Validate(upload, ModelState, nameof(model.File), required: true);
+
+        if (!ModelState.IsValid)
+        {
+            ViewData["Title"] = "Upload a record";
+            return View(model);
+        }
+
+        var document = new StudentDocument
+        {
+            StudentId = student.Id,
+            Title = model.Title.Trim(),
+            Category = model.Category,
+            Description = model.Description?.Trim(),
+            IsVisibleToStudent = true,
+            SchoolYear = SchoolInfo.SchoolYear,
+            UploaderName = _currentUser.FullName,
+            UploadedByUserId = _currentUser.UserId,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        await DocumentUpload.StoreAsync(document, upload!, _storage);
+
+        _db.StudentDocuments.Add(document);
+        await _db.SaveChangesAsync();
+
+        await _audit.LogAsync("Upload Own Document", "StudentDocument", document.Id,
+            $"{document.Title} ({document.Category.DisplayName()}) uploaded by the learner.");
+
+        TempData["Success"] = "Your record was added to your 201 file.";
+        return RedirectToAction(nameof(Documents));
+    }
+
+    // ------------------------------------------------------------------
     public async Task<IActionResult> PreviewDocument(int id)
     {
         var document = await LoadOwnDocumentAsync(id);
@@ -336,6 +374,33 @@ public class StudentController : Controller
             : document.FileContent;
 
     // ------------------------------------------------------------------
+    /// <summary>
+    /// Loads the signed-in learner's record, creating a minimal one for a former student
+    /// who has none so self-service pages (records, uploads) keep working.
+    /// </summary>
+    private async Task<Student?> EnsureStudentAsync()
+    {
+        var student = await LoadStudentAsync();
+        if (student is not null) return student;
+        if (!_currentUser.IsFormerStudent) return null;
+
+        var names = _currentUser.FullName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        student = new Student
+        {
+            UserId = _currentUser.UserId!,
+            FirstName = names.FirstOrDefault() ?? "Former",
+            LastName = names.Length > 1 ? string.Join(" ", names.Skip(1)) : "Student",
+            Email = _currentUser.UserName,
+            EnrollmentStatus = EnrollmentStatus.Graduated,
+            IsActive = true,
+            StudentNumber = $"ALM-{DateTime.UtcNow:yyyyMMddHHmmss}"
+        };
+
+        _db.Students.Add(student);
+        await _db.SaveChangesAsync();
+        return student;
+    }
+
     private Task<Student?> LoadStudentAsync()
     {
         var uid = _currentUser.UserId;

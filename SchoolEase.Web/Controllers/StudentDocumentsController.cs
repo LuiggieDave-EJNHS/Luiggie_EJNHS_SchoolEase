@@ -17,13 +17,6 @@ namespace SchoolEase.Web.Controllers;
 [Authorize(Policy = Policies.StaffOnly)]
 public class StudentDocumentsController : Controller
 {
-    private const long MaxFileSize = 20 * 1024 * 1024; // 20 MB
-
-    private static readonly string[] AllowedExtensions =
-    {
-        ".pdf", ".jpg", ".jpeg", ".png", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx"
-    };
-
     private readonly ApplicationDbContext _db;
     private readonly ICurrentUserService _currentUser;
     private readonly IAuditService _audit;
@@ -66,7 +59,8 @@ public class StudentDocumentsController : Controller
         if (student is null) return NotFound();
 
         model.StudentLabel = $"{student.FullName} • {student.StudentNumber}";
-        ValidateFile(model.File, required: true);
+        var upload = model.File ?? model.Camera;
+        DocumentUpload.Validate(upload, ModelState, nameof(model.File), required: true);
 
         if (!ModelState.IsValid)
         {
@@ -74,7 +68,6 @@ public class StudentDocumentsController : Controller
             return View(model);
         }
 
-        var file = model.File!;
         var document = new StudentDocument
         {
             StudentId = student.Id,
@@ -88,7 +81,7 @@ public class StudentDocumentsController : Controller
             CreatedAt = DateTime.UtcNow
         };
 
-        await StoreFileAsync(document, file);
+        await DocumentUpload.StoreAsync(document, upload!, _storage);
 
         _db.StudentDocuments.Add(document);
         await _db.SaveChangesAsync();
@@ -171,71 +164,4 @@ public class StudentDocumentsController : Controller
 
         return (bytes, document.ContentType);
     }
-
-    /// <summary>
-    /// Puts the upload in object storage when a bucket is configured, otherwise in the
-    /// row itself. The content type is derived from the extension rather than trusted
-    /// from the browser so a crafted upload cannot mislabel itself.
-    /// </summary>
-    private async Task StoreFileAsync(StudentDocument document, IFormFile file)
-    {
-        document.FileName = Path.GetFileName(file.FileName);
-        document.ContentType = ContentTypeFor(Path.GetExtension(document.FileName));
-        document.FileSize = file.Length;
-        document.StorageKey = null;
-        document.FileContent = Array.Empty<byte>();
-
-        if (_storage.IsConfigured)
-        {
-            await using var stream = file.OpenReadStream();
-            document.StorageKey = await _storage.UploadAsync(document.FileName, stream, document.ContentType);
-            return;
-        }
-
-        using var buffer = new MemoryStream();
-        await file.CopyToAsync(buffer);
-        document.FileContent = buffer.ToArray();
-    }
-
-    private void ValidateFile(IFormFile? file, bool required)
-    {
-        if (file is null)
-        {
-            if (required) ModelState.AddModelError(nameof(StudentDocumentFormViewModel.File), "Please choose a file to upload.");
-            return;
-        }
-
-        if (file.Length == 0)
-        {
-            ModelState.AddModelError(nameof(StudentDocumentFormViewModel.File), "The selected file is empty.");
-            return;
-        }
-
-        if (file.Length > MaxFileSize)
-        {
-            ModelState.AddModelError(nameof(StudentDocumentFormViewModel.File),
-                $"The file is too large. The maximum size is {LearningActivitySheet.FileSizeLabelOf(MaxFileSize)}.");
-        }
-
-        var extension = Path.GetExtension(file.FileName);
-        if (string.IsNullOrWhiteSpace(extension) || !AllowedExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase))
-        {
-            ModelState.AddModelError(nameof(StudentDocumentFormViewModel.File),
-                "Allowed file types: PDF, JPG, PNG, Word, Excel and PowerPoint.");
-        }
-    }
-
-    private static string ContentTypeFor(string extension) => extension.ToLowerInvariant() switch
-    {
-        ".pdf" => "application/pdf",
-        ".jpg" or ".jpeg" => "image/jpeg",
-        ".png" => "image/png",
-        ".doc" => "application/msword",
-        ".docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        ".xls" => "application/vnd.ms-excel",
-        ".xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        ".ppt" => "application/vnd.ms-powerpoint",
-        ".pptx" => "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-        _ => "application/octet-stream"
-    };
 }

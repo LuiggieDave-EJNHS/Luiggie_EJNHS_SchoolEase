@@ -90,6 +90,10 @@ public class StudentDocumentFormViewModel
     [Display(Name = "File")]
     public IFormFile? File { get; set; }
 
+    /// <summary>Filled by the "take a photo" input, which opens the camera on a phone.</summary>
+    [Display(Name = "Photo")]
+    public IFormFile? Camera { get; set; }
+
     public string? ExistingFileName { get; set; }
     public long ExistingFileSize { get; set; }
 }

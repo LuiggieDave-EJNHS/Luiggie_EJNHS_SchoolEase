@@ -1,0 +1,65 @@
+@model StudentDocumentFormViewModel
+@{
+    ViewData["Title"] = "Upload a record";
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = "Upload to my 201 file",
+    Subtitle = "Scan a page with your camera or pick a saved file to add to your learner record.",
+    Icon = "bi-cloud-arrow-up",
+    Actions = new List<PageAction>
+    {
+        new() { Text = "Back to my records", Url = Url.Action("Documents"), Icon = "bi-arrow-left", Css = "btn btn-light" }
+    }
+})" />
+
+<div class="se-card">
+    <div class="se-card__body">
+        <form asp-action="UploadDocument" method="post" enctype="multipart/form-data">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 se-small"></div>
+
+            <div class="se-form-grid">
+                <div class="se-form-section"><h3>Record</h3></div>
+
+                <div class="se-span-2">
+                    <label class="se-form-label" asp-for="Title">Title <span class="req">*</span></label>
+                    <input asp-for="Title" class="form-control" placeholder="e.g. PSA Birth Certificate" />
+                    <span asp-validation-for="Title" class="text-danger se-small"></span>
+                </div>
+
+                <div>
+                    <label class="se-form-label" asp-for="Category">Category</label>
+                    <select asp-for="Category" asp-items="Html.GetEnumSelectList<StudentDocumentCategory>()" class="form-select"></select>
+                    <span asp-validation-for="Category" class="text-danger se-small"></span>
+                </div>
+
+                <div>
+                    <label class="se-form-label" asp-for="File">File <span class="req">*</span></label>
+                    <input asp-for="File" type="file"
+                           accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.ppt,.pptx" class="form-control" />
+                    <span class="se-tiny se-muted d-block">PDF, image or Office document. Up to 20 MB.</span>
+                    <span asp-validation-for="File" class="text-danger se-small d-block"></span>
+                </div>
+
+                <div>
+                    <label class="se-form-label" asp-for="Camera">Or take a photo</label>
+                    <input asp-for="Camera" type="file" accept="image/*" capture="environment" class="form-control" />
+                    <span class="se-tiny se-muted d-block">On a phone this opens the camera. Fill either this or the file field.</span>
+                </div>
+
+                <div class="se-span-2">
+                    <label class="se-form-label" asp-for="Description">Description</label>
+                    <textarea asp-for="Description" rows="3" class="form-control"
+                              placeholder="Optional note about this record."></textarea>
+                    <span asp-validation-for="Description" class="text-danger se-small"></span>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-cloud-arrow-up me-1"></i>Upload</button>
+                <a class="btn btn-light" asp-action="Documents">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>

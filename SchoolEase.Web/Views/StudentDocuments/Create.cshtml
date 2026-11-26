@@ -43,6 +43,12 @@
                     <span asp-validation-for="File" class="text-danger se-small d-block"></span>
                 </div>
 
+                <div>
+                    <label class="se-form-label" asp-for="Camera">Or take a photo</label>
+                    <input asp-for="Camera" type="file" accept="image/*" capture="environment" class="form-control" />
+                    <span class="se-tiny se-muted d-block">On a phone this opens the camera. Fill either this or the file field.</span>
+                </div>
+
                 <div class="se-span-2">
                     <label class="se-form-label" asp-for="Description">Description</label>
                     <textarea asp-for="Description" rows="3" class="form-control"

@@ -8,7 +8,10 @@
     Title = "My Records",
     Subtitle = "Documents the school keeps in your learner record (201 file).",
     Icon = "bi-folder2-open",
-    Actions = new List<PageAction>()
+    Actions = new List<PageAction>
+    {
+        new() { Text = "Upload a record", Url = Url.Action("UploadDocument"), Icon = "bi-cloud-arrow-up", Css = "btn btn-primary" }
+    }
 })" />
 
 <div class="row g-3 mb-3">
