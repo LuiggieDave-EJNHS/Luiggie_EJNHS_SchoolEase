@@ -101,6 +101,59 @@ public class MyDocumentsViewModel
     public List<StudentDocument> Documents { get; set; } = new();
 }
 
+/// <summary>
+/// One row in the staff digital-document console. Carries only the display fields,
+/// never the file bytes, so browsing the console stays light.
+/// </summary>
+public class DocumentRowViewModel
+{
+    public int Id { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public StudentDocumentCategory Category { get; set; }
+    public string? Description { get; set; }
+    public string FileName { get; set; } = string.Empty;
+    public long FileSize { get; set; }
+    public bool IsVisibleToStudent { get; set; }
+    public string SchoolYear { get; set; } = string.Empty;
+    public string UploaderName { get; set; } = string.Empty;
+    public int DownloadCount { get; set; }
+    public DateTime CreatedAt { get; set; }
+
+    public int StudentId { get; set; }
+    public string FirstName { get; set; } = string.Empty;
+    public string? MiddleName { get; set; }
+    public string LastName { get; set; } = string.Empty;
+    public string? Suffix { get; set; }
+    public string StudentNumber { get; set; } = string.Empty;
+    public string? GradeLevelName { get; set; }
+    public string? SectionName { get; set; }
+
+    public string StudentName =>
+        string.Join(' ', new[] { FirstName, MiddleName, LastName }.Where(s => !string.IsNullOrWhiteSpace(s)))
+        + (string.IsNullOrWhiteSpace(Suffix) ? string.Empty : $" {Suffix}");
+
+    public string ClassLabel => GradeLevelName is null
+        ? "Unassigned"
+        : $"{GradeLevelName} - {(string.IsNullOrWhiteSpace(SectionName) ? "No Section" : SectionName)}";
+
+    public string FileSizeLabel => LearningActivitySheet.FileSizeLabelOf(FileSize);
+}
+
+/// <summary>Backing model for the digital document management console.</summary>
+public class DocumentManagementIndexViewModel
+{
+    public PagedList<DocumentRowViewModel> Documents { get; set; } = new(new List<DocumentRowViewModel>(), 0, 1, 15);
+    public List<StatCard> Stats { get; set; } = new();
+
+    public string? Keyword { get; set; }
+    public StudentDocumentCategory? Category { get; set; }
+    public int? GradeLevelId { get; set; }
+    public bool? Shared { get; set; }
+
+    public List<SelectListItem> Categories { get; set; } = new();
+    public List<SelectListItem> GradeLevels { get; set; } = new();
+}
+
 /// <summary>Backing model for the teaching personnel list screen.</summary>
 public class TeacherIndexViewModel
 {

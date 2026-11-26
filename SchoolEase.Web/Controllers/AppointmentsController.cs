@@ -40,8 +40,11 @@ public class AppointmentsController : Controller
         _currentUser.IsAdministrator || _currentUser.IsIctHeadCoordinator
         || _currentUser.IsTeacher || _currentUser.IsRegistrar;
 
-    /// <summary>True for accounts that may book or request a seat: learners (current and former) and teachers.</summary>
-    private bool CanBook => _currentUser.IsStudent || _currentUser.IsTeacher;
+    /// <summary>
+    /// True for accounts that may book or request a seat. Every signed-in account qualifies:
+    /// learners (current and former), teachers and the back-office staff alike.
+    /// </summary>
+    private bool CanBook => _currentUser.IsAuthenticated;
 
     // ------------------------------------------------------------------
     // Staff: manage slots

@@ -6,7 +6,7 @@
     {
         new() { Text = "Request Appointment", Url = Url.Action("RequestAppointment"), Icon = "bi-send", Css = "btn btn-primary" }
     };
-    if (CurrentUser.IsTeacher)
+    if (CurrentUser.IsTeacher || CurrentUser.IsAdministrator || CurrentUser.IsIctHeadCoordinator || CurrentUser.IsRegistrar)
     {
         actions.Insert(0, new PageAction { Text = "Manage Slots", Url = Url.Action("Index"), Icon = "bi-sliders", Css = "btn btn-light" });
     }
@@ -20,7 +20,7 @@
     Actions = actions
 })" />
 
-@if (Model.Student is null && !CurrentUser.IsTeacher)
+@if (Model.Student is null && CurrentUser.IsStudent)
 {
     <div class="se-card">
         <partial name="_EmptyState" model="@(new EmptyState

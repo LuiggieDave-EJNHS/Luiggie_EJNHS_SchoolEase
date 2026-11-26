@@ -97,6 +97,12 @@
             <a class="se-nav__link @Active("Appointments", "MyAppointments", "Book")" asp-controller="Appointments" asp-action="MyAppointments">
                 <i class="bi bi-calendar2-check"></i><span>My Appointments</span>
             </a>
+
+            <div class="se-nav__label">Digital Documents</div>
+            <a class="se-nav__link @Active("DocumentManagement")" asp-controller="DocumentManagement" asp-action="Index">
+                <i class="bi bi-folder2-open"></i><span>201 File Console</span>
+            </a>
+
             <div class="se-nav__label">School</div>
             <a class="se-nav__link @Active("Announcements")" asp-controller="Announcements" asp-action="Index">
                 <i class="bi bi-megaphone"></i><span>Announcements</span>
@@ -154,12 +160,20 @@
                 <i class="bi bi-journal-text"></i><span>Activity Sheets</span>
             </a>
 
-            <div class="se-nav__label">Records &amp; Communication</div>
+            <div class="se-nav__label">Digital Documents</div>
+            <a class="se-nav__link @Active("DocumentManagement")" asp-controller="DocumentManagement" asp-action="Index">
+                <i class="bi bi-folder2-open"></i><span>201 File Console</span>
+            </a>
             <a class="se-nav__link @Active("DocumentRequests")" asp-controller="DocumentRequests" asp-action="Index">
                 <i class="bi bi-file-earmark-text"></i><span>Document Requests</span>
             </a>
-            <a class="se-nav__link @Active("Appointments")" asp-controller="Appointments" asp-action="Index">
+
+            <div class="se-nav__label">Records &amp; Communication</div>
+            <a class="se-nav__link @Active("Appointments", "Index", "Create", "Edit", "Details", "Requests", "Approve", "Decline")" asp-controller="Appointments" asp-action="Index">
                 <i class="bi bi-calendar-check"></i><span>Appointments</span>
+            </a>
+            <a class="se-nav__link @Active("Appointments", "MyAppointments", "Book", "RequestAppointment")" asp-controller="Appointments" asp-action="MyAppointments">
+                <i class="bi bi-calendar2-check"></i><span>My Appointments</span>
             </a>
             <a class="se-nav__link @Active("Emailer")" asp-controller="Emailer" asp-action="Index">
                 <i class="bi bi-envelope-paper"></i><span>Email Center</span>
@@ -222,9 +236,20 @@
                 <i class="bi bi-journal-text"></i><span>Activity Sheets</span>
             </a>
 
+            <div class="se-nav__label">Digital Documents</div>
+            <a class="se-nav__link @Active("DocumentManagement")" asp-controller="DocumentManagement" asp-action="Index">
+                <i class="bi bi-folder2-open"></i><span>201 File Console</span>
+            </a>
+            <a class="se-nav__link @Active("DocumentRequests")" asp-controller="DocumentRequests" asp-action="Index">
+                <i class="bi bi-file-earmark-text"></i><span>Document Requests</span>
+            </a>
+
             <div class="se-nav__label">Records &amp; Communication</div>
-            <a class="se-nav__link @Active("Appointments")" asp-controller="Appointments" asp-action="Index">
+            <a class="se-nav__link @Active("Appointments", "Index", "Create", "Edit", "Details", "Requests", "Approve", "Decline")" asp-controller="Appointments" asp-action="Index">
                 <i class="bi bi-calendar-check"></i><span>Appointments</span>
+            </a>
+            <a class="se-nav__link @Active("Appointments", "MyAppointments", "Book", "RequestAppointment")" asp-controller="Appointments" asp-action="MyAppointments">
+                <i class="bi bi-calendar2-check"></i><span>My Appointments</span>
             </a>
             <a class="se-nav__link @Active("Reports")" asp-controller="Reports" asp-action="Index">
                 <i class="bi bi-file-earmark-bar-graph"></i><span>Reports</span>
@@ -247,11 +272,20 @@
             <a class="se-nav__link @Active("Dashboard")" asp-controller="Dashboard" asp-action="Index">
                 <i class="bi bi-speedometer2"></i><span>Dashboard</span>
             </a>
+            <div class="se-nav__label">Digital Documents</div>
+            <a class="se-nav__link @Active("DocumentManagement")" asp-controller="DocumentManagement" asp-action="Index">
+                <i class="bi bi-folder2-open"></i><span>201 File Console</span>
+            </a>
             <a class="se-nav__link @Active("DocumentRequests")" asp-controller="DocumentRequests" asp-action="Index">
                 <i class="bi bi-file-earmark-text"></i><span>Document Requests</span>
             </a>
-            <a class="se-nav__link @Active("Appointments")" asp-controller="Appointments" asp-action="Index">
-                <i class="bi bi-calendar-check"></i><span>Appointments</span>
+
+            <div class="se-nav__label">Appointments</div>
+            <a class="se-nav__link @Active("Appointments", "Index", "Create", "Edit", "Details", "Requests", "Approve", "Decline")" asp-controller="Appointments" asp-action="Index">
+                <i class="bi bi-calendar-check"></i><span>Manage Slots</span>
+            </a>
+            <a class="se-nav__link @Active("Appointments", "MyAppointments", "Book", "RequestAppointment")" asp-controller="Appointments" asp-action="MyAppointments">
+                <i class="bi bi-calendar2-check"></i><span>My Appointments</span>
             </a>
             <a class="se-nav__link @Active("Students", "Index", "Details", "Create", "Edit")" asp-controller="Students" asp-action="Index">
                 <i class="bi bi-people"></i><span>Students</span>

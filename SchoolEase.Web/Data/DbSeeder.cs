@@ -290,6 +290,10 @@ public static class DbSeeder
                 "ALTER TABLE \"Appointments\" ADD COLUMN IF NOT EXISTS \"PreferredTime\" interval;");
             await db.Database.ExecuteSqlRawAsync(
                 "ALTER TABLE \"Appointments\" ALTER COLUMN \"SlotId\" DROP NOT NULL;");
+            // Accounts without a linked learner record (former students, staff) book with a null StudentId,
+            // so an older table that still marks the column NOT NULL must be relaxed the same way as SlotId.
+            await db.Database.ExecuteSqlRawAsync(
+                "ALTER TABLE \"Appointments\" ALTER COLUMN \"StudentId\" DROP NOT NULL;");
             await db.Database.ExecuteSqlRawAsync(
                 "ALTER TABLE \"Appointments\" DROP CONSTRAINT IF EXISTS \"FK_Appointments_AppointmentSlots_SlotId\";");
             await db.Database.ExecuteSqlRawAsync("""

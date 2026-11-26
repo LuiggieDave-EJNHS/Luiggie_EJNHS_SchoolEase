@@ -1,0 +1,162 @@
+@model DocumentManagementIndexViewModel
+@{
+    ViewData["Title"] = "201 File Console";
+
+    var isFiltered = !string.IsNullOrWhiteSpace(Model.Keyword)
+        || Model.Category is not null
+        || Model.GradeLevelId is > 0
+        || Model.Shared is not null;
+}
+
+<partial name="_PageHeader" model="@(new PageHeader
+{
+    Title = "Digital Document Management",
+    Subtitle = $"Every scanned record kept across the school's 201 files for S.Y. {SchoolInfo.SchoolYear}",
+    Icon = "bi-folder2-open",
+    Actions = new List<PageAction>
+    {
+        new() { Text = "Upload to a Learner", Url = Url.Action("Index", "Students"), Icon = "bi-cloud-arrow-up", Css = "btn btn-light" },
+        new() { Text = "Document Requests", Url = Url.Action("Index", "DocumentRequests"), Icon = "bi-file-earmark-text", Css = "btn btn-primary" }
+    }
+})" />
+
+<div class="row g-3 mb-3">
+    @foreach (var card in Model.Stats)
+    {
+        <div class="col-6 col-xl-3">
+            <partial name="_StatCard" model="card" />
+        </div>
+    }
+</div>
+
+<div class="se-card">
+    <form method="get" class="se-filters">
+        <div class="se-filters__grow">
+            <label class="form-label se-small">Search</label>
+            <input type="search" name="keyword" value="@Model.Keyword" class="form-control"
+                   placeholder="Title, file name, learner name or student number" />
+        </div>
+        <div>
+            <label class="form-label se-small">Category</label>
+            <select name="category" asp-items="Model.Categories" class="form-select" data-se-autosubmit>
+                <option value="">All categories</option>
+            </select>
+        </div>
+        <div>
+            <label class="form-label se-small">Grade Level</label>
+            <select name="gradeLevelId" asp-items="Model.GradeLevels" class="form-select" data-se-autosubmit>
+                <option value="">All grade levels</option>
+            </select>
+        </div>
+        <div>
+            <label class="form-label se-small">Sharing</label>
+            <select name="shared" class="form-select" data-se-autosubmit>
+                <option value="">All records</option>
+                <option value="true" selected="@(Model.Shared == true)">Shared with learners</option>
+                <option value="false" selected="@(Model.Shared == false)">Staff only</option>
+            </select>
+        </div>
+        <div>
+            <button type="submit" class="btn btn-primary"><i class="bi bi-funnel me-1"></i>Apply</button>
+        </div>
+        <div>
+            <button type="button" class="btn btn-light" data-se-reset="@Url.Action("Index")">
+                <i class="bi bi-arrow-counterclockwise me-1"></i>Reset
+            </button>
+        </div>
+    </form>
+
+    @if (Model.Documents.Count == 0)
+    {
+        <partial name="_EmptyState" model="@(new EmptyState
+        {
+            Icon = "bi-folder2-open",
+            Title = isFiltered ? "No matching documents" : "No records on file yet",
+            Message = isFiltered
+                ? "Try adjusting or clearing the filters to see more documents."
+                : "Open a learner's profile and upload a record to build their digital 201 file.",
+            ActionText = "Go to students",
+            ActionUrl = Url.Action("Index", "Students")
+        })" />
+    }
+    else
+    {
+        <div class="se-table-wrap">
+            <table class="se-table">
+                <thead>
+                    <tr>
+                        <th>Learner</th>
+                        <th>Category</th>
+                        <th>Document</th>
+                        <th>File</th>
+                        <th>Sharing</th>
+                        <th>Uploaded</th>
+                        <th class="se-col-actions">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var doc in Model.Documents)
+                    {
+                        <tr>
+                            <td>
+                                <span class="d-flex align-items-center gap-2">
+                                    <span class="se-avatar se-avatar--@doc.StudentName.AvatarTone()">@doc.StudentName.Initials()</span>
+                                    <span>
+                                        <a class="se-strong d-block text-decoration-none" asp-controller="Students"
+                                           asp-action="Details" asp-route-id="@doc.StudentId">@doc.StudentName</a>
+                                        <span class="se-tiny se-muted">@doc.StudentNumber • @doc.ClassLabel</span>
+                                    </span>
+                                </span>
+                            </td>
+                            <td><span class="se-badge text-bg-secondary">@doc.Category.DisplayName()</span></td>
+                            <td>
+                                <span class="se-strong d-block">@doc.Title</span>
+                                @if (!string.IsNullOrWhiteSpace(doc.Description))
+                                {
+                                    <span class="se-tiny se-muted d-block">@doc.Description</span>
+                                }
+                            </td>
+                            <td>
+                                <span class="d-block se-small">@doc.FileSizeLabel</span>
+                                <span class="se-tiny se-muted d-block">@doc.DownloadCount download(s)</span>
+                            </td>
+                            <td>
+                                @if (doc.IsVisibleToStudent)
+                                {
+                                    <span class="se-badge text-bg-success"><i class="bi bi-eye"></i>Shared</span>
+                                }
+                                else
+                                {
+                                    <span class="se-badge text-bg-dark"><i class="bi bi-lock"></i>Staff only</span>
+                                }
+                            </td>
+                            <td>
+                                <span class="d-block se-small">@doc.CreatedAt.ToDateLabel()</span>
+                                <span class="se-tiny se-muted d-block">@doc.UploaderName</span>
+                            </td>
+                            <td class="se-col-actions">
+                                <div class="se-row-actions">
+                                    <a class="btn btn-sm btn-light" asp-controller="StudentDocuments" asp-action="Preview"
+                                       asp-route-id="@doc.Id" target="_blank" title="Preview"><i class="bi bi-eye"></i></a>
+                                    <a class="btn btn-sm btn-light" asp-controller="StudentDocuments" asp-action="Download"
+                                       asp-route-id="@doc.Id" title="Download"><i class="bi bi-download"></i></a>
+                                    <form asp-action="Delete" asp-route-id="@doc.Id" method="post" class="d-inline"
+                                          data-se-confirm="Delete this document from the 201 file? This cannot be undone.">
+                                        <input type="hidden" name="keyword" value="@Model.Keyword" />
+                                        <input type="hidden" name="category" value="@Model.Category" />
+                                        <input type="hidden" name="gradeLevelId" value="@Model.GradeLevelId" />
+                                        <input type="hidden" name="shared" value="@Model.Shared" />
+                                        <input type="hidden" name="page" value="@Model.Documents.PageIndex" />
+                                        <button type="submit" class="btn btn-sm btn-light text-danger" title="Delete"><i class="bi bi-trash"></i></button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+<partial name="_Pagination" model="@(ViewData["Pagination"] as PaginationInfo ?? new PaginationInfo())" />
